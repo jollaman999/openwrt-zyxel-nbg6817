@@ -1,0 +1,28 @@
+#!/bin/sh /etc/rc.common
+START=98
+
+. /etc/functions.sh
+include /lib/config
+
+start() {
+	config_load "sendmail"
+	config_get server mail_server_setup server 
+	config_get port mail_server_setup port 
+	config_get username mail_server_setup username 
+	config_get password mail_server_setup password
+	config_get account mail_server_setup account
+
+	echo "FromLineOverride=YES" > /var/ssmtp.conf
+	echo "UseTLS=YES" >> /var/ssmtp.conf
+	echo "mailhub=$server:$port" >> /var/ssmtp.conf
+	echo "AuthUser=$account" >> /var/ssmtp.conf
+	echo "AuthPass=$password" >> /var/ssmtp.conf
+
+	if [ "$port" == "587" ]; then
+		echo "UseSTARTTLS=YES" >> /var/ssmtp.conf
+	fi
+}
+
+stop() {
+	echo > /var/ssmtp.conf
+}

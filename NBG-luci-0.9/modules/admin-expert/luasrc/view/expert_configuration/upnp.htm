@@ -1,0 +1,161 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/jquery-1.2.6.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script >
+
+
+function addop(col){
+	
+    var x = document.getElementById("dropdata");
+	
+	var i;
+	var option;
+	
+	for (i=0; i*10 < col ; i++){
+		option = document.createElement("option");
+		option.text = i + 1;
+		x.add(option);
+	}
+ 	
+}
+
+function nextPage()
+{
+	var item = document.getElementById("dropdata").selectedIndex + 1;
+	
+	for (var i=0;i <= <%=datacol%>;i++){
+	
+		if (( i > item*10-10)&&(i <= item*10)){
+			document.getElementById("table1").rows[i+1].style.display = "";
+		}
+		else
+		{
+			document.getElementById("table1").rows[i+1].style.display = "none";
+		}
+	}
+	document.getElementById("table1").rows[1].style.display = "";
+}
+
+</script>
+</head>
+<body onload="addop(<%=datacol%>);nextPage();" >
+<form>
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:UPnP%></div></td>
+    <td>&nbsp;</td>
+      <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" onClick="skm_LockScreen();"/></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:Cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+
+   <div id="table">
+      <ul>
+      
+         <li class="table_content">
+            <div class="data">
+               <ul>
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:UPnP%>  :</li>
+                        <li class="right_table">
+                           <%
+                              local enabled = uci:get( "upnpd", "config", "enabled" )
+                              if nil == enabled or "0" == enabled then
+                                 enabled = false
+                              else
+                                 enabled = true
+                              end
+                           %>
+                           <input name="UPnPState" id="radio" type="radio" value="enable" <% if enabled then %> checked="checked" <% end %> /> <%:Enable%>
+                           <input name="UPnPState" id="radio2" type="radio" value="disable" <% if not enabled then %> checked="checked" <%  end %> /> <%:Disable%>
+                        </li>
+                     </ul>
+                  </div>
+				  
+				  <div class="space"></div>
+				 
+				  
+                  <div class="w_text" >
+				  <ul>
+					<li class="left_table">
+						<%:log_display%> :
+						<select id="dropdata" onchange="nextPage();" >
+						</select>
+					</li>
+					</ul>
+				  </div>
+					<div class="tableframe" >	
+                     <table class="table_frame" width="100%" align="center" id="table1">
+						<tr>
+							<td colspan="5" class="table_title"><%:UPnP_Portmap_Table%></td>
+
+						</tr>
+						<tr class="top_font">
+							<td>#</td>
+							<td><%:Protocol%></td>
+							<td><%:Out_Port%></td>
+							<td><%:In_Port%></td>
+							<td><%:IP_Address%></td>
+						</tr>
+						<% luci.sys.net.upnp(function(rt) %>
+						<tr  class="table_font" align="center" id="data"  >
+							<td><%=rt.index%></td>
+							<td><%=rt.prtocal%></td>
+							<td><%=rt.inPort%></td>
+							<td><%=rt.exPort%></td>
+							<td><%=rt.ipAdd%></td>
+						</tr>						
+						 <% end) %>
+						
+					 </table> 
+                  </div>
+                
+               </ul>
+            </div>
+         </li>
+     
+      </ul>
+   </div>
+   </div>
+</form>
+</body>
+</html>

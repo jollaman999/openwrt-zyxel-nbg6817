@@ -1,0 +1,180 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"  />
+<meta http-equiv="Pragma" content="no-cache">
+<title>.::<%:welcome_to_nbg6716%>::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<style>
+td {white-space: nowrap;}
+</style>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript" type="text/javascript">
+function rescan()
+{
+	var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","management","media_sharing")%>';
+	var loc = submit_url + '?rescan=Rescan';
+	var code = 'location="' + loc + '"';
+     	eval(code);
+}
+
+</script>
+</head>
+<body>
+<div id="apDiv1">
+<%
+   local dlnaType = {
+      [ "0" ] = "None",
+      [ "1" ] = "All",
+      [ "2" ] = "Music",
+      [ "3" ] = "Photos",
+      [ "4" ] = "Videos",
+      [ "5" ] = "Photos & Videos",
+      [ "6" ] = "Music & Videos",
+      [ "7" ] = "Music & Photos"
+   }
+
+   local usb0_type = uci:get( "dlna", "main", "usb0_type" )
+   local usb1_type = uci:get( "dlna", "main", "usb1_type" )
+%>
+<form method="post" name="DLNA">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Media%></div></td>
+    <td>&nbsp;</td>
+
+      <td width="100" valign="top"><div class="apply"  ><input type="submit" id="bmApply" name="apply" value="<%:Apply%>"onClick="skm_LockScreen();" ></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input type="reset" id="bmReset" name="Cancel" value="<%:cancel%>"></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+<div id="table">
+  <ul>
+
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <li class="title">
+
+                <%:dlna_setup %>
+            <% enable = uci:get("dlna","main","enabled") %>
+          </li>
+		  </ul>
+
+          <div class="w_text">
+		  <ul>
+		  <li class="left_table" >
+            <%:Enable_DLNA%>
+				</li>
+				<li class="right_table">
+					<input name="dlnaEnable" type="radio" value="1" <%if enable == "1" then%> checked = "CHECKED" <%end%> /><%:enable%>
+					<input name="dlnaEnable" type="radio" value="0" <%if enable == "0" then%> checked = "CHECKED" <%end%> /><%:disable%>
+				</li>
+				</ul>
+          </div>
+
+	  <%
+		usb1_photo = uci:get("dlna","main","usb1_photo")
+		usb1_music = uci:get("dlna","main","usb1_music")
+		usb1_video = uci:get("dlna","main","usb1_video")
+		usb2_photo = uci:get("dlna","main","usb2_photo")
+		usb2_music = uci:get("dlna","main","usb2_music")
+		usb2_video = uci:get("dlna","main","usb2_video")
+
+	%>
+	  <div class="space"></div>
+	  <ul>
+	  <li class="title"><%:shared_folders%></li>
+		</ul>
+
+		 <div class="w_text">
+		  <ul>
+				<li class="left_table" >
+					<%:usb1%> :
+				</li>
+				<li class="right_table">
+					<input name="usb1Photo" value=1 type="checkbox" <%if usb1_photo == "1" then%>checked<%end%> ><%:Photo%>
+					<input name="usb1Music" value=1 type="checkbox" <%if usb1_music == "1" then%>checked<%end%> ><%:Music%>
+					<input name="usb1Video" value=1 type="checkbox" <%if usb1_video == "1" then%>checked<%end%> ><%:Video%>
+				</li>
+			</ul>
+          </div>
+		  		 <div class="w_text" id="usb2" <%if usb_status == "1" then%>style="display: none;"<%end%>>
+		  <ul>
+				<li class="left_table" >
+					<%:usb2%> :
+				</li>
+				<li class="right_table">
+					<input name="usb2Photo" value=1 type="checkbox" <%if usb2_photo == "1" then%>checked<%end%> ><%:Photo%>
+					<input name="usb2Music" value=1 type="checkbox" <%if usb2_music == "1" then%>checked<%end%> ><%:Music%>
+					<input name="usb2Video" value=1 type="checkbox" <%if usb2_video == "1" then%>checked<%end%> ><%:Video%>
+				</li>
+			</ul>
+          </div>
+
+<ul>
+	  <li class="space"></li>
+	  <li class="title"><%:rescan_content%></li>
+	  <li class="w_text">
+             <ul>
+                <input value="<%:rescan%>" type="button" onclick="rescan()" />
+             </ul>
+          </li>
+	  <div class="spaceair"></div>
+	  <div class="spaceair"></div>
+	  <div class="w_text"><span class="i_note"><%:Note%>:</span></div>
+          <div class="w_text"><span class="i_note_a"><%:dlna_note%></span></div>
+        </ul>
+      </div>
+      <div class="spaceair"></div>
+    </li>
+<!--     <li class="table_button">
+      <div class="button">
+        <center>
+          <input type="submit" id="bmApply" name="apply" value="<%:Apply%>" >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <input type="reset" id="bmReset" name="Cancel" value="<%:cancel%>">
+        </center>
+      </div>
+    </li> -->
+  </ul>
+</div>
+</div>
+</form>
+</div>
+</body>
+<script language="JavaScript">
+	<!-- showFullPath(' <%:Management%> > <%:Media%> > <%:DLNA%>'); -->
+</script>
+</html>

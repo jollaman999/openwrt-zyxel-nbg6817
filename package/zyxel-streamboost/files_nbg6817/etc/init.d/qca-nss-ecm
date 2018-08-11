@@ -1,0 +1,118 @@
+#!/bin/sh  /etc/rc.common
+#
+# Copyright (c) 2014 The Linux Foundation. All rights reserved.
+#
+# The shebang above has an extra space intentially to avoid having
+# openwrt build scripts automatically enable this package starting
+# at boot.
+
+START=70
+
+CONF_FILE=/etc/sysctl.d/qca-nss-ecm.conf
+
+support_bridge() {
+	#NSS support bridge acceleration
+	[ -d /sys/kernel/debug/ecm/ecm_nss_conntrack_notifier ] && return 0
+	#SFE don't support bridge acceleration
+	[ -d /sys/kernel/debug/ecm/ecm_sfe_conntrack_notifier ] && return 1
+}
+
+load_sfe() {
+	[ -d /sys/module/shortcut_fe ] || insmod shortcut-fe
+	[ -d /sys/module/shortcut_fe_ipv6 ] || insmod shortcut-fe-ipv6
+	[ -d /sys/module/shortcut_fe_drv ] || insmod shortcut-fe-drv
+}
+
+load_ecm() {
+	[ -d /sys/module/ecm ] || {
+		load_sfe
+		insmod ecm
+	}
+
+	support_bridge && {
+		sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+		sysctl -w net.bridge.bridge-nf-call-iptables=1
+	}
+}
+
+unload_ecm() {
+	[ -d /sys/module/ecm ] && rmmod ecm
+
+	sysctl -w net.bridge.bridge-nf-call-ip6tables=0
+	sysctl -w net.bridge.bridge-nf-call-iptables=0
+}
+
+setopt() {
+	local name=$1
+	local val=$2
+
+	grep -q "^${name}" ${CONF_FILE} && \
+		sed -i "s,^${name}.*,${name}=${val}," ${CONF_FILE} || \
+		echo "${name}=${val}" >> ${CONF_FILE}
+}
+
+delopt() {
+	local name=$1
+
+	sed -i "/^${name}/d" ${CONF_FILE}
+}
+
+start() {
+	proto=$(uci get network.wan.proto)
+	parental_ex=$(uci get parental_ex.general.enable)
+
+	if [ "$parental_ex" == "1" ] || [ "$proto" == "pptp" ]; then
+		log=$(sysctl -a | grep "net.bridge.bridge-nf-call-iptables")
+		if [ "$log" == "net.bridge.bridge-nf-call-iptables = 1" ];then
+			/etc/init.d/qca-nss-ecm stop
+		fi
+	else
+		load_ecm
+
+		setopt dev.nss.general.redirect 1
+		support_bridge && {
+			setopt net.bridge.bridge-nf-call-ip6tables 1
+			setopt net.bridge.bridge-nf-call-iptables 1
+		}
+	fi
+
+	##check mode,if AP, The NSS is disabled.
+	[ -e /etc/init.d/qca-nss-ecm ] && {
+		local sys_mode=$(uci get system.main.system_mode)
+		[ "$sys_mode" == "2" -o "$sys_mode" == "3" ] && /etc/init.d/qca-nss-ecm stop
+	}
+
+	countrycode=$(fw_printenv countrycode | awk -F"=" '{print $2}' | tr [a-f] [A-F])
+	if [ "$countrycode" == "E1" ]; then
+		echo "Rdeuce Power Loss for ERP requesting."
+	else
+        	echo "0" > /proc/sys/dev/nss/clock/auto_scale
+        	echo "800000000" > /proc/sys/dev/nss/clock/current_freq
+	fi
+
+}
+
+restart() {
+        proto=$(uci get network.wan.proto)
+        parental_ex=$(uci get parental_ex.general.enable)
+
+        if [ "$parental_ex" == "1" ] || [ "$proto" == "pptp" ]; then
+		log=$(sysctl -a | grep "net.bridge.bridge-nf-call-iptables")
+                if [ "$log" == "net.bridge.bridge-nf-call-iptables = 1" ];then
+                        /etc/init.d/qca-nss-ecm stop
+		else
+			exit 0
+                fi
+        else
+		stop
+		start
+        fi
+}
+
+stop() {
+	unload_ecm
+
+	delopt dev.nss.general.redirect
+	delopt net.bridge.bridge-nf-call-ip6tables
+	delopt net.bridge.bridge-nf-call-iptables
+}

@@ -1,0 +1,45 @@
+Source-Makefile: feeds/streamboost/bwestd/Makefile
+Package: bwestd
+Submenu: Bandwidth Estimation
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +hiredis +libpthread +libpcap +libsbdaemon
+Menu-Depends: 
+Provides: 
+Build-Depends: argp-standalone
+Section: opt
+Category: Bigfoot
+Title: Bandwidth Estimator Daemon
+Maintainer: Kyle Stein <kstein@qca.qualcomm.com>
+Source: bwestd-.tar.gz
+Type: ipkg
+Description: Bandwidth Estimator Daemon continuously monitors network to estimate available bandwidth.
+Kyle Stein <kstein@qca.qualcomm.com>
+@@
+Config:
+   	menu "overwrite package version"
+		depends on PACKAGE_bwestd
+	config bwestd_USE_CUSTOM_VERSION
+		depends on PACKAGE_bwestd
+		bool "Use custom package version"
+		default n
+
+	config bwestd_CUSTOM_VERSION
+		depends on bwestd_USE_CUSTOM_VERSION
+		string "bwestd version as string (default version: )"
+		default ""
+
+	endmenu
+   	menu "custom source directory"
+		depends on PACKAGE_bwestd
+	config bwestd_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_bwestd
+		bool "Use custom source directory"
+		default n
+	config bwestd_CUSTOM_SOURCE_DIR
+		depends on bwestd_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+

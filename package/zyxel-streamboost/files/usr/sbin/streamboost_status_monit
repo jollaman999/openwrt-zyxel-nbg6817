@@ -1,0 +1,105 @@
+#!/bin/sh
+
+product_name=$(uci get system.main.product_name)
+
+if [ "$product_name" == "NBG6817" ];then
+
+/usr/sbin/streamboost status_monit
+action=$?
+
+[ "$action" -eq 1 ] && /usr/sbin/streamboost stop
+[ "$action" -gt 1 ] && /usr/sbin/streamboost restart
+
+
+#Backup redis-server info to eMMC every 12 hours
+system_h_time=$(date +%H)
+time_h=$(($system_h_time%12))
+
+system_m_time=$(date +%M)
+system_m_sum=$(($system_m_time+3))
+
+times=$(date)
+
+if [ $time_h -eq 0 ] && [ $system_m_sum -le 5 ] ;then
+
+	if [ -d /tmp/run/appflow/streamboost.lock ]; then
+		rm -rf /tmp/run/appflow/streamboost.lock
+	fi	
+
+	echo 1 > /tmp/runSTB_dataBackup
+
+	local ckBoot=$(cat /tmp/initial_process)
+	[ "$ckBoot" != "1" ] && { 
+	/etc/init.d/streamboost stop 
+	# wait for emmc to write complete 
+	sleep 15 
+	/etc/init.d/streamboost start 
+	}
+
+	sleep 1
+
+	echo 0 > /tmp/runSTB_dataBackup
+
+#	echo "$times runSB_dataBackup" >> /tmp/BBB
+	
+fi
+
+time=$(($system_m_time%5))
+
+if [ $time -eq 0 ] ;then
+
+	#check redis-server-VSZ
+	local radis_pid
+	local parser_words
+	radis_pid=$( cat /tmp/run/appflow/redis.pid )
+	top -n 1 > /tmp/redis-server-VSZ_log &
+	sleep 1
+
+	parser_words=$( cat /tmp/redis-server-VSZ_log | grep "$radis_pid" | sed '2,100d' | awk '{print $5}' | grep -r m )
+	parser_number=${parser_words/m/};
+	result=$(($parser_number - 150));
+	echo "parser_number=$parser_number result=$result"
+
+	if [ $result -ge 0 ]; then
+
+		if [ -d /tmp/run/appflow/streamboost.lock ]; then
+			rm -rf /tmp/run/appflow/streamboost.lock
+		fi
+
+#		echo "$times $parser_words" >> /tmp/BBB
+		/etc/init.d/streamboost stop
+		# wait for emmc to write complete 
+		sleep 15 
+		/etc/init.d/streamboost start
+
+	fi
+
+	rm /tmp/redis-server-VSZ_log
+
+	streamboost_running="cape nodedetectd sbmacouid sbnoded"
+
+	for pp in $streamboost_running
+	do
+
+		pgrep ${pp} > /tmp/${pp}_running_pid_check
+		running_pid=$( cat "/var/run/appflow/${pp}.pid" )
+
+		while read line
+		do
+
+			if [ "$line" != "$running_pid" ]; then
+#				echo "$times ${pp} $line $running_pid" >> /tmp/BBB
+				kill -9 $line
+			fi
+			
+		done < /tmp/${pp}_running_pid_check
+		
+		rm /tmp/${pp}_running_pid_check
+
+	done
+
+fi
+
+else
+	exit 0
+fi

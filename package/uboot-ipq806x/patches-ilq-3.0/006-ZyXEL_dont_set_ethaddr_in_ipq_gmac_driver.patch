@@ -1,0 +1,14 @@
+Index: u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+===================================================================
+--- u-boot-2012.07.orig/drivers/net/ipq/ipq_gmac_eth.c
++++ u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+@@ -704,7 +704,9 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *
+ 			dev[i]->enetaddr[2], dev[i]->enetaddr[3],
+ 			dev[i]->enetaddr[4], dev[i]->enetaddr[5]);
+ 
++		#ifndef CONFIG_ZLOADER_SUPPORTED
+ 		setenv(ethaddr, mac);
++		#endif
+ 
+ 		sprintf(ethaddr, "eth%daddr", (i + 1));
+ 

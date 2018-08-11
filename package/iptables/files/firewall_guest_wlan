@@ -1,0 +1,145 @@
+#!/bin/sh
+#Guest WLAN firewall check
+# Guest WLAN 1 :192.168.141.x
+# Guest WLAN 2 :192.168.142.x
+# Guest WLAN 3 :192.168.143.x
+# 1.Guest WLAN didn't open GUI from 192.168.1.1,192.168.141.1,
+# 	192.168.142.1,192.168.143.1
+# 2.192.168.1.x didn't ping Guest WLAN
+#   Guest WLAN didn't ping 192.168.1.x
+#   Guest WLAN 1 didn't ping Guest WLAN 2 and Guest WLAN 3.
+#   Guest WLAN 2 didn't ping Guest WLAN 1 and Guest WLAN 3.
+#   Guest WLAN 3 didn't ping Guest WLAN 1 and Guest WLAN 2.
+#------------------------------------------------------------------
+#   Guest WLAN 1 didn't ping 192.168.142.1 and 192.168.143.1.
+#   Guest WLAN 2 didn't ping 192.168.141.1 and 192.168.143.1.
+#   Guest WLAN 3 didn't ping 192.168.141.1 and 192.168.142.1.
+#------------------------------------------------------------------
+#   Guest WLAN didn't ping br-lan ip
+#   Guest WLAN didn't log in br-lan FTP and SAMBA
+#   Guest WLAN can't access LAN interface (www,telnet,https,ssh)
+#   Guest WLAN can't access One connect APP
+#------------------------------------------------------------------
+
+. /etc/functions.sh
+include /lib/config
+
+LAN="br-lan"
+target=`uci get firewall.general.target`
+FTP_PORT=$(uci get proftpd.global.port)
+lanip=$(ifconfig br-lan | grep "inet addr" | awk -F'addr:' '{print $2}' | awk -F'Bcast' '{print $1}')
+www_port=$(uci get firewall.remote_www.port)
+https_port=$(uci get firewall.remote_https.port)
+telnet_port=$(uci get firewall.remote_telnet.port)
+ssh_port=$(uci get firewall.remote_ssh.port)
+
+/usr/sbin/iptables -F FORWARD_GuestLAN
+/usr/sbin/iptables -X FORWARD_GuestLAN
+/usr/sbin/iptables -N FORWARD_GuestLAN
+/usr/sbin/iptables -F INPUT_GuestLAN
+/usr/sbin/iptables -X INPUT_GuestLAN
+/usr/sbin/iptables -N INPUT_GuestLAN
+
+iptables -D FORWARD -j FORWARD_GuestLAN 2>/dev/null
+iptables -I FORWARD -j FORWARD_GuestLAN 2>/dev/null
+iptables -D INPUT -j INPUT_GuestLAN 2>/dev/null
+iptables -I INPUT -j INPUT_GuestLAN 2>/dev/null
+
+for number in 1 2 3
+do
+	guestLan="guest-lan$number"
+	chk_guest_lan=$(brctl show | grep $guestLan)
+	ipaddr=$(uci get wireless.ath$number.guest_ip)
+	ipmask=$(uci get wireless.ath$number.guest_ip_mask)
+
+	iptables -D FORWARD_GuestLAN -i $guestLan -o $LAN -j DROP
+	iptables -D FORWARD -i $guestLan -j ACCEPT
+	iptables -D INPUT_GuestLAN -i $guestLan -p icmp --icmp-type 8 -d $lanip -j DROP
+	iptables -D FTP_INPUT -i $guestLan -d $lanip -p tcp --dport $FTP_PORT -j DROP
+	iptables -D SAMBA_INPUT -i $guestLan -d $lanip -p udp --dport 137 -j DROP
+	iptables -D SAMBA_INPUT -i $guestLan -d $lanip -p udp --dport 138 -j DROP      
+	iptables -D SAMBA_INPUT -i $guestLan -d $lanip -p tcp --dport 139 -j DROP      
+	iptables -D SAMBA_INPUT -i $guestLan -d $lanip -p tcp --dport 445 -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $www_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $www_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $https_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $https_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $telnet_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $telnet_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $ssh_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $ssh_port -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -p udp --dport 263 -j DROP
+	iptables -D INPUT_GuestLAN -i $guestLan -p tcp --dport 263 -j DROP
+
+#	iptables -D INPUT_GuestLAN -i $guestLan -j DROP
+#	iptables -D INPUT_GuestLAN -i $guestLan -p udp -m multiport --dport 67,68 -j ACCEPT
+
+	if [ -z $chk_guest_lan ];then
+		brctl addbr $guestLan
+		ifconfig $guestLan $ipaddr netmask $ipmask up
+	fi
+
+	case "$number" in
+	"1")
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan2 -j DROP
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan3 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan2 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan3 -j DROP
+
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.142.0/24 -j DROP
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.143.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.142.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.143.0/24 -j DROP
+	;;
+	"2")
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan1 -j DROP
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan3 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan1 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan3 -j DROP
+
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.141.0/24 -j DROP
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.143.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.141.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.143.0/24 -j DROP
+	;;
+	"3")
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan1 -j DROP
+		iptables -D FORWARD_GuestLAN -i $guestLan -o guest-lan2 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan1 -j DROP
+		iptables -I FORWARD_GuestLAN -i $guestLan -o guest-lan2 -j DROP
+
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.141.0/24 -j DROP
+		iptables -D INPUT_GuestLAN -i $guestLan -d 192.168.142.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.141.0/24 -j DROP
+		iptables -I INPUT_GuestLAN -i $guestLan -d 192.168.142.0/24 -j DROP
+	;;
+	esac
+		
+	iptables -I FORWARD_GuestLAN -i $guestLan -o $LAN -j DROP
+
+	if [ "$target" == "DROP" ] ; then
+		iptables -A FORWARD -i $guestLan -j ACCEPT
+	fi
+
+	iptables -I INPUT_GuestLAN -i $guestLan -p icmp --icmp-type 8 -d $lanip -j DROP
+	iptables -I FTP_INPUT -i $guestLan -d $lanip -p tcp --dport $FTP_PORT -j DROP
+	iptables -I SAMBA_INPUT -i $guestLan -d $lanip -p udp --dport 137 -j DROP
+	iptables -I SAMBA_INPUT -i $guestLan -d $lanip -p udp --dport 138 -j DROP
+	iptables -I SAMBA_INPUT -i $guestLan -d $lanip -p tcp --dport 139 -j DROP
+	iptables -I SAMBA_INPUT -i $guestLan -d $lanip -p tcp --dport 445 -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $www_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $www_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $https_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $https_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $telnet_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $telnet_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p udp --dport $ssh_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -d $lanip -p tcp --dport $ssh_port -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -p udp --dport 263 -j DROP
+	iptables -I INPUT_GuestLAN -i $guestLan -p tcp --dport 263 -j DROP
+
+#	iptables -I INPUT_GuestLAN -i $LAN -p tcp -d 192.168.14"$number".0/24 -j DROP
+
+#	iptables -A INPUT_GuestLAN -i $guestLan -p udp -m multiport --dport 67,68 -j ACCEPT	
+#	iptables -A INPUT_GuestLAN -i $guestLan -j DROP
+done

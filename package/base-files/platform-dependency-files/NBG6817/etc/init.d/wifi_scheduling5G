@@ -1,0 +1,183 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org 
+START=97
+
+. /etc/functions.sh
+include /lib/config
+
+chk_iface=$(uci_get wireless iface wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+FILENAME="/etc/crontabs/root"
+
+set_flag(){
+	###Add hotplug wifi button flag
+	echo "1" > /tmp/wireless_init
+}
+
+boot() {
+	wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+
+	if [ "$wlan_btn" != "1" ]; then
+		/sbin/wifi down $DEV5G
+	else
+		start
+	fi
+
+	set_flag
+
+	exit 0
+}
+
+check_file() {
+	cat $FILENAME | while read LINE
+	do
+		string=$(echo "$LINE" | grep "wireless_scheduling5G.sh")
+		if [ -z "$string" ];then
+			echo "$LINE" >> /tmp/crontabs
+		fi
+	done
+}
+
+check_time() {
+	local count="0"
+	local sys_day=$(date | awk '{print $1}' | tr A-Z a-z)
+	local sys_hh=$(date | awk '{print $4}' |  cut -f1 -d':')
+	local sys_min=$(date | awk '{print $4}' |  cut -f2 -d':')
+	local data=$(uci get wifi_schedule5G.$sys_day.times| tr -s "," " ")
+	local half_time="0"
+
+	if [ "$sys_min" -le "30" ]; then
+		half_time="0"
+	else
+		half_time="1"
+	fi
+
+	for every_half_hour in $data
+	do
+		local hour=`expr $count / 2`
+		local half_hour=`expr $count % 2`
+		if [ "$hour" -eq "$sys_hh" ] && [ "$half_hour" == "$half_time" ]; then
+			local chk_wifi=$(iwconfig "$DEV5G_FIRSTNAME"0)
+			if [ "$every_half_hour" == "1" ];then
+				[ -z "$chk_wifi" ] && {
+					/etc/wireless_scheduling5G.sh up
+				}
+			else
+				[ -z "$chk_wifi" ] || {
+					/etc/wireless_scheduling5G.sh down
+				}
+			fi
+		fi
+		count=`expr $count + 1`
+	done
+}
+
+set_config() {
+	local count="0"
+	local cfg="$1"
+	local day
+	local h1="0"
+	local h2="0"
+	local half_hour_count="0"
+	local minute=""
+
+
+	case $cfg in
+		"mon") day="1" ;;
+		"tue") day="2" ;;
+		"wed") day="3" ;;
+		"thu") day="4" ;;
+		"fri") day="5" ;;
+		"sat") day="6" ;;
+		"sun") day="0" ;;
+	esac
+
+	local times=$(uci get wifi_schedule5G.$1.times| tr -s "," " ")
+
+	for every_half_hour in $times
+	do
+		if [ "$half_hour_count" == "0" ]; then
+			half_hour_count="1"
+			minute="0"
+		else
+			half_hour_count="0"
+			minute="30"
+		fi
+
+		hour=`expr $count / 2`
+		h1="$h2"
+		h2="$every_half_hour"
+
+		## compare with every other day 
+		if [ $count == "0" ] && [ $day_last_value -ne $h2 ];then
+			if [ $h2 == "0" ];then
+				echo "$minute $hour * * $day /etc/wireless_scheduling5G.sh down" >> /tmp/crontabs
+			else
+				echo "$minute $hour * * $day /etc/wireless_scheduling5G.sh up" >> /tmp/crontabs
+			fi
+		fi
+
+		if [ $h1 -ne $h2 ] && [ $count -ne "0" ];then
+			if [ $h2 == "0" ];then
+				echo "$minute $hour * * $day /etc/wireless_scheduling5G.sh down" >> /tmp/crontabs
+			else
+				echo "$minute $hour * * $day /etc/wireless_scheduling5G.sh up" >> /tmp/crontabs
+			fi
+		fi
+
+		if [ $count == "47" ];then
+			day_last_value="$h2"
+		fi
+
+		count=`expr $count + 1`
+	done
+}
+
+start() {
+	if [ -f /etc/crontabs/root ]; then	 
+		sed -i -e '/wireless_scheduling5G.sh/d' /etc/crontabs/root
+	fi 
+	WLANStatus=$(uci_get wifi_schedule5G schedule enabled)
+
+	if [ "$WLANStatus" != "enable" ]; then
+		chk_wifi=$(iwconfig "$DEV5G_FIRSTNAME"0)
+		[ -n "$chk_wifi" ] || {
+			echo $DEV5G > /tmp/WirelessDev
+			/etc/init.d/wireless restart
+		}
+		echo "`date +%Y/%m/%d\ %H:%M:%S`: killall -9 crond ; wifi5G scheduling didn't enable!!" >> /tmp/debug_log
+		killall -9 crond
+		crond -c /etc/crontabs
+		set_flag
+		exit 0
+	fi
+
+	echo "`date +%Y/%m/%d\ %H:%M:%S`: killall -9 crond ; wifi5G scheduling didn't enable!!" >> /tmp/debug_log
+	killall -9 crond
+
+	local schedule5G_enabled=$(uci get wifi_schedule5G.schedule.enabled)
+	local day_last_value
+	
+	check_file
+
+	if [ "$schedule5G_enabled" == "enable" ];then
+		day_last_value="2" # init
+		check_time
+		config_load "wifi_schedule5G"
+		config_foreach set_config day
+	fi
+	mv /tmp/crontabs /etc/crontabs/root
+	rm /tmp/crontabs
+	crond -c /etc/crontabs
+}

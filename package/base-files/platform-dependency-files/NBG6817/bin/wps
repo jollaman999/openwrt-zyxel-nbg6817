@@ -1,0 +1,154 @@
+#!/bin/sh
+. /etc/functions.sh
+include /lib/config
+
+##wifi0--5G   wifi1--24G
+chk_iface=$(uci_get wireless iface wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+WLAN=$1
+ENABLE=$2
+MODE=$3
+VAR1=$4
+BRIDGE=br-lan 
+IPADDR=$(uci_get network lan ipaddr)
+hstapd_cli="hostapd_cli -p /tmp/run/hostapd-$DEV24G/ -i "$DEV24G_FIRSTNAME"0"
+wlan_disable=$(uci get wireless."$DEV24G_FIRSTNAME"0.disabled)
+wps_enabled=$(uci get wps.wps.enabled)
+
+[ "$wlan_disable" = "1" -o "$wps_enabled" = "0" ] && exit 0
+
+chk_wps_status() {
+	local status=$(hostapd_cli -p /tmp/run/hostapd-$DEV24G/ -i "$DEV24G_FIRSTNAME"0 get_config |grep wps_state| awk -F"=" '{print $2}' )
+	local configured=$(uci_get wps wps conf)
+
+	if [ "$status" == "configured" ]; then
+		if [ "$configured" == "0" ]; then		
+
+			#If wps status is unconfigured, we will 
+			#use wpa2psk compatible mode.
+			auth=WPA2PSK
+			encryption=WPA2PSK
+			uci_set wireless $WLAN WPAPSKCompatible 0	
+			uci_set wireless $WLAN auth $auth
+			uci_set wireless $WLAN encryption $encryption
+			uci_set wireless $WLAN WPAPSKkey $wpapsk
+			uci_commit wireless
+			sync #This command is for emmc and ext4 filesystem
+
+			uci_set wps wps conf 1
+			uci_commit wps
+			sync #This command is for emmc and ext4 filesystem
+						
+			wifi up			
+		fi
+	fi
+}
+
+# wps_btn_led() {	
+# 	echo timer > /sys/class/leds/WiFi/trigger
+
+# 	local count=0
+# 	while [ "$count" -le 120 ];
+# 	do
+# 		##led ctrl		
+# 		led_ctrl WPS blink 250 250
+# 		count=$(($count+1))
+# 		chk_wps_link=$(cat /tmp/wps_link_success)
+# 		if [ -n "$chk_wps_link" ];then
+# 			rm /tmp/wps_link_success
+# 			led_ctrl WPS off && sleep 3 && led_ctrl WPS on &
+
+# 			echo "0" > /tmp/wps_btn
+		
+# 			if [ -f "/tmp/wps_HW_btn" ] ;then			
+# 				rm /tmp/wps_HW_btn
+# 			else
+# 				echo "1" > /tmp/wps_connect_success		
+# 			fi
+
+# 			break
+# 		fi
+# 		sleep 1
+# 	done
+
+# 	if [ "$count" -ge 120 ]; then
+# 		led_ctrl WPS off && sleep 10 && led_ctrl WPS on &
+# 		echo "0" > /tmp/wps_btn
+		
+# 		if [ -f "/tmp/wps_HW_btn" ] ;then			
+# 			rm /tmp/wps_HW_btn
+# 		else
+# 			echo "1" > /tmp/wps_connect_timeout		
+# 		fi		
+# 	fi
+
+# }
+
+
+if [ "$WLAN" == "$DEV24G_FIRSTNAME"0 ]; then
+	WLAN_STATUS=$(uci_get wireless $WLAN disabled)
+else
+#	echo "No such interface"
+	exit 1
+fi
+
+if [ "$WLAN_STATUS" == "1" ]; then
+	exit 1
+fi
+
+if [ "$ENABLE" == "on" ]; then
+
+	if [ "$WLAN" == "$DEV24G_FIRSTNAME"0 ]; then
+		cfg=wps
+		conf_pid=$(ps | grep "watch -tn 1 wps_conf_24G" | grep "grep" -v | awk '{print $1}')
+		if [ "$conf_pid" == "" ]; then
+			watch -tn 1 wps_conf_24G 1>/dev/null 2>&1 &
+		fi
+	fi
+	
+	local ap_pin=$(uci_get $cfg wps appin)
+	local configured=$(uci_get $cfg wps conf)
+	local PIN_enable=$(uci_get $cfg wps PinEnable)
+	
+	#if PIN_enable=0 -> use PBC ; PIN_enable=1 -> use PIN-code
+	if [ "$PIN_enable" == "0" ]; then
+		eval "$hstapd_cli wps_ap_pin disable"	
+	elif [ "$PIN_enable" == "1" ]; then
+		eval "$hstapd_cli wps_ap_pin set $ap_pin"
+	fi
+
+	if [ "$MODE" == "wps_btn" ]; then
+		echo "1" > /tmp/wps_btn	
+#		chk_wps_status
+#		sleep 1
+		eval "$hstapd_cli wps_pbc"
+#		wps_btn_led
+	elif [ "$MODE" == "wps_pin" ]; then
+		echo "1" > /tmp/wps_btn	
+#		chk_wps_status
+#		sleep 1
+		eval "$hstapd_cli wps_pin any $VAR1" 120
+#		wps_btn_led
+	fi
+	
+else
+	local wps_enabled=$(uci_get wps wps enabled)
+
+    if [ "$WLAN" == "$DEV24G_FIRSTNAME"0 ]; then
+		conf_pid=$(ps | grep "watch -tn 1 wps_conf_24G" | grep "grep" -v | awk '{print $1}')
+		kill $conf_pid
+		rm /tmp/wps_chk_status_24G		
+    fi	
+
+fi

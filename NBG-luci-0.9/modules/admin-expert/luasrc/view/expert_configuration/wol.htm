@@ -1,0 +1,270 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"  />
+<meta http-equiv="Pragma" content="no-cache">
+<title>.::<%:welcome_to_nbg6716%>::.</title>
+<link href="<%=media%>/css/table.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<style>
+td {white-space: nowrap;}
+</style>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript" type="text/javascript">
+
+var old_data={};
+$(document).ready(function(){
+	var old_MAC='<%= uci:get( "wol", "wol", "mac" )%>';
+
+	data="<%=data%>".split(";");
+	var html="";
+
+	var chk=0;
+	var defMAC_V="";
+
+	for (var i in data) {
+    	items = data[i];
+    	if (items != ""){
+    		dev_data = items.split("=");
+
+    		if (i == "0"){
+    			defMAC_V=dev_data[1];
+    		}
+
+    		old_data[dev_data[0]]=dev_data[1];
+
+    		if (old_MAC == dev_data[1]){
+    			chk=1;
+    			html = html+'<option selected="selected" value='+dev_data[0]+'>'+dev_data[0]+'</option>';
+    		}else{
+    			html = html+'<option value='+dev_data[0]+'>'+dev_data[0]+'</option>';
+    		}
+    	}
+	}
+
+	if ( (defMAC_V=="" || chk==0) && old_MAC != ""){
+		html = html+"<option selected='selected' value='User'><%:User_define%></option>";
+		$("#host_mac").prop('disabled', false);
+		old_data["User"]=old_MAC;
+	}else{
+		html = html+"<option value='User'><%:User_define%></option>";
+		$("#host_mac").prop('disabled', false);
+		old_data["User"]="";
+	}
+
+	$("#host_mac_s").html(html);
+
+	if (old_MAC == "") {
+		old_MAC=defMAC_V;
+	}
+	$("#host_mac").val(old_MAC);
+});
+
+function changeMAC(){
+	var chk_key=$("#host_mac_s").val();
+	if(chk_key == "User"){
+//		val="";
+		$("#host_mac").prop('disabled', false);
+	}else{
+//		val=old_data[chk_key];
+		$("#host_mac").prop('disabled', true);
+	}
+	val=old_data[chk_key];
+	$("#host_mac").val(val);
+}
+
+function isAllNum(str)
+{
+	for (var i=0; i<str.length; i++) {
+		if ((str.charAt(i) >= '0' && str.charAt(i) <= '9') || (str.charAt(i) == '.' ))
+			continue;
+		return 0;
+	}
+	return 1;
+}
+function btnApply()
+{
+	var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","management","remote", "wol")%>';
+	var loc = submit_url + '?wol_apply=Apply';
+
+	with ( document.forms[0] ){
+		var wol_enable = $('input[name=wolWANEnable]:checked').val();
+		if( wol_enable == 1){
+			loc += '&wol_wan_enable=' + 1;
+		}
+		else{
+			loc += '&wol_wan_enable=' + 0;
+		}
+
+		if(wol_port.value == ""){
+			alert("<%:format_incorrect%>");
+			return false;
+		}
+		else{
+			if( isAllNum(wol_port.value) == 0)
+			{
+				alert("<%:format_incorrect%>");
+				return false;
+			}
+			if(wol_port.value < 1)
+			{
+				alert("<%:format_incorrect%>");
+				return false;
+			}
+			else if(wol_port.value > 65535)
+			{
+				alert("<%:format_incorrect%>");
+				return false;
+			} 
+			loc += '&wol_port=' + wol_port.value;
+		}
+		var re = /[A-Fa-f0-9][ACEace02468]:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}/;
+		if (!re.test(host_mac.value) && host_mac.value != "" ) {
+			alert("<%:format_incorrect%>");
+			return false;
+		}
+		else if (host_mac.value == ""){
+			alert("<%:format_incorrect%>");
+			return false;
+		}
+		else{
+			loc += '&host_mac=' + host_mac.value;
+		}
+		var code = 'location="' + loc + '"';
+     	eval(code);
+	}
+	skm_LockScreen();
+}
+function btnStart()
+{
+	var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","management","remote", "wol")%>';
+	var loc = submit_url + '?wol_start=1';
+
+	with ( document.forms[0] ){
+		var re = /[A-Fa-f0-9][ACEace02468]:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}/;
+		if (!re.test(host_mac.value)) {
+			alert("<%:format_incorrect%>");
+			return false;
+		}
+		else if (host_mac.value == ""){
+			alert("<%:format_incorrect%>");
+			return false;
+		}
+		else{
+			loc += '&host_mac=' + host_mac.value;
+		}
+
+		var code = 'location="' + loc + '"';
+     	eval(code);
+	}
+}
+</script>
+</head>
+
+<body>
+
+<form method="post" name="remote_wol">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Wake_On_LAN%></div></td>
+    <td>&nbsp;</td>
+
+	  <td width="100" valign="top"><div class="apply"  ><input type="button" id="wolApply" name="wolApply" value="<%:Apply%>" onClick="btnApply()"></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input type="reset" id="wolReset" name="Cancel" value="<%:cancel%>"></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+	<div id="table">
+  	<ul>
+    	<li class="table_content">
+      	<div class="data">
+        	<ul>
+				<div class="w_text">
+
+		                <ul>
+						  <li class="title"><%:Wake_On_LAN_over_WAN_Settings%></li>
+		                	<% local enable = uci:get("wol","main","enabled")%>
+		                     <li class="left_table"><font id="WolOverWAN"><%:Enable_WOL_over_WAN%></font></li>
+
+		                	 <li class="right_table">
+						<input type="radio" name="wolWANEnable" value="1" <%if enable == "1" then%> checked="checked" <%end%>/> <%:enable%>
+						<input type="radio" name="wolWANEnable" value="0" <%if enable == "0" then%> checked="checked" <%end%> /> <%:disable%>
+							 </li>
+		                </ul>
+		                <ul>
+		                     <li class="left_table"><%:Port%> </li>
+		                     <li class="right_table">
+		                        <input name="wol_port" size="5" maxlength="5" placeholder="1-65535" value="<%= uci:get( "wol", "main", "port" )%>" type="text" />
+		                     </li>
+		                </ul>
+
+        </div>
+
+	        <div class="w_text">
+                <div class="space"></div>
+				<div class="spaceair"></div>
+                  <ul>
+				  <li class="title"><%:Wake_On_LAN%></li>
+                     <li class="left_table"><%:Wake_MAC_Address%> </li>
+                     <li class="right_table">
+                     	<select name="host_mac_s" id="host_mac_s" size="1" onchange="changeMAC();" style="width: 150px;"></select>
+                        <input name="host_mac" id="host_mac" disabled="true" size="17" maxlength="17" placeholder="00:00:00:00:00:00" value="<%= uci:get( "wol", "wol", "mac" )%>" type="text" />&nbsp;&nbsp;&nbsp;
+                        <input type=button id="wolStart" name="wolStart" value="<%:Start%>" onClick="btnStart()">
+                     </li>
+                  </ul>
+                </div>
+<!--                 <div class="w_text"><span class="i_note"><%:Note%>:</span> </div>
+            <div class="w_text"><span class="i_note_a"><%:Remote_MGMT_Note_3%></span></div> -->
+	  </ul>
+        </div>
+		<div class="spaceair"></div>
+      </li>
+
+<!--       <li class="table_button">
+
+      <center>
+      <input type="button" id="wolApply" name="wolApply" value="<%:Apply%>" onClick="btnApply()">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <input type="reset" id="wolReset" name="Cancel" value="<%:cancel%>">
+	   </center>
+
+      </li> -->
+
+    </ul>
+  </div>
+  </div>
+ 	</form>
+</body>
+<script language="JavaScript">
+	<!-- showFullPath(' <%:Management%> > <%:Remote_MGMT%> > <%:Wake_On_LAN%>'); -->
+</script>
+</html>

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+base_addr=$(fw_printenv ethaddr | awk -F"=" '{print $2}' |sed 's/"//g')
+LAN_MAC=$(atsh |grep LAN | awk -F": " '{print $2}' |sed 's/"//g')
+serial_num=$(fw_printenv serialnum | awk -F"=" '{print $2}')
+
+echo -n $base_addr > /tmp/FirstMAC
+echo -n $serial_num > /tmp/Serial_num
+
+##set WiFi default SSID PASSWORD
+WiFi_init "SSID" $LAN_MAC
+#/bin/set_tmp_SSID $LAN_MAC
+
+##set WiFi default PASSWORD
+WiFi_init "PSK"
+#/bin/set_tmp_psk
+
+##set WiFi default Rate
+WiFi_init "RATE"
+
+##set WiFi default board data for NBG6817
+WiFi_init "BOARD_DATA"
+
+/bin/system_application.sh

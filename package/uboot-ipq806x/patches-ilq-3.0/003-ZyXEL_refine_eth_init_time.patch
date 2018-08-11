@@ -1,0 +1,36 @@
+Index: u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+===================================================================
+--- u-boot-2012.07.orig/drivers/net/ipq/ipq_gmac_eth.c
++++ u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+@@ -70,18 +70,22 @@ static int ipq_phy_link_status(struct et
+ 	int port_status;
+ 	ushort phy_status;
+ 	uint i;
++	uint retry=0;
+ 
+-	udelay(1000);
++	for(retry = 0; retry < 50; retry++) {
++		udelay(1000);
++		for (i = 0; i < priv->no_of_phys; i++) {
+ 
+-	for (i = 0; i < priv->no_of_phys; i++) {
++			miiphy_read(priv->phy_name, priv->phy_address[i],
++					PHY_SPECIFIC_STATUS_REG, &phy_status);
+ 
+-		miiphy_read(priv->phy_name, priv->phy_address[i],
+-				PHY_SPECIFIC_STATUS_REG, &phy_status);
+-
+-		port_status = ((phy_status & Mii_phy_status_link_up) >>
+-				(MII_PHY_STAT_SHIFT));
+-		if (port_status == 1)
+-			return 0;
++			port_status = ((phy_status & Mii_phy_status_link_up) >>
++					(MII_PHY_STAT_SHIFT));
++			if (port_status == 1) {
++				//printf("retry=%d\n", retry);
++				return 0;
++			}
++		}
+ 	}
+ 
+ 	return -1;

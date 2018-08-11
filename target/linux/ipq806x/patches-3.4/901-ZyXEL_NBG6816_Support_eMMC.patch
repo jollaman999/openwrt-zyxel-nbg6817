@@ -1,0 +1,66 @@
+From f8ebb28721bbb23db606fef7081db14d2a1fd622 Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Fri, 4 Sep 2015 16:46:56 +0800
+Subject: [PATCH 2/8] ZyXEL_NBG6816_Support_eMMC
+
+---
+ arch/arm/mach-msm/board-ipq806x-gpiomux.c | 16 ++++++++++++++++
+ arch/arm/mach-msm/board-ipq806x-storage.c |  7 ++++---
+ 2 files changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/mach-msm/board-ipq806x-gpiomux.c b/arch/arm/mach-msm/board-ipq806x-gpiomux.c
+index a9ff55a..3bcda1f 100644
+--- a/arch/arm/mach-msm/board-ipq806x-gpiomux.c
++++ b/arch/arm/mach-msm/board-ipq806x-gpiomux.c
+@@ -729,6 +729,22 @@ static struct msm_gpiomux_config ipq806x_ap148_gpiomux[] = {
+ 	ipq_mux(31, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
+ 	ipq_mux(32, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
+ 	ipq_mux(33, gsbi6_spi_reset_cfg,		gsbi6_spi_reset_cfg),
++ #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT 
++   #ifdef CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT 
++	ipq_mux(38, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(39, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++   #endif 
++	ipq_mux(40, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(41, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(42, sdc1_clk_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(43, sdc1_cmd_data_0_3_active_cfg, sdc1_data_1_suspended_cfg), 
++	ipq_mux(44, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(45, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++   #ifdef CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT 
++	ipq_mux(46, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++	ipq_mux(47, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg), 
++   #endif 
++ #endif
+ 	ipq_mux(48, pcie_rst_n,				pcie_rst_n),
+ 	ipq_mux(51, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
+ 	ipq_mux(52, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
+diff --git a/arch/arm/mach-msm/board-ipq806x-storage.c b/arch/arm/mach-msm/board-ipq806x-storage.c
+index 9a45331..e511d6a 100644
+--- a/arch/arm/mach-msm/board-ipq806x-storage.c
++++ b/arch/arm/mach-msm/board-ipq806x-storage.c
+@@ -259,17 +259,18 @@ void __init ipq806x_init_mmc(void)
+ 	struct msm_mmc_pad_drv_data *drv;
+ 
+ 	if (machine_is_ipq806x_db149_1xx() || machine_is_ipq806x_ap145_1xx() ||
+-						machine_is_ipq806x_emmc_boot())
++						machine_is_ipq806x_emmc_boot() || machine_is_ipq806x_nbg6816())
+ 		ipq806x_add_sdcc(1, &sdc1_data);
+ 	if (machine_is_ipq806x_ap145_1xx() ||
+-			(machine_is_ipq806x_ap145() && machine_is_ipq806x_emmc_boot())) {
++			(machine_is_ipq806x_ap145() && machine_is_ipq806x_emmc_boot()) || machine_is_ipq806x_nbg6816()) {
+ 		sdc1_data.status_gpio = -1;
+ 		sdc1_data.status_irq = 0;
+ 	}
+ 
+ 	if (machine_is_ipq806x_db149() ||
+ 		machine_is_ipq806x_db149_1xx() ||
+-		machine_is_ipq806x_db149_2xx()) {
++		machine_is_ipq806x_db149_2xx() ||
++		machine_is_ipq806x_nbg6816()) {
+ 		drv = sdc3_data.pin_data->pad_data->drv;
+ 		for (i = 0; i < drv->size; i++)
+ 			drv->on[i].val = GPIO_CFG_10MA;
+-- 
+1.9.1
+

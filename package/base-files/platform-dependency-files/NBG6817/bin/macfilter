@@ -1,0 +1,101 @@
+#!/bin/sh
+
+chk_iface=$(uci get wireless.iface.wifi5G)
+
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+cfg="wireless_macfilter"
+
+usage() {
+        echo $0 "<command>"
+        exit 0
+}
+
+set_default(){
+	iface="$1"
+	filter="$2"
+
+	iwpriv $iface maccmd 3
+
+	for index in $(seq 1 64)
+	do
+		macaddr=$(uci get $cfg.$filter.MacAddr$index)
+		if [ "$macaddr" ] && [ "$macaddr" != "00:00:00:00:00:00" ]; then
+			iwpriv $iface addmac $macaddr
+		fi
+	done
+}
+
+Macfilter(){
+	for num in 0 1 2 3
+	do
+		iface="$DEV24G_FIRSTNAME"
+		iface=$iface$num
+		filter="general"
+		filter=$filter$num
+
+		filter_reset=$(uci get $cfg.$filter.reset)
+
+		if [ "$filter_reset" != "1" ]; then
+			continue
+		fi
+
+		##Set default
+		set_default "$iface" "$filter"
+
+		status=$(uci get $cfg.$filter.mac_state)
+		action=$(uci get $cfg.$filter.filter_action)
+
+		if [ "$status" == "0" ]; then
+			access_policy=0 			
+		else
+			if [ "$action" == "1" ]; then
+				access_policy=1
+			else
+				access_policy=2
+			fi
+		fi
+
+		iwpriv $iface maccmd $access_policy
+
+
+		if [ "$access_policy" == "2" ]; then
+			### Kick Current Deny User (Deny mode) ###
+			for index in $(seq 1 64)
+			do
+				macaddr=$(uci get $cfg.$filter.MacAddr$index)
+				if [ "$macaddr" ] && [ "$macaddr" != "00:00:00:00:00:00" ] ; then
+					iwpriv $iface kickmac $macaddr
+				fi
+			done
+		else
+			### Kick current Deny User (Allow mode) ###
+			rm /tmp/log_macfilter
+			wlanconfig $iface list|awk '{print $1}'|grep -v ADDR > /tmp/log_macfilter
+			cat /tmp/log_macfilter | while read line
+			do
+				for index in $(seq 1 64)
+				do
+					macaddr=$(uci get $cfg.$filter.MacAddr$index)
+					if [ "$macaddr" ] && [ "$macaddr" != $line ] && [ "$macaddr" != "00:00:00:00:00:00" ] ; then
+						$DEBUG iwpriv $iface kickmac $line
+					fi
+				done
+            done
+        fi
+	done
+	return 0
+}
+
+case "$1" in
+        --help|help) usage ;;
+        start|stop|reload|restart|init)
+                Macfilter
+
+        ;;
+esac

@@ -1,0 +1,9 @@
+
+config parental_general 'general'
+	option enable '0'
+	option count '0'
+	option ruleIdx 'rule1'
+
+config parental_keyword 'keyword'
+	option enable '0'
+

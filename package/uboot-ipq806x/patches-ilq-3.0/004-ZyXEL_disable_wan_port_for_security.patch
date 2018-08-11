@@ -1,0 +1,72 @@
+Index: u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+===================================================================
+--- u-boot-2012.07.orig/drivers/net/ipq/ipq_gmac_eth.c
++++ u-boot-2012.07/drivers/net/ipq/ipq_gmac_eth.c
+@@ -794,6 +794,14 @@ int ipq_gmac_init(ipq_gmac_board_cfg_t *
+ 		miiphy_register(bb_miiphy_buses[i].name, bb_miiphy_read, bb_miiphy_write);
+ 	}
+ 
++#ifdef CONFIG_SUPPORT_DISABLE_WAN_PORT
++	#define PHY_POWER_DOWN (1 << 11)
++	int value;
++	ipq_info("Disable WAN port\n");
++	miiphy_read(ipq_gmac_macs[0]->phy_name, ipq_gmac_macs[0]->phy_address[0], PHY_CONTROL_REG, &value);
++	//printf("read value=%08X--->%08X\n", value, value|PHY_POWER_DOWN);
++	miiphy_write(ipq_gmac_macs[0]->phy_name, ipq_gmac_macs[0]->phy_address[0], PHY_CONTROL_REG, value|PHY_POWER_DOWN);
++#endif
+ 	return 0;
+ 
+ failed:
+@@ -1070,3 +1078,52 @@ U_BOOT_CMD(ethspeed, 3, 0, do_force_eth_
+ 	   "Force ethernet speed to 10/100/autoneg",
+ 	   "ethspeed {phy addr} {10|100|autoneg} - Force ethernet speed to 10/100/autoneg\n");
+ 
++#if 0//qca8337 uboot command for debugging
++static int do_qca8337(cmd_tbl_t *cmdtp, int flag,
++                int argc, char * const argv[])
++{
++	unsigned long addr, reg, data=0;
++	uint mac_unit=0;
++	if (argc < 4) {
++		cmd_usage(cmdtp);
++		return 1;
++	}
++
++	addr = simple_strtoul(argv[2], NULL, 16);
++	reg = simple_strtoul(argv[3], NULL, 16);
++
++	if(addr == 4){//WAN 4
++		mac_unit =0;
++		addr = 0;
++	}
++	else if(addr >=0 && addr < 4)//LAN 0-3
++		mac_unit=1;
++	else{
++		cmd_usage(cmdtp);
++		return 1;
++	}
++	//printf("%s: addr=%08X, reg=%08X, data=%08X, ipq_gmac_macs[%d]->phy_address[addr]=%08X\n", __FUNCTION__, addr, reg, data, mac_unit, ipq_gmac_macs[mac_unit]->phy_address[addr]);
++
++	if (!strcmp(argv[1], "r")) {//read
++		ipq_mdio_read(ipq_gmac_macs[mac_unit]->phy_address[addr], reg,  &data);
++		printf("%04lX\n", data);
++		return 0;
++	}
++	if (!strcmp(argv[1], "w")) {//write
++		data = simple_strtoul(argv[4], NULL, 16);
++		ipq_mdio_write(ipq_gmac_macs[mac_unit]->phy_address[addr],  reg,   data);
++		return 0;
++	}
++
++	cmd_usage(cmdtp);
++	return 1;
++}
++
++U_BOOT_CMD(
++         qca8337, 7, 0, do_qca8337,
++         "QCA8337 MDIO read/write PHY",
++         "qca8337 r <phy> <reg>\n"
++         "qca8337 w <phy> <reg> <value>\n"
++         "       - QCA8337 Read/Write PHY"
++);
++#endif

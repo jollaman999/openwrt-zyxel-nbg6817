@@ -1,0 +1,88 @@
+.timebox{
+	/* float:left; */
+	width:20px;
+	height:20px;
+	/* background:#0075c9; */
+	
+	border-color: #000;
+	border-width: 1px;
+	border: solid;
+	cursor:pointer;
+}
+
+
+.timeboxClick{
+	background:#fff;
+}
+
+#selectable{
+	left: 120px;
+	position: relative;
+
+}
+
+#selectable .ui-selectee {
+	/*background: #0075C9;*/
+	background: #999;
+	width: 15px;
+	height: 20px;
+	border: solid;
+border-color:rgba(0, 0, 0, 0.26);
+	float:left;
+}
+
+
+#selectable .ui-selecting {
+	background: #1B82CC;
+}
+
+#selectable .ui-selected {
+	/*background: #999;*/
+	background: #0075C9;
+	/*background: #1B82CC;*/
+}
+
+#selectable .ui-unselecting {
+	/*background: #999;*/
+	background: #0075C9;
+}
+
+#selectable .ui-unselected {
+	/*background: #BBB;*/
+	background: #AAA;
+}
+
+#weekdays{
+	position:absolute;
+	left:50px;
+	top: 190px;
+}
+
+#weekdays li{
+	padding: 2.7px;
+	border: solid;
+	border-color:rgba(0, 0, 0, 0);
+}
+
+#selectable div[id*="_0"]{
+	 clear:left;
+
+}
+
+#timeslot {
+	left:115px;
+	position:relative;
+}
+
+#timeslot ul li{
+	display: block;
+	float: left;
+	width: 35.8px;
+	height: 17px;
+	border: solid;
+	border-color:rgba(0, 0, 0, 0);
+	 
+}
+
+
+ 

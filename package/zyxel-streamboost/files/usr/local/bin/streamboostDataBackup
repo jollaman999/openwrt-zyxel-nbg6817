@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo 1 > /tmp/runSTB_dataBackup
+
+local ckBoot=$(cat /tmp/initial_process)
+[ "$ckBoot" != "1" ] && /usr/local/bin/check_apply_appflow
+
+sleep 1
+
+echo 0 > /tmp/runSTB_dataBackup

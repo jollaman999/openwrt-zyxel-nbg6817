@@ -1,0 +1,125 @@
+Index: linux-3.4.103/drivers/net/ppp/ppp_generic.c
+===================================================================
+--- linux-3.4.103.orig/drivers/net/ppp/ppp_generic.c
++++ linux-3.4.103/drivers/net/ppp/ppp_generic.c
+@@ -3215,6 +3215,67 @@ int ppp_hold_channels(struct net_device
+ }
+ 
+ /*
++ * __ppp_hold_channels()
++ *	Returns the PPP channels of the PPP device, storing each
++ *	one into channels[].
++ *
++ * channels[] has chan_sz elements.
++ * This function returns the number of channels stored, up to chan_sz.
++ * It will return < 0 if the device is not PPP.
++ *
++ * You MUST acquire ppp_lock & release the channels using
++ * ppp_release_channels().
++ */
++int __ppp_hold_channels(struct net_device *dev, struct ppp_channel *channels[],
++			unsigned int chan_sz)
++{
++	struct ppp *ppp;
++	int c;
++	struct channel *pch;
++
++	if (!dev)
++		return -1;
++
++	if (dev->type != ARPHRD_PPP)
++		return -1;
++
++	ppp = netdev_priv(dev);
++
++	c = 0;
++	list_for_each_entry(pch, &ppp->channels, clist) {
++		struct ppp_channel *chan;
++
++		if (!pch->chan) {
++			/*
++			 * Channel is going / gone away
++			 */
++			continue;
++		}
++		if (c == chan_sz) {
++			/*
++			 * No space to record channel
++			 */
++			return c;
++		}
++
++		/*
++		 * Hold the channel, if supported
++		 */
++		chan = pch->chan;
++		if (!chan->ops->hold) {
++			continue;
++		}
++		chan->ops->hold(chan);
++
++		/*
++		 * Record the channel
++		 */
++		channels[c++] = chan;
++	}
++	return c;
++}
++
++/*
+  * ppp_release_channels()
+  *	Releases channels
+  */
+@@ -3250,6 +3311,7 @@ EXPORT_SYMBOL(ppp_register_destroy_metho
+ EXPORT_SYMBOL(ppp_unregister_destroy_method);
+ EXPORT_SYMBOL(ppp_is_multilink);
+ EXPORT_SYMBOL(ppp_hold_channels);
++EXPORT_SYMBOL(__ppp_hold_channels);
+ EXPORT_SYMBOL(ppp_release_channels);
+ EXPORT_SYMBOL(ppp_channel_get_protocol);
+ EXPORT_SYMBOL(ppp_channel_hold);
+Index: linux-3.4.103/drivers/net/ppp/pptp.c
+===================================================================
+--- linux-3.4.103.orig/drivers/net/ppp/pptp.c
++++ linux-3.4.103/drivers/net/ppp/pptp.c
+@@ -180,7 +180,6 @@ static int pptp_xmit(struct ppp_channel
+ 	unsigned char *data;
+ 	__u32 seq_recv;
+ 
+-
+ 	struct rtable *rt;
+ 	struct net_device *tdev;
+ 	struct iphdr  *iph;
+@@ -284,6 +283,10 @@ static int pptp_xmit(struct ppp_channel
+ 	ip_select_ident(skb, NULL);
+ 	ip_send_check(iph);
+ 
++	/* set incoming interface as the ppp interface */
++	if (skb->skb_iif)
++		skb->skb_iif = ppp_dev_index(chan);
++
+ 	ip_local_out(skb);
+ 	return 1;
+ 
+@@ -426,6 +429,7 @@ static int pptp_rcv(struct sk_buff *skb)
+ 	if (po) {
+ 		skb_dst_drop(skb);
+ 		nf_reset(skb);
++		skb->skb_iif = ppp_dev_index(&po->chan);
+ 		return sk_receive_skb(sk_pppox(po), skb, 0);
+ 	}
+ drop:
+Index: linux-3.4.103/include/linux/ppp_channel.h
+===================================================================
+--- linux-3.4.103.orig/include/linux/ppp_channel.h
++++ linux-3.4.103/include/linux/ppp_channel.h
+@@ -82,6 +82,9 @@ extern void ppp_release_channels(struct
+ /* Hold PPP channels for the PPP device */
+ extern int ppp_hold_channels(struct net_device *dev, struct ppp_channel *channels[], unsigned int chan_sz);
+ 
++/* Hold PPP channels for the PPP device */
++extern int __ppp_hold_channels(struct net_device *dev, struct ppp_channel *channels[], unsigned int chan_sz);
++
+ /* Test if the ppp device is a multi-link ppp device */
+ extern int ppp_is_multilink(struct net_device *dev);
+ 

@@ -1,0 +1,18 @@
+Index: uci-2012-11-09.1/file.c
+===================================================================
+--- uci-2012-11-09.1.orig/file.c
++++ uci-2012-11-09.1/file.c
+@@ -723,11 +723,12 @@ static void uci_file_commit(struct uci_c
+ 			/* freed together with the uci_package */
+ 			path = NULL;
+ 		}
+-
++#if 0
+ 		/* get changed data for ZCFG */
+ 		if (!UCIFROMZCMD){
+ 			uci_changed_get_zy(ctx,p);
+ 		}
++#endif
+ 		/* flush delta */
+ 		if (!uci_load_delta(ctx, p, true))
+ 			goto done;

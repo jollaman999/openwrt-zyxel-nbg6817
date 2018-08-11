@@ -1,0 +1,1592 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local enable_streamboost = uci:get("appflow","tccontroller","enable_streamboost")
+local enable_streamboostDebug = uci:get("appflow","tccontroller","enable_streamboostDebug")
+local firmwareVersion = luci.sys.exec("cat /tmp/firmware_version | tr -d '\n'")
+local wan_proto = uci:get("network","wan","proto")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv='content-type' content='text/html;charset=utf-8;IE=9'>
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+<link href="<%=media%>/css/inside.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/table.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<link href="/css/zyxel_streamboost.css?<%=firmwareVersion%>" rel="stylesheet" type="text/css" />
+
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script language="JavaScript" type="text/javascript"></script>
+
+    <!-- include the prerequisite libraries for the flux kit-->
+	<script src="/js/excanvas.min.js" type="text/javascript"></script> 
+	<script src="/js/jquery.min.js" type="text/javascript"></script>
+	<script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+	<script src="/js/jquery.contextMenu.js" type="text/javascript"></script>
+	<link href="/css/jquery.contextMenu.css" rel="stylesheet" type="text/css" /> 
+
+	<!-- include flux itself-->
+	<script language="javascript" type="text/javascript" src="/js/fxEnvironment.js?<%=firmwareVersion%>"></script>
+	<script language="javascript" type="text/javascript" src="/js/fxPageMenu.js?<%=firmwareVersion%>"></script>
+	
+   <!-- custom local styles-->
+    <!-- Load all of our header files-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="/js/jquery.min.js?<%=firmwareVersion%>"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js?<%=firmwareVersion%>" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/d3.v2.min.js"></script>
+    <script type="text/javascript" src="/js/fxCharts.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/fxEnvironment.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/fxTranslate.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/utility.js?<%=firmwareVersion%>"></script>
+
+    <!-- Load all of our styles files-->
+	<!--<link rel="stylesheet" href="/css/nh2.css" type="text/css" media="screen">-->
+    <link type="text/css" href="/css/custom-theme/jquery-ui-1.8.21.custom.css?<%=firmwareVersion%>" rel="stylesheet" />
+	
+    <!-- custom local styles-->
+    <style type="text/css">
+        .select_line {
+            stroke: rgba(0,00,0,1.0);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        .unselect_line {
+            stroke: rgba(0, 0, 0, 0.3);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }      
+
+    </style>
+	
+    <!-- this files custom javascript -->
+    <script type="text/javascript">
+
+        // Returns path data for a rectangle with rounded right corners.
+        // The top-left corner is ?x,y?.
+        function rightRoundedRect(x, y, width, height, radius) {
+            return "M" + x + "," + y + "h" + (width - radius) + "a" + radius + "," + radius + " 0 0 1 " + radius + "," + radius + "v" + (height - 2 * radius) + "a" + radius + "," + radius + " 0 0 1 " + -radius + "," + radius + "h" + (radius - width) + "z";
+        }
+
+        //set up googl chart on page load
+        google.load("visualization", "1", {
+            packages: ["corechart"]
+        });
+
+        // this is the update interval
+        // current set to 30 seconds
+        // note: currently checks whether it has reached MinUpdateInterval,
+        // if yes -> do update, else ignore this udpate.
+        var g_nUpdateTime = 30*1000;
+        var g_nMinUpdateInterval = 5*60*1000;
+        // var g_nMinUpdateInterval = 20*1000;
+        var g_nLastUpdateTime = new Date().getTime();
+
+        //global variables for large data chunks
+        var rtPolicy = null;    //policy data /api/policy
+        var rtDevices = null;   //device data /api/nodes
+        var rawData = null;     //raw events getEvents
+        var rtData = null;      //processed events getDeviceData()
+        var lsFilterEvent = []; //unused?
+        var isDrawingChart = 0;
+
+        //global chart stuff
+        var options = null; //options for the chart
+        var chart = null;   //the google chart object
+        var data = null;    //data table for the chart
+
+        //start and stop time ranges
+        var g_nStart = 0;
+        var g_nEnd = new Date().getTime();
+        var g_nTotalEventFlows = 0;
+        var g_nRemainingEventFlows = 0;
+        var g_nNumOfEventFlowFirstFetch = 500;
+        var g_nNumOfEventFlowRemainingFetch  = 3000;
+        var g_nNumOfEventFlowPerFetch   = 0;
+        var g_dStartFetchEventFlows = new Date();
+        var g_dEventFlowBegin = new Date(0);
+        var g_bShowDetailedLoadingMessage =<%if enable_streamboostDebug == "1" then%>true<%else%>false<%end%>;
+
+        // Event flow loading estimation related variables.
+        var g_sFormatEstimatedNormal = "<%:SB_EstimatedNormal%>";
+        var g_sFormatEstimatedExceed = "<%:SB_EstimatedExceed%>";
+        var g_nExtimatedExceed       = 10;
+        var g_usingPrecalculatedData = true;
+
+        function shouldDrawSlice(rtData, deviceTableData) {
+            if (g_usingPrecalculatedData) {
+                if( deviceTableData >= 1 && 
+                    rtData.rx_total > 0 &&
+                    deviceTableData / rtData.rx_total > 0.01 ) {
+                    // console.log(deviceTableData + '/' + rtData.rx_total + ' == ' + deviceTableData / rtData.rx_total);
+                    return true;
+                }                    
+
+            }
+            else {
+                if(deviceTableData >= 1)
+                {
+                    return true;
+                }                    
+            }
+            return false;
+        }
+
+        function filterNode(data, selectedNode) {
+            if (data == null) {
+                return null;
+            }
+
+            if (typeof data.tx_total == 'undefined' ||
+                typeof data.rx_total == 'undefined' || 
+                typeof data.startTimestamp == 'undefined' || 
+                typeof data.endTimestamp == 'undefined' || 
+                typeof data.devices == 'undefined') {
+                return null;
+            }
+
+            var returnData = {};
+            returnData.tx_total = data.tx_total;
+            returnData.rx_total = data.rx_total;
+            returnData.startTimestamp = data.startTimestamp;
+            returnData.endTimestamp = data.endTimestamp;
+            returnData.devices = [];
+            for (var mac in data.devices) {
+                if (selectedNode == mac) {
+                    returnData.devices.push(data.devices[mac]);
+                }
+            }
+
+            return returnData;
+        }
+
+        /*
+            Function: drawChart
+
+            draw the google pie chart for devices
+
+            Parameters:
+            bFetchData - should this fetch data? undefined = true
+            nSelect    - which pie wedge is selected?
+
+            returns:
+            nothing
+        */
+        function drawChart(bFetchData,nSelect)
+        {
+
+            $("#mydiv").css({height: $(window).height() - $("#mydiv").offset().top});
+            if(typeof bFetchData == 'undefined' || bFetchData != false)
+            {
+
+                if(rtDevices == null)
+                {
+                    rtDevices   = getDevices();
+                    // console.log('rtDevices: ');
+                    // console.log(rtDevices);
+                    $('#selectNodeFilter').html('<option value="*">All LAN Hosts</option>');
+                    $.each(rtDevices, function(i, node) {
+                        var text;
+                        if (node['Pipeline']['name'] != null) {
+                            text = node['Pipeline']['name'];
+                        } else if (node['Pipeline']['ip_addr'] != null) {
+                            text = node['Pipeline']['ip_addr'];
+                        } else {
+                           text = node['Pipeline']['mac_addr'];
+                        }
+                        var value = node['Pipeline']['mac_addr'];
+                        $('#selectNodeFilter').append('<option value="' + value + '">' + text + '</option>');
+                    });
+
+                }   
+
+                //get the policy names
+                if(rtPolicy == null)
+                {
+                    rtPolicy    = getPolicy();
+                }
+
+                if( isNaN(g_nStart) || isNaN(g_nEnd))
+                {
+                    g_nStart = 0;
+                    g_nEnd = new Date().getTime();
+                }
+
+                // console.log('(start, end) :' + g_nStart + ', ' + g_nEnd);
+                //get the raw event
+                if(rawData == null)
+                {
+                    rawData = getEvents(g_nStart/1000,g_nEnd/1000);
+
+                    initBillTab();
+                }
+
+                // console.log('g_nStart:');
+                // console.log(new Date(g_nStart));
+                // console.log('g_nEnd:');
+                // console.log(new Date(g_nEnd));
+
+                var selectedNode =$('#selectNodeFilter option:selected').val();
+                // console.log("selectedNode: " + selectedNode);
+
+                //culled data
+                cullData = [];
+                var nStartMS = g_nStart/1000;
+                var nEndMS = g_nEnd/1000;
+
+                // console.log('rawData.length: ' + rawData.length);
+                //cull the raw data to g_nStart/g_nEnd
+
+                if (g_usingPrecalculatedData == false) {
+                    //cull the raw data to g_nStart/g_nEnd
+                    for(var x in rawData)
+                    {
+                        var myTime = parseInt(rawData[x].time);
+
+                        if(myTime >= nStartMS && myTime <= nEndMS)
+                        {            
+                            cullData.push(rawData[x]);
+                        }
+                    }
+
+                    // console.log( 'cullData.length:' + cullData.length ); 
+
+                    // get the current events
+                    // console.log( 'getDeviceData start' ); 
+                    rtData  = null;
+                    rtData  = getFlowData(cullData);                    
+                } 
+                else {
+                    //cull the raw data to g_nStart/g_nEnd
+                    for(var x in rawData)
+                    {
+                        var startTimestamp = rawData[x].startTimestamp;
+                        var endTimestamp = rawData[x].endTimestamp;
+
+                        if ( (startTimestamp >= nStartMS && startTimestamp <= nEndMS) &&
+                             (endTimestamp >= nStartMS && endTimestamp <= nEndMS) ) {
+                            if (selectedNode != "*") {
+                                var datafilterNode = filterNode(rawData[x], selectedNode);
+                                if (datafilterNode != null) {
+                                    cullData.push(datafilterNode);
+                                }
+                            }
+                            else {
+                                cullData.push(rawData[x]);
+                            }
+                        }
+                    }
+                    rtData = appendPreCalculatedPerFlowData(null, cullData);
+                }
+
+                // console.log('rawData :');
+                // console.log(rawData);
+
+
+                // console.log('cullData :');
+                // console.log(cullData);
+
+                // console.log('rtData :');
+                // console.log(rtData);
+
+                //set up the filter by flow list
+                initFlowFilter(rtData);
+
+                <%if enable_streamboostDebug == "1" then%>
+                $("#divCullDataDialog").html(JSON.stringify(cullData)); 
+
+                outputFlowStats(rtData);
+                <%end%> 
+
+                //configure the pie chart
+                options = null;
+                options = {
+                    legend: {
+                        position: 'none'
+                    },
+                    backgroundColor: {
+                        fill: 'transparent',
+                        stroke: "transparent",
+                        strokeWidth: 0
+                    },
+                    colors: colorrange,
+                    hAxis : {
+                    	direction: 1
+                    },
+                    vAxis: {
+                    	viewWindowMode: "explicit", 
+                    	viewWindow:{ min: 0 }, 
+                    	title:'Minutes',
+                    	minValue : 0
+                    },
+                };
+            }
+
+            var rowdata = [];
+
+            //this is a english name to policy id for icon lookup in the chart pucks
+            //because we now store rows based on translated name to collapses flows based
+            //on flow_x_.js translastion files
+            var rowicon = [];
+
+            //fill out rows
+            for(var x in rtData.flows)
+            {
+                var policy = policyname(x);
+                // console.log('rtData.flows[x]');
+                // console.log(rtData.flows[x]);
+                var uptime = parseInt(rtData.flows[x].uptime / 60);
+                if (uptime < 0) {
+                    uptime = 0;
+                }
+
+                if (uptime == 0) {
+                    continue;
+                }
+
+                var row = [flowName(policy), uptime];
+                rowicon[flowName(policy)] = policy;
+
+                // console.log('row');
+                // console.log(row);
+
+                rowdata.push(row);
+            }
+
+            // insert empty if no data
+            
+
+            //make the chart
+            $("#piechart").empty();            
+
+            if (rowdata.length > 0) {
+	            //function to sort flow names
+	            function compare(a,b)
+	            {
+	                var uptimeA = a[1];//flowName(a[0]);
+	                var uptimeB = b[1];//flowName(b[0]);
+
+	                if(uptimeA<uptimeB)
+	                    return 1;
+	                if(uptimeA>uptimeB)
+	                    return -1;
+	                return 0;
+	            };
+
+	            //sort the rows by flow name alpha
+	            rowdata.sort(compare);
+
+	            // console.log('rowdata after sort: ');
+	            // console.log(rowdata);
+	        }
+	        else {
+	        	rowdata.push(['', 0]);
+	        } 
+
+            //add head
+            rowdata.unshift(["Flow","Uptime in minutes", { role: 'style' }])
+
+            if (rowdata.length > 6) {
+            	rowdata = rowdata.slice(0, 6);
+            }
+
+            // add color
+            var colorIndex = 0;
+
+            for (var i in rowdata) {
+            	if (rowdata[i][0] != "Flow") {
+            		rowdata[i].push(colorrange[colorIndex++]);
+            	}
+            }
+
+            // console.log('rowdata after slice: ');
+            // console.log(rowdata);
+
+            data = null;
+            data = google.visualization.arrayToDataTable(rowdata);
+
+            // console.log('data: ');
+            // console.log(data);
+
+            chart = new google.visualization.ColumnChart(document.getElementById('piechart'));
+
+            //draw chart with configuration
+            chart.draw(data, options);
+
+            //set selection to nothing
+            chart.setSelection([{
+                row: null
+            }]);
+        
+            isDrawingChart = 0;
+            // console.log( 'drawChart end, hide modal' ); 
+            // $("body").removeClass("loading");
+            // $("#divModal").hide(); 
+        }
+
+        function reloadDataAndDrawChart() {
+            if (isDrawingChart)
+            {
+                // console.log( 'still drawing chart, ignore this update' );
+                $("#divDebugMesg").show().html("still drawing chart, ignore this update.<br/>"+$("#divDebugMesg").html());
+                return;
+            }
+
+            $("body").addClass("loading");  
+            refreshModalDescription(!g_usingPrecalculatedData, g_bShowDetailedLoadingMessage);
+            $("#divModal").show();  
+            $("#divModalDescriptionDialog").dialog("open"); 
+
+            isDrawingChart = 1;
+
+            var retRetireOzker = retireOzker();            
+            console.log( 'retRetireOzker result:' + retRetireOzker); 
+
+            var numbersOfFlowEvents = getNumbersOfFlowEvents(); 
+            g_nTotalEventFlows = numbersOfFlowEvents.numOfCurrentEventFlows;  
+            g_nTotalPreCalculatedFlows = numbersOfFlowEvents.numOfPreCalculatedFlows;
+
+            console.log( 'Number of total event flows:' + g_nTotalEventFlows); 
+
+            g_dEventFlowBegin = new Date(0);
+
+            initializeTabs();
+            $("#tabs").tabs("option", "selected", 0);
+
+            rawData = [];
+            g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;                
+            g_dStartFetchEventFlows = new Date();
+
+            startDraw();
+        } // function reloadDataAndDrawChart
+
+        function initializeTabs() {
+            //setup tabs
+            initBillTab();
+            initCustomTab();
+            initLastQuarterTab();   
+            initSelectOptions();     
+        }
+
+        /*
+            Function: initialize
+
+            set up the page on first drawing/load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initialize()
+        {
+
+            // disable items
+            $("#datestart").attr('disabled','disabled');
+            $("#dateend").attr('disabled','disabled');
+            $("#quarter").attr('disabled','disabled');
+
+            //redraw chart on resize
+            $(window).resize(function() {
+                drawChart();
+            });
+
+            //create tab filter dialog
+            $("#tabs").tabs();
+
+            initializeTabs();
+            changeFilterBySelection();    
+
+            //hook tabs up to click
+            $('#tabs').bind('tabsshow', function(event, ui) {
+              //initFilter on tab change
+              initFilter(ui.index);
+            });
+
+            //set up refresh / filter buttons
+            initButtons();          
+
+            //this is the update interval
+            setInterval(function()
+            {
+
+                // console.log( 'isDrawingChart:' + isDrawingChart );
+
+                // stop update if interval is too short.
+                if (new Date().getTime() - g_nLastUpdateTime < g_nMinUpdateInterval)
+                {
+                    return;
+                }
+
+                reloadDataAndDrawChart();
+            },
+            g_nUpdateTime);
+
+            $("#mydiv").show();
+
+            makeLoadingModalDialog("#divModalDescriptionDialog", "<%=controller%>/expert/status/system_status");  
+
+            <%if enable_streamboostDebug == "1" then%>
+
+            // Make dialog
+            $( "#divCullDataDialog, #divFlowDataDialog, #divEventTransferHistoryDialog" ).dialog({
+                autoOpen: false,
+                modal: true,
+                width: 1024,
+                maxHeight: 700,
+                buttons: [
+                    {
+                        text: "Ok",
+                        click: function() {
+                            $( this ).dialog( "close" );
+                        }
+                    }
+                ]
+            });
+
+            $( "#divImportRawDataDialog" ).dialog({
+                autoOpen: false,
+                modal: true,
+                width: 1024,
+                maxHeight: 700,
+                buttons: [
+                    {
+                        text: "Ok",
+                        click: function() {
+                            var parsedObj = $.parseJSON($("#taImportRawData").val());
+                            if (parsedObj != null)
+                            {
+                                rawData = parsedObj.events;                              
+                            }
+                            drawChart();
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    {
+                        text: "Cancel",
+                        click: function() {
+                            $( this ).dialog( "close" );
+                        }
+                    }                    
+                ]
+            });           
+
+            // Link to open the ozkerz dialog
+            $( "#buttonCullDataDialog" ).button().click(function( event ) {
+                $( "#divCullDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonFlowDataDialog" ).button().click(function( event ) {
+                $( "#divFlowDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonImportRawDataDialog" ).button().click(function( event ) {
+                $( "#divImportRawDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonEventTransferHistoryDialog" ).button().click(function(event) {
+                $( "#divEventTransferHistoryDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            <%end%>             
+        }
+
+        /*
+            Function: initButtons
+
+            set up the buttons on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initButtons()
+        {
+            //init the refresh button
+            $( "#btRefresh" ).button({
+                  icons: {
+                    primary: "ui-icon-refresh"
+                  }
+            });
+
+            //when refresh is selected
+            $("#btRefresh").click(function()
+            {
+                reloadDataAndDrawChart();
+            });
+
+            //flow filter button
+            $( "#btFilter" ).button({
+                  icons: {
+                    primary: "ui-icon-triangle-2-n-s"
+                  }
+            });
+
+            //when the flow filter button is clicked
+            $("#btFilter").click(function(){
+
+                //get the current checked/unchecked of the box
+                var bChecked = $("#btFilter").attr('checked');
+
+                //if checked
+                if(bChecked)
+                {
+                    //show the filter list
+                    $("#listFlows").css("display","block");
+                }
+                else //if not checked
+                {
+                    //hide the filter lif
+                    $("#listFlows").css("display","none");
+                }
+            });
+
+            $("#btCheck").click(function(){
+                for(var x in lsFilterEvent)
+                {
+                    $("input[name='"+lsFilterEvent[x]+"']").attr('checked','checked');
+                }
+                //draw chart without a data fetch
+                drawChart(false);
+            });
+
+            $("#btUncheck").click(function(){
+                for(var x in lsFilterEvent)
+                {
+                    $("input[name='"+lsFilterEvent[x]+"']").removeAttr('checked');
+                }
+                //draw chart without a data fetch
+                drawChart(false);
+            });
+        }
+
+        /*
+            Function: initFilter
+
+            redraw the chart on tab changes
+
+            Parameters:
+            nTab - tab number of the filter
+
+            returns:
+            nothing
+        */
+        function initFilter(nTab)
+        {
+            switch(nTab)
+            {
+                case 0: // billing cycle
+                {
+                    //get selected info
+                    var nID =$('#billcycle option:selected').val();
+                    var strDate =$('#billcycle option:selected').text();
+
+
+                    //split the date string
+                    var splitted = strDate.split(" to ");
+
+                    var strStart    = splitted[0];
+                    var strEnd      = splitted[1];
+
+                    //get our start and end date in objects
+                    var start = new Date(strStart);
+                    var end   = new Date(strEnd);
+
+                    //now adjust the time to beginning of 1st day
+                    //and end of last day
+                    start.setHours(0,0,0);
+                    end.setHours(23,59,59);
+
+                    //init the range
+                    g_nStart    = start.getTime();
+                    g_nEnd      = end.getTime();
+
+                    drawChart();
+                }
+                break;
+                case 1: //custom period
+                {
+                    var startDate = $("#datestart").val();
+                    var endDate = $("#dateend").val();
+
+                    startDate = startDate.replace(/\//g, '-');
+                    endDate = endDate.replace(/\//g, '-');
+
+                    //get numbers
+                    var dtNow = new Date();
+                    var nDay    = dtNow.getDate();
+                    var nMonth  = dtNow.getMonth()+1; //January is 0!
+                    var nYear   = dtNow.getFullYear();
+
+                    //get our start and end date in objects
+                    var start = new Date(startDate);
+                    var end   = new Date(endDate);
+
+                    //now adjust the time to beginning of 1st day
+                    //and end of last day
+                    start.setHours(0,0,0);
+                    end.setHours(23,59,59);
+
+                    <%if enable_streamboostDebug == "1" then%>
+                    // Debug mode, set start & end with textTimeStart & textTimeStart
+                    
+                    var splitted = $("#textTimeStart").val().split(":");
+                    
+                    if (splitted.length == 3)
+                    {
+                        start.setHours(parseInt(splitted[0]),splitted[1],splitted[2]);
+                    }
+
+                    splitted = $("#textTimeEnd").val().split(":");
+                    
+                    if (splitted.length == 3)
+                    {
+                        end.setHours(parseInt(splitted[0]),splitted[1],splitted[2]);
+                    }
+
+                    <%end%>                     
+
+                    //init the range
+                    g_nStart    = start.getTime();
+                    g_nEnd      = end.getTime(); 
+
+                    drawChart();
+
+                    //make min and max date objects
+                    var min = g_dEventFlowBegin;
+                    var max = new Date();
+
+                    min.setHours(0,0,0);
+
+                    max.setHours(23,59,59);
+
+                    //set min max values of each control
+                    $("#dateend").datepicker( "option", "minDate", start);
+                    $("#dateend").datepicker( "option", "maxDate", max);
+                    $("#datestart").datepicker( "option", "minDate", min);
+                    $("#datestart").datepicker( "option", "maxDate", end);
+                }
+                break;
+                case 2: // quarterly
+                {
+                    var nID =$('#quarter option:selected').val();
+                    var start = "";
+                    var end = "";
+
+                    if(nID == 1)
+                    {
+                        start = q1.strStart;
+                        end = q1.strEnd;
+                    }
+                    else if(nID == 2)
+                    {
+                        start = q2.strStart;
+                        end = q2.strEnd;
+                    }
+                    else if(nID == 3)
+                    {
+                        start = q3.strStart;
+                        end = q3.strEnd;
+                    }
+                    else //if(nID == 4)
+                    {
+                        start = q4.strStart;
+                        end = q4.strEnd;
+                    }
+
+                    //init the range
+                    var startTime = new Date(start);
+                    var endTime = new Date(end);
+                    startTime.setHours(0,0,0);
+                    endTime.setHours(23,59,59);
+                    g_nStart    = startTime.getTime();
+                    g_nEnd      = endTime.getTime();
+
+                    drawChart();
+                }
+                break;
+            }
+        }
+
+        function changeFilterBySelection() {
+           //get selected info
+            var selectedVal =$('#selectDateRange option:selected').val();
+            // console.log("selectedVal: " + selectedVal);
+            // not exactly the week / month I have in my mind,
+            // but that's the spec..
+            var msecs_per_day = 24 * 60 * 60 * 1000;
+            var dtStart = new Date();
+            var dtEnd = new Date();
+            dtStart.setHours(0,0,0);
+            dtEnd.setHours(23,59,59);  
+
+            switch (selectedVal) {
+                case "week" :
+                    dtStart -= msecs_per_day * 7;
+                    dtStart = new Date(dtStart);
+                    break;
+                case "month" :
+                    dtStart -= msecs_per_day * 30;
+                    dtStart = new Date(dtStart);
+                    break;
+                case "day" :
+                default :
+                    break;
+            }
+
+            // console.log('dtStart:');
+            // console.log(dtStart);
+            // console.log('dtEnd:');
+            // console.log(dtEnd);
+            g_nStart = dtStart.getTime();
+            g_nEnd   = dtEnd.getTime();                                                 
+
+        }
+
+        function initSelectOptions() {
+
+            $("#selectDateRange, #selectNodeFilter").change(function(e) {
+            	// console.log("select changed");
+                changeFilterBySelection();
+                drawChart();
+            })
+
+        } // function initSelectOptions()
+
+
+        /*
+            Function: initBillTab
+
+            set up the billing cycle tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initBillTab()
+        {
+            //get numbers
+            var dtNow = new Date();
+            var nDay    = dtNow.getDate();
+            var nMonth  = dtNow.getMonth()+1; //January is 0!
+            var nYear   = dtNow.getFullYear();
+
+            //set start date to beginning of epoch time
+            var nStartMonth = g_dEventFlowBegin.getMonth()+1;
+            var nStartYear  = g_dEventFlowBegin.getFullYear();
+
+            //init the range
+            g_nStart    = new Date(nMonth+"-01-"+nYear).getTime();
+            g_nEnd      = new Date(nMonth+"-31-"+nYear).getTime();
+
+            $("#mnth1").remove();
+            $("#mnth2").remove();
+            $("#mnth3").remove();
+            $("#mnth4").remove();
+
+            $("#billcycle").append("<option id=\"mnth1\" value=\"1\">04/01/2014 to 04/31/2014</option>");
+
+            var month1 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            $("#mnth1").text(month1);
+            $("#mnth1").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+
+            var month2 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth2").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth2\" value=\"2\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth2").text(month2);
+            $("#mnth2").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month3 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth3").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth3\" value=\"3\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth3").text(month3);
+            $("#mnth3").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month4 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth4").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth4\" value=\"4\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth4").text(month4);
+            $("#mnth4").val(nMonth);
+
+            $("#billcycle").change(function(e)
+            {
+                //draw changes for billing filter
+                initFilter(0);
+            })
+        }
+
+        /*
+            Function: initCustomTab
+
+            set up the custom range tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initCustomTab()
+        {
+            //start date button picker
+            $("#datestart").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //end date button picker
+            $("#dateend").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //make min and max date objects
+            var min = g_dEventFlowBegin;
+            var max = new Date();
+
+            //now adjust the time to set our 90 day min max
+            min.setHours(0,0,0);
+
+            console.log(min);
+            max.setHours(23,59,59);
+
+            //set min max values of each control
+            $("#dateend").datepicker( "option", "minDate", min);
+            $("#dateend").datepicker( "option", "maxDate", max);
+            $("#datestart").datepicker( "option", "minDate", min);
+            $("#datestart").datepicker( "option", "maxDate", max);
+
+            //set the start and end times
+            $("#datestart").datepicker( "setDate", min);
+            $("#dateend").datepicker( "setDate", max);
+
+            <%if enable_streamboostDebug == "1" then%>
+            $("#textTimeStart, #textTimeEnd").change(function(){
+                initFilter(1);
+            });            
+            <%end%> 
+
+        }
+
+        //make default quarters
+        var q1 = quarterRange(1, 15);
+
+        function initLastQuarterTab()
+        {
+            //get today
+            var dtNow = new Date();
+
+            //make current monthly
+            q1 = lastQuarterRange(dtNow,  -3);
+
+            $("#quarter1").text(q1.strStart + " to " +  q1.strEnd);
+
+
+            //figure out what quarter today is in
+            $("#quarter").change(function(e)
+            {
+                //draw changes for quarter
+                initFilter(2);
+            });
+        }
+
+        <%if enable_streamboostDebug == "1" then%>
+
+        function outputFlowStats(lsEvents)
+        {
+            var outputResult = "";
+            //make array of policies
+            for(var x in lsEvents.flows)
+            {
+                var policy = policyname(x);
+
+                outputResult += flowName(policy) + '(' + policy + ')\'s (rx_percent, rx_total, tx_percent, tx_total):' + lsEvents.flows[x].rx_percent + ', ' + lsEvents.flows[x].rx_total + ', ' + lsEvents.flows[x].tx_percent + ', ' + lsEvents.flows[x].tx_total + "<br/>";
+            }
+
+            $("#divFlowDataDialog").html(outputResult); 
+
+        }
+
+        <%end%>          
+
+        function shouldShowFilter(rtData, deviceTableData) {
+            if (g_usingPrecalculatedData) {
+                if( deviceTableData.rx_total >= 1 && 
+                    rtData.rx_total > 0 &&
+                    deviceTableData.rx_total / rtData.rx_total > 0.01 ) {
+                    // console.log(deviceTableData.rx_total + '/' + rtData.rx_total + ' == ' + deviceTableData.rx_total / rtData.rx_total);
+                    return true;
+                }                    
+
+            }
+            else {
+                if(deviceTableData.rx_percent >= 1)
+                {
+                    return true;
+                }                    
+            }
+            return false;
+        }
+
+        /*
+            Function: initFlowFilter
+
+            set up the flow filter on 1st load or click
+
+            Parameters:
+            lsEvents the events to filter based on flow
+
+            returns:
+            nothing
+        */
+        function initFlowFilter(lsEvents)
+        {
+            //make array of policies
+            for(var x in lsEvents.flows)
+            {
+                var policy = policyname(x);
+
+                //if this has enough data to show in the graph
+                // if(parseFloat(lsEvents.flows[x].rx_percent) >= 1.0)
+                if (shouldShowFilter(lsEvents, lsEvents.flows[x]))
+                {
+                    lsFilterEvent.push(policy);
+                }
+            }
+
+            function compare(a,b)
+            {
+                var namea = flowName(a);
+                var nameb = flowName(b);
+
+                if(namea<nameb)
+                    return -1;
+                if(namea>nameb)
+                    return 1;
+                return 0;
+            };
+
+            lsFilterEvent.sort(compare);
+
+            for(var x in lsFilterEvent)
+            {
+                var policy = lsFilterEvent[x];
+
+                if($("input[name='"+policy+"']").length == 0)
+                {
+                    var html = "<li><input type=\"checkbox\" name=\""+policy+"\" value=\""+policy+"\" checked>"+flowName(policy)+"<br></li>";
+                    $("#flowchecks").append(html);
+
+                    $("input[name='"+lsFilterEvent[x]+"']").click(function(e)
+                    {
+                        //draw chart without a data fetch
+                        drawChart(false);
+                    });
+                }
+            }
+        }
+
+        var callback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // console.log('callback, status:' + status); 
+            if (status == 0)
+            {
+                // rawData = data;
+                // console.log('data: ');
+                // console.log(data);
+                if (data[0].time != null)
+                {
+                    g_dEventFlowBegin = new Date(0);
+                    g_dEventFlowBegin.setUTCSeconds(parseInt(data[0].time));
+                }
+                // console.log('before merge, data.length: ' + data.length + ', rawData.length: ' + rawData.length); 
+
+                $.merge(rawData, data);
+
+                // console.log('after merge, data.length: ' + data.length + ', rawData.length: ' + rawData.length); 
+
+                // console.log( 'drawChart, async got data' );
+                $("body").addClass("loading");  
+                $("#divModal").show();                            
+                drawChart();
+
+                g_nRemainingEventFlows -= g_nNumOfEventFlowPerFetch;
+                
+                if (g_nNumOfEventFlowPerFetch == g_nNumOfEventFlowFirstFetch)
+                {
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowRemainingFetch;
+                }
+
+                if (g_nRemainingEventFlows >= 0)
+                {
+                    $("#divModal").show();             
+                    refreshModalDescription(false, g_bShowDetailedLoadingMessage);                                        
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);
+                }     
+                else
+                {
+                    isDrawingChart = 0;
+                    $("#divEventTransferHistoryDialog").html($("#divEventTransferHistoryDialog").html() + (new Date()) + ": " + $("#divModalDescription").html() + "<br/><br/>"); 
+                    refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                    initializeTabs();
+                    $("#divModalDescriptionDialog").dialog("close"); 
+                    $("body").removeClass("loading");
+                    $("#divModal").hide(); 
+
+                }
+            }
+            else
+            {
+                isDrawingChart = 0;
+                $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html()); 
+                // console.log( 'failed, remove modal' ); 
+                refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                $("body").removeClass("loading");
+                $("#divModal").hide();         
+                $("#divModalDescriptionDialog").dialog("close"); 
+            }                            
+            // console.log( rawData ); 
+        }  // callback
+
+
+        var patchLatestFlowCallback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            if (status == 0)
+            {         
+
+                // console.log('patchLatestFlowCallback data :');                          
+                // console.log(data);   
+
+                var cullData = [];
+                var currentTimestamp = getCurrentTimestamp();
+                var nStartMS = zeroHourOfTimestamp(currentTimestamp);
+                var nEndMS = lastHourOfTimestamp(currentTimestamp);
+
+                //cull the raw data to g_nStart/g_nEnd
+                for(var x in data)
+                {
+                    var myTime = parseInt(data[x].time);
+
+                    if(myTime >= nStartMS && myTime <= nEndMS)
+                    {            
+                        cullData.push(data[x]);
+                    }
+                }
+
+                var deviceData = getDeviceData(cullData, data);
+
+                // console.log('deviceData :');                          
+                // console.log(deviceData);   
+
+                if (deviceData != null &&
+                    typeof deviceData.devices != 'undefined') {
+                    var dataToPatch = {};
+
+                    dataToPatch.devices = {};
+
+                    for (var mac in deviceData.devices) {
+                        dataToPatch.devices[mac] = deviceData.devices[mac];
+                    }
+
+                    dataToPatch.rx_total = deviceData.rx_total;
+                    dataToPatch.tx_total = deviceData.tx_total;
+                    dataToPatch.startTimestamp = getCurrentTimestamp();
+                    dataToPatch.endTimestamp = getCurrentTimestamp();
+
+                    // console.log('dataToPatch :');                          
+                    // console.log(dataToPatch);
+
+                    rawData.push(dataToPatch);
+
+                    // console.log('after merge, rawData :');                          
+                    // console.log(rawData);                 
+
+                    $("body").addClass("loading");  
+                    $("#divModal").show();  
+
+                    drawChart();
+
+                }
+
+                console.log( 'drawChart end, hide modal' ); 
+                $("body").removeClass("loading");
+                $("#divModal").hide();  
+                $("#divModalDescriptionDialog").dialog("close"); 
+            }         
+            else
+            {
+                isDrawingChart = 0;
+                $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());                             
+                // console.log( 'failed, remove modal' ); 
+                refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                $("body").removeClass("loading");
+                $("#divModal").hide();      
+                $("#divModalDescriptionDialog").dialog("close");                                  
+            }
+        } // patchLatestFlowCallback     
+
+        var preCalculationCallback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // rawData = data;
+            // console.log('callback, status:' + status); 
+            // console.log('data.length: '+ data.length);
+            // console.log('rawData.length: '+ rawData.length);
+            // console.log( 'data: ' ); 
+            // console.log( data ); 
+            // console.log( rawData ); 
+            // console.log( rawData ); 
+            if (status == 0)
+            {
+                if( typeof data != 'undefined' && data.length > 0 ) {
+                    var lastIndex = data.length -1;
+
+                    if( typeof data[lastIndex] != 'undefined' &&
+                        typeof data[lastIndex].startTimestamp != 'undefined' &&
+                        typeof data[lastIndex].endTimestamp != 'undefined') {
+                        var myTime = parseInt(data[lastIndex].startTimestamp);
+                        g_dEventFlowBegin = new Date(0);
+                        g_dEventFlowBegin.setUTCSeconds(myTime); 
+                        // console.log('g_dEventFlowBegin: ');                                                   
+                        // console.log(g_dEventFlowBegin);                                                   
+                    }                
+
+                }
+
+                $("body").addClass("loading");  
+                $("#divModal").show();  
+
+                // console.log('data :');                          
+                // console.log(data); 
+                rawData = data;
+                // rawData = appendPreCalculatedPerDeviceData(rawData, data);
+                // console.log('rawData :');                          
+                // console.log(rawData);                 
+                drawChart();
+
+                var lowBoundIndex = getLowBoundIndexByTimestamp(getCurrentTimestamp());
+                console.log('lowBoundIndex: ' + lowBoundIndex);
+                asyncEvents(g_nStart/1000,g_nEnd/1000, lowBoundIndex, -1, patchLatestFlowCallback);
+
+            }         
+            else
+            {
+                isDrawingChart = 0;
+                $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());                             
+                // console.log( 'failed, remove modal' ); 
+                refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                $("body").removeClass("loading");
+                $("#divModal").hide();      
+                $("#divModalDescriptionDialog").dialog("close");                                  
+            }
+
+        } // preCalculationCallback 
+
+        var startDraw = function () {
+            console.log('startDraw');
+
+            $("body").addClass("loading");  
+            refreshModalDescription(false, g_bShowDetailedLoadingMessage);
+            $("#divModal").show();
+
+            if (g_usingPrecalculatedData) {
+                asyncPerDevice(0, -1, preCalculationCallback);
+            }
+            else {
+                asyncEvents(g_nStart/1000,g_nEnd/1000, 
+                    g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);                            
+            }
+        }          
+
+        //called when page 1st loads
+        $(document).ready(function() {
+
+            initGlobalVariables();
+
+            var streamboostEnabled = <%=enable_streamboost%>;
+            var wanProto = "<%=wan_proto%>";
+
+            if (!streamboostEnabled || wanProto == "pptp") {
+                return;
+            }            
+
+            //load the flow table
+            flowTable(function()
+            {
+                //load the device table
+                loadDeviceTable(function()
+                {
+                    // console.log( 'loadDeviceTable when document.ready' ); 
+
+                    //init start to ridiculously early date
+                    g_nStart = 0;
+                    g_nEnd = new Date().getTime();
+                    g_dStartFetchEventFlows = new Date();
+
+                    //do a 1st fetch of all data before setting a filter
+                    // rawData = getEvents(g_nStart/1000,g_nEnd/1000);
+
+                    $("body").addClass("loading");  
+                    refreshModalDescription(false, g_bShowDetailedLoadingMessage);
+                    $("#divModal").show();                        
+
+                    //draw the page
+                    initialize();
+
+                    rawData = [];
+                    isDrawingChart = 1;
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+                    doPreCalculationIfNeeded(startDraw);                
+                });
+            });
+        });
+
+		function menu(){			
+			window.parent.menu.location.href = "<%=controller%>/expert/configuration/security/menu_app";			
+		}
+
+    </script>
+
+</head>
+
+<!-- <body onload="verifyReadyData();"> -->
+<body>
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Common_Usage%></div></td>
+    <td>&nbsp;</td>
+
+    
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+	
+		<li class="table_content">
+		 <% if enable_streamboost == "1" then%>		
+         <% if wan_proto == "pptp" then%>
+            <div class="data" >
+            <div class="w_text">
+                <%:Streamboost_on_warning5%>
+            </div>
+            </div>
+         <%else%>
+
+			<div style="float:right;margin-right:10px;font-size:14px">
+				<div>
+	            	<select id="selectDateRange" class="dateRangeFilter">
+	               		<option id="optionDateRangeDay" value="day">Last Day</option>
+	                	<option id="optionDateRangeWeek" value="week">Last Week</option>
+	                	<option id="optionDateRangeMonth" value="month">Last Month</option>
+	            	</select>
+	        	</div>
+	        	<div>
+	                <select id="selectNodeFilter" class="nodeFilter">
+	                </select>
+	            </div>
+			</div>
+
+			<h1 class="chartTitle" style="color: rgb(0, 117, 201);font-size: 24px;text-align: center;"><%:Top_5_Flows_By_Time%></h1>
+
+			<div id="mydiv" style="display:none;">
+			
+			<div style="display:none;">
+				<div id="dialog-flows" title="Select Flow Filter...">
+				  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+				</div>
+			</div>
+			<div style="float: right;margin-right:64px;font-size:10px;display:none;">
+				<div id="tabs">
+					<ul>
+						<li><a href="#tabs-1"><%:SB_BillingPeriod%></a></li>
+						<li><a href="#tabs-2"><%:SB_CustomPeriod%></a></li>
+						<li><a href="#tabs-3"><%:SB_LastQuarter%></a></li>
+					</ul>
+					<div id="tabs-1">
+						<div>
+							<div><%:SB_Period%>:</div>
+							<select id="billcycle" class="dateRangeFilter">
+								<option id="mnth1" value="1">04/01/2014 to 04/31/2014</option>
+								<option id="mnth2" value="2">03/01/2014 to 03/31/2014</option>
+								<option id="mnth3" value="3">02/01/2014 to 02/31/2014</option>
+								<option id="mnth4" value="4">01/01/2014 to 01/31/2014</option>
+							</select>
+						</div>
+					</div>
+					<div id="tabs-2">
+						<div>
+							<div><%:SB_RangeStart%>:</div>
+							<input type="text" id="datestart" value="01/01/2014">
+                            <%if enable_streamboostDebug == "1" then%>
+                            <input type="text" id="textTimeStart" value="00:00:00">
+                            <%end%>                            
+						</div>
+						<div>
+							<div><%:SB_RangeEnd%>:</div>
+							<input type="text" id="dateend" value="12/31/2014">
+                            <%if enable_streamboostDebug == "1" then%>
+                            <input type="text" id="textTimeEnd" value="23:59:59">
+                            <%end%>                            
+						</div>
+					</div>
+					<div id="tabs-3">
+						<div>
+							<div><%:SB_LastQuarter%>:</div>
+							<select id="quarter" class="dateRangeFilter">
+								<option id="quarter1" value="1">01/01/2014 to 03/31/2014</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div id="listFlows" class="text ui-widget-content ui-corner-all" style="height:25%;width:100%;margin-top:8px;display:none;overflow:hidden;">
+					<h1 style="font-size: 13px;text-align: center;color: rgb(37, 112, 186);"><%:SB_CheckVisibleFlow%>:</h1>
+					<div class="text ui-widget-content ui-corner-all" style="border-radius: 0px;height:70%;margin: 4px;">
+						<div  style="height: 99%;overflow-y: scroll;">
+							<ul id="flowchecks" style="list-style-type: none;">
+							</ul>
+						</div>
+						<button id="btCheck" style="margin-top:10px;"><%:SB_CheckAll%></button>
+						<button id="btUncheck" style="margin-top:10px;"><%:SB_UnCheckAll%></button>
+					</div>
+				</div>
+				<button id="btRefresh" style="float:right;margin-top:8px;height: 30px;width: 96px;"><%:Refresh%></button>
+				<input type="checkbox" id="btFilter" ><label for="btFilter" style="margin-top:8px;margin-left:4px;margin-top: 7px;width: 96px;"><%:SB_FlowFilter%></label>
+			</div>
+			<div id="piechart" style="top:100px;width: 100%; height: 100%;"></div>
+
+         <% end %>
+		 <%else%>
+		  <div class="data" >
+			<div class="w_text">
+				
+				<%:Streamboost_on_warning%>
+				<a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxbandwidth" onclick="menu();" ><%:Streamboost_on_warning3%></a> <%:Streamboost_on_warning4%>
+				
+			</div>
+		  </div>
+		 <% end %>
+		</li>
+				
+	
+</div>
+
+        <%if enable_streamboostDebug == "1" then%>
+        <button id="buttonCullDataDialog" style="display:none;">Show event flow data</button>
+        <button id="buttonFlowDataDialog" style="display:none;">Show statistic data</button>
+        <button id="buttonEventTransferHistoryDialog" style="display:none;">Show Event Transfer History</button>
+        <button id="buttonImportRawDataDialog" style="display:none;">Import event flow raw data</button>
+        <div id="divCullDataDialog" title="Ozker event flow" style="display:none;"></div>
+        <div id="divFlowDataDialog" title="Statistic of event flow" style="display:none;"></div>
+        <div id="divEventTransferHistoryDialog" title="Event transfer history" style="display:none;"></div>
+        <div id="divImportRawDataDialog" title="Import event flow raw data" style="display:none;">
+            <textarea id="taImportRawData" cols="200" rows="60"></textarea>            
+        </div>
+        <%end%>
+
+    <%if enable_streamboostDebug == "1" then%>
+    <div class="debug" id="divDebugMesg"></div>
+    <%end%>
+    <div class="modal" id="divModal">
+        <div title="<%:SB_LoadingWait%><img src='/images/loading.gif' / style='height:16px'>" id="divModalDescriptionDialog">
+            <div class="modalDescription" id="divModalDescription"><%:SB_LoadingWait%></div><br/>
+            <div><%:SB_LoadingNote%></div>
+        </div>
+    </div>
+
+</body>
+
+</html>

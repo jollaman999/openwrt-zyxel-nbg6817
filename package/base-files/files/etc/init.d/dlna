@@ -1,0 +1,179 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=99
+contentdir=""
+usb=
+
+chk_contentdir(){
+	usb1_photo=$(uci_get dlna main usb1_photo)
+	usb1_music=$(uci_get dlna main usb1_music)
+	usb1_video=$(uci_get dlna main usb1_video)
+	usb2_photo=$(uci_get dlna main usb2_photo)
+	usb2_music=$(uci_get dlna main usb2_music)
+	usb2_video=$(uci_get dlna main usb2_video)
+	usb1_type=0
+	usb2_type=0
+
+	[ $usb1_photo = 1 ] && usb1_type=$(($usb1_type+1))
+	[ $usb1_music = 1 ] && usb1_type=$(($usb1_type+2))
+	[ $usb1_video = 1 ] && usb1_type=$(($usb1_type+4))
+
+	[ $usb2_photo = 1 ] && usb2_type=$(($usb2_type+1))
+	[ $usb2_music = 1 ] && usb2_type=$(($usb2_type+2))
+	[ $usb2_video = 1 ] && usb2_type=$(($usb2_type+4))
+
+	[ "$usb1_type" == "0" -a "$usb2_type" == "0" ] && exit 0
+
+	if [ "$usb1_type" == "0" -a "$usb2_type" != "0" ];then
+		usb="2"
+	elif [ "$usb1_type" != "0" -a "$usb2_type" == "0" ];then
+		usb="1"
+	else
+		usb="1 2"
+	fi
+
+	for usb_index in $usb;
+	do
+		usb_path="usb$usb_index"
+		for usb_path in $(df | grep "/tmp/storage/usb$usb_index" | awk '{print $6}' | awk -F'/tmp/storage' '{print $2}');
+		do
+			if [ "$usb_index" == "1" ];then
+				usb_type="$usb1_type"
+			elif [ "$usb_index" == "2" ]; then
+				usb_type="$usb2_type"
+			fi
+			#type,0:none,1:Photos,2:Music,3:M+P,4:Videos,5:P+V,6:M+V,7:all
+			case "$usb_type" in
+				"0") contentdir="$contentdir" ;;		
+				"1") contentdir="$contentdir+P|$usb_path/photo," ;;
+				"2") contentdir="$contentdir+M|$usb_path/music," ;;		
+				"3") contentdir="$contentdir+P|$usb_path/photo,+M|$usb_path/music," ;;
+				"4") contentdir="$contentdir+V|$usb_path/video," ;;
+				"5") contentdir="$contentdir+P|$usb_path/photo,+V|$usb_path/video," ;;
+				"6") contentdir="$contentdir+M|$usb_path/music,+V|$usb_path/video," ;;
+				"7") contentdir="$contentdir+P|$usb_path/photo,+M|$usb_path/music,+V|$usb_path/video," ;;
+			esac
+		done
+	done
+	# echo "$contentdir" >> /dev/console
+}
+
+start() {
+	
+	[ -d /var/twonky ] || mkdir /var/twonky
+	[ -d /var/twonky/twonkyserver ] || mkdir /var/twonky/twonkyserver
+	[ -f /var/twonkyserver ] || bzcat /usr/local/twonky/twonkyserver.bz2 > /var/twonkyserver && chmod 755 /var/twonkyserver
+	[ -f /var/twonkystarter ] || bzcat /usr/local/twonky/twonkystarter.bz2 > /var/twonkystarter && chmod 755 /var/twonkystarter
+	
+	product_name=$(uci get system.main.product_name)
+	twonky_enabled=$(uci_get dlna main enabled)
+	[ "$twonky_enabled" != "1" ] && exit 0
+
+	[ -d "/tmp/storage/usb1" -o -d "/tmp/storage/usb2" ] || exit 0
+
+	language=$(uci_get system main language)
+	contentbase="/tmp/storage/"
+	chk_contentdir
+
+	if [ "$(echo $contentdir | tail -c 2)" == "," ];then
+		contentdir="${contentdir%?}"
+	fi
+
+	if [ "$language" == "zh" ];then
+		language="cht"
+	fi
+
+	if [ "$product_name" == "NBG6817" ] || [ "$product_name" == "NBG6816" ]; then
+		[ ! -d "/tmp/ApplicationData/dlna/" ] && mkdir -p "/tmp/ApplicationData/dlna/"	
+		dbdir="/tmp/ApplicationData/dlna/db"
+		cachedir="/tmp/ApplicationData/dlna/db/cache"
+
+	else
+		if [ -d "/tmp/storage/usb1" ]; then
+			dirls=$(ls /tmp/storage/usb1)
+			dirsub=$(echo $dirls|awk '{print $1}')		
+			dbdir="/tmp/storage/usb1/$dirsub/db"
+			cachedir="/tmp/storage/usb1/$dirsub/db/cache"
+		elif [ -d "/tmp/storage/usb2" ]; then
+			dirls=$(ls /tmp/storage/usb2)
+			dirsub=$(echo $dirls|awk '{print $1}')		
+			dbdir="/tmp/storage/usb2/$dirsub/db"
+			cachedir="/tmp/storage/usb2/$dirsub/db/cache"
+		else
+			dbdir="/var/twonky/twonkyserver/db"
+			cachedir="/var/twonky/twonkyserver/db/cache"
+		fi
+	fi
+
+	lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+
+	cat << EOF > /usr/local/twonky/resources/devicedescription-custom-settings.txt
+#MANUFACTURER#Zyxel Communications Corp.
+#MANUFACTURERURL#http://www.zyxel.com
+#MODELNAME#Zyxel $product_name Router
+#MODELURL#
+#MODELDESCRIPTION#Zyxel $product_name Router
+#PRESENTATION-URL#http://$lan_ip
+#MODELNUMBER#1
+#SERIALNUMBER#N/A
+#PVEXTENSION#
+#TMS_PNPX_X_HARDWAREWID#VEN_0033&amp;DEV_0001&amp;REV_01
+#TMS_PNPX_X_COMPATIBLEID#MS_DigitalMediaDeviceClass_DMS_V001
+#TMS_PNPX_X_DEVICECATEGORY#MediaDevices
+#TMS_DFX_X_DEVICECATEGORY#Multimedia.DMS
+#TMS_DFX_MODELID#
+#TMS_PNPX_X_CONTAINERID#
+
+// Notes:
+// The character encoding of this file is expected to be UTF-8
+//
+// Remember these values are inserted into an XML document;
+// special characters must be appropriately coded as entity references.
+//
+// TMS_DFX_MODELID and TMS_PNPX_X_CONTAINERID are optional, and can be left empty.
+// In that case they are removed from the document (empty tag is not added)
+ 
+EOF
+	
+	cat <<EOF >/var/twonky/twonkyserver/twonkyserver.ini
+cachedir=$cachedir
+contentbase=$contentbase
+contentdir=$contentdir
+followlinks=0
+enableweb=2
+maxitems=60000
+httpport=9191
+stack_size=65536
+httpsessionlimit=6
+disablepmscaling=1
+dbdir=$dbdir
+language=$language
+servermanagedmusicdir=/tmp/twonky/music/Twonky
+servermanagedpicturedir=/tmp/twonky/pictures/Twonky
+servermanagedvideodir=/tmp/twonky/videos/Twonky
+ignoredir=AppleDouble,AppleDB,AppleDesktop,TemporaryItems,.fseventsd,.Spotlight-
+mediafusionserverurl=http://www.zyxel.com
+friendlyname=$product_name
+minimum_picture_resolution=
+EOF
+	rm -rf $dbdir
+	/usr/local/twonky/twonky.sh start
+	
+	##limit cpu resource
+	cpulimit-ng -e /usr/local/twonky/twonkyserver -l 50 >/dev/null 2>&1 &
+}
+
+stop(){
+	/usr/local/twonky/twonky.sh stop
+	
+	killall -9 cgi-jpegscale
+	killall -9 itunes-import
+	killall -9 /usr/local/twonky/twonkyserver
+
+	limitDlnaPid=$(ps | grep "cpulimit-ng -e /usr/local/twonky/twonkyserver" | grep -v grep | awk '{print $1}')	
+	kill -9 $limitDlnaPid
+
+	sleep 1
+	rm -rf /var/twonky/*
+}

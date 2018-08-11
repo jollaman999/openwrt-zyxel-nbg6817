@@ -1,0 +1,279 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local sys = require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev
+
+local release_year = uci:get("system","main","release_year") 
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="<%=media%>/css/easy123_base.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_skeleton.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_layout.css" />
+
+<title><%:easy123_title_4%></title>
+<script language="javascript">
+function gotoApply(){
+  loc = '<%=luci.dispatcher.build_url("easy","eaZy123","genie5")%>';
+  code = 'location="' + loc + '"';
+  eval(code);	
+
+}
+</script>
+<style>
+#ballsWaveG{
+position:relative;
+width:128px;
+height:30px}
+
+.ballsWaveG{
+position:absolute;
+top:0;
+background-color:#0075C9;
+width:16px;
+height:16px;
+-moz-animation-name:ballsWaveG;
+-moz-animation-duration:1.3s;
+-moz-animation-iteration-count:infinite;
+-moz-animation-direction:normal;
+-moz-border-radius:8px;
+-webkit-animation-name:ballsWaveG;
+-webkit-animation-duration:1.3s;
+-webkit-animation-iteration-count:infinite;
+-webkit-animation-direction:normal;
+-webkit-border-radius:8px;
+-ms-animation-name:ballsWaveG;
+-ms-animation-duration:1.3s;
+-ms-animation-iteration-count:infinite;
+-ms-animation-direction:normal;
+-ms-border-radius:8px;
+-o-animation-name:ballsWaveG;
+-o-animation-duration:1.3s;
+-o-animation-iteration-count:infinite;
+-o-animation-direction:normal;
+-o-border-radius:8px;
+animation-name:ballsWaveG;
+animation-duration:1.3s;
+animation-iteration-count:infinite;
+animation-direction:normal;
+border-radius:8px;
+}
+
+#ballsWaveG_1{
+left:0;
+-moz-animation-delay:0.52s;
+-webkit-animation-delay:0.52s;
+-ms-animation-delay:0.52s;
+-o-animation-delay:0.52s;
+animation-delay:0.52s;
+}
+
+#ballsWaveG_2{
+left:16px;
+-moz-animation-delay:0.65s;
+-webkit-animation-delay:0.65s;
+-ms-animation-delay:0.65s;
+-o-animation-delay:0.65s;
+animation-delay:0.65s;
+}
+
+#ballsWaveG_3{
+left:32px;
+-moz-animation-delay:0.78s;
+-webkit-animation-delay:0.78s;
+-ms-animation-delay:0.78s;
+-o-animation-delay:0.78s;
+animation-delay:0.78s;
+}
+
+#ballsWaveG_4{
+left:48px;
+-moz-animation-delay:0.91s;
+-webkit-animation-delay:0.91s;
+-ms-animation-delay:0.91s;
+-o-animation-delay:0.91s;
+animation-delay:0.91s;
+}
+
+#ballsWaveG_5{
+left:64px;
+-moz-animation-delay:1.04s;
+-webkit-animation-delay:1.04s;
+-ms-animation-delay:1.04s;
+-o-animation-delay:1.04s;
+animation-delay:1.04s;
+}
+
+#ballsWaveG_6{
+left:80px;
+-moz-animation-delay:1.17s;
+-webkit-animation-delay:1.17s;
+-ms-animation-delay:1.17s;
+-o-animation-delay:1.17s;
+animation-delay:1.17s;
+}
+
+#ballsWaveG_7{
+left:96px;
+-moz-animation-delay:1.3s;
+-webkit-animation-delay:1.3s;
+-ms-animation-delay:1.3s;
+-o-animation-delay:1.3s;
+animation-delay:1.3s;
+}
+
+#ballsWaveG_8{
+left:112px;
+-moz-animation-delay:1.43s;
+-webkit-animation-delay:1.43s;
+-ms-animation-delay:1.43s;
+-o-animation-delay:1.43s;
+animation-delay:1.43s;
+}
+
+@-moz-keyframes ballsWaveG{
+0%{
+background-color:#0075C9;
+}
+
+100%{
+background-color:#FFFFFF;
+}
+
+}
+
+@-webkit-keyframes ballsWaveG{
+0%{
+background-color:#0075C9;
+}
+
+100%{
+background-color:#FFFFFF;
+}
+
+}
+
+@-ms-keyframes ballsWaveG{
+0%{
+background-color:#0075C9;
+}
+
+100%{
+background-color:#FFFFFF;
+}
+
+}
+
+@-o-keyframes ballsWaveG{
+0%{
+background-color:#0075C9;
+}
+
+100%{
+background-color:#FFFFFF;
+}
+
+}
+
+@keyframes ballsWaveG{
+0%{
+background-color:#0075C9;
+}
+
+100%{
+background-color:#FFFFFF;
+}
+
+}
+
+</style>
+</head>
+<body onload="gotoApply()">
+  <div class="logo">
+    <div class="red2"><h5t><img width="100" height="40" src="<%=media%>/images/easy123_logo.png"></img><%:easy123_title_1%></h5t></div>
+  </div>
+  <div class="container">
+    <div class="sixteen columns">
+      <div align="center"><h2><%:easy123_title_3%></h2><hr></div>
+      <div align="center">
+        <h4><%:easy123_setup_g4_1%></h4>
+        <br>
+        <div id="ballsWaveG">
+          <div id="ballsWaveG_1" class="ballsWaveG"></div>
+          <div id="ballsWaveG_2" class="ballsWaveG"></div>
+          <div id="ballsWaveG_3" class="ballsWaveG"></div>
+          <div id="ballsWaveG_4" class="ballsWaveG"></div>
+          <div id="ballsWaveG_5" class="ballsWaveG"></div>
+          <div id="ballsWaveG_6" class="ballsWaveG"></div>
+          <div id="ballsWaveG_7" class="ballsWaveG"></div>
+          <div id="ballsWaveG_8" class="ballsWaveG"></div>
+        </div>
+        <br>
+        <p><%:easy123_setup_g4_2%></p>
+      </div>
+
+      <div class="three columns">&nbsp;</div>
+      <div class="five columns" style="word-break:break-all">
+        <div align="center">
+          <h5><%:easy123_setup_g4_3%></h5>
+          <p>
+            <%:easy123_setup_g4_4%>:
+            <br>
+            <%=SSID%>
+            <br>
+            <%:easy123_setup_g4_5%>:
+            <br>
+            <%=PASSWORD%>
+          </p>
+        </div>
+        </br>
+      </div>
+
+      <div class="five columns" style="word-break:break-all">
+        <div align="center">
+          <h5><%:easy123_setup_g4_6%></h5>
+          <p>
+            <%:easy123_setup_g4_4%>:
+            <br>
+            <%=SSID_5G%>
+            <br>
+            <%:easy123_setup_g4_5%>:
+            <br>
+            <%=PASSWORD_5G%>
+          </p>
+        </div>
+        </br>
+      </div>
+    </div>
+    <div class="sixteen columns">
+      <hr>
+      <div align="center"><p class="footer"><%:easy123_zyxel%><%=release_year%></p></div>
+    </div>
+  </div>
+</body>
+</html>

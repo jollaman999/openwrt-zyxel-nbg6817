@@ -1,0 +1,292 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+</head>
+<body  >
+<script type="text/javascript">
+
+function validateEmail(email)
+{
+	reg = /^[^\s]+@[^\s]+\.[^\s]{2,3}$/;
+	if (reg.test(email))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+} 
+
+function submit_apply()
+{
+
+	showWebMessage( 1 , "<%:Message%>" , "<%:msg_config%>" );
+	
+	if (document.forms[0].MailServerAddress.value == "")
+	{
+		alert("<%:Email_Error_1%>");
+		document.forms[0].MailServerAddress.focus();
+		document.forms[0].MailServerAddress.select();
+		return false;
+	}	
+
+	if (document.forms[0].MailServerPort.value == "")
+	{
+		alert("<%:Email_Error_2%>");
+		document.forms[0].MailServerPort.focus();
+		document.forms[0].MailServerPort.select();
+		return false;
+	}	
+
+	if (document.forms[0].AuthenticationUsername.value == "")
+	{
+		alert("<%:Email_Error_3%>");
+		document.forms[0].AuthenticationUsername.focus();
+		document.forms[0].AuthenticationUsername.select();
+		return false;
+	}	
+
+	if (document.forms[0].AuthenticationPassword.value == "")
+	{
+		alert("<%:Email_Error_4%>");
+		document.forms[0].AuthenticationPassword.focus();
+		document.forms[0].AuthenticationPassword.select();
+		return false;
+	}	
+
+	if (document.forms[0].AccountEmailAddress.value == "")
+	{
+		alert("<%:Email_Error_5%>");
+		document.forms[0].AccountEmailAddress.focus();
+		document.forms[0].AccountEmailAddress.select();
+		return false;
+	}	
+	else
+	{
+		if (!validateEmail(document.forms[0].AccountEmailAddress.value))
+		{
+			alert("<%:Email_Error_6%>");
+			document.forms[0].AccountEmailAddress.focus();
+			document.forms[0].AccountEmailAddress.select();
+			return false;
+		}
+	}
+
+}
+
+function addCheck()
+{
+
+	if(document.SendmailForm.Email.value == ""){
+		alert("<%:Email_Error%>");
+		return false;
+	}
+	else
+	{
+		if (!validateEmail(document.SendmailForm.Email.value))
+		{
+			alert("<%:Email_Error_5%>");
+			document.SendmailForm.Email.focus();
+			document.SendmailForm.Email.select();
+			return false;
+		}
+	}
+
+	showWebMessage( 0, '<%:Message%>', '<%:Ready%>' );
+	return true;
+}
+
+function addEmail()
+{
+	var ret = true;
+			
+	ret = addCheck();
+	
+	if(ret != true){
+		return ret;
+	}
+	
+	with(document.SendmailForm){
+		var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","management", "send_mail", "mail")%>';
+		var loc = submit_url + '?add=Add';
+		
+		loc += '&Email=' + Email.value;
+		
+		var code = 'location="' + loc + '"';
+     	eval(code);
+	}
+}
+
+</script>
+<form onSubmit="return submit_apply()" name="SendmailForm">
+<div id="tabs">
+   <ul>
+      <!-- <li ><a href="<%=controller%>/expert/configuration/management/send_mail/mail" title="<%:myMail%>" ><span><%:myMail%></span></a></li> -->
+   </ul>
+   <br class="clearfloat" />
+</div>
+<div id="table">
+   <ul>
+      <li class="table_top"></li>
+      <li class="table_content">
+         <div class="data">
+            <ul>
+			  <li class="title" > <%:nodification%> </li>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:mailServerAddress%> : </li>
+                     <li class="right_table">
+                        <input name="MailServerAddress" size="20" maxlength="127" value="<%= uci:get( "sendmail", "mail_server_setup", "server" ) %>" type="text" /> <%:smtpServerNameOrIP%>
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:mailServerPort%> : </li>
+                     <li class="right_table">
+                        <input name="MailServerPort" size="20" maxlength="127" value="<%= uci:get( "sendmail", "mail_server_setup", "port" ) %>" type="text" />
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:authenticationUsername%> : </li>
+                     <li class="right_table">
+                        <input name="AuthenticationUsername" size="20" maxlength="127" value="<%= uci:get( "sendmail", "mail_server_setup", "username" ) %>" type="text" />
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:authenticationPassword%>   :</li>
+                     <li class="right_table">
+                        <input name="AuthenticationPassword" size="20" maxlength="127" value="<%= uci:get( "sendmail", "mail_server_setup", "password" ) %>" type="password" />
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:accountEmailAddress%>   :</li>
+                     <li class="right_table">
+                        <input name="AccountEmailAddress" size="20" maxlength="127" value="<%= uci:get( "sendmail", "mail_server_setup", "account" ) %>" type="text" />
+                     </li>
+                  </ul>
+               </div>
+
+                    <div class="spaceair"></div>
+					<li class="space"></li>
+					<ul>
+						<li class="title" > <%:sendTo%> </li>
+							<div class="w_text">
+								<ul>    
+									&nbsp;<li class="right_table"><%:E_Mail%>&nbsp; : 
+									<input name="Email" size="20" maxlength="127" />
+									<input value="<%:Add%>" onclick="addEmail() "type="button" />
+									</li>
+								</ul>
+							</div>
+							
+							<ul>
+							  <div class="tableframe">
+								 <table width="70%"   cellpadding="0" cellspacing="0" class="table_frame">
+									<tr>
+									   <td>
+										  
+												   
+															<table id="list_table" width="100%" cellpadding="0" cellspacing="0" >
+															   <tr>
+																  <td height="26" colspan="3">
+																	 <table width="100%" border="0" cellspacing="0" cellpadding="0">
+																		<tr>
+																		   <td height="26" class="table_title">
+																			  <%:sendTo%><span class="cTitle"></span>
+																		   </td>
+																		</tr>
+																	 </table>
+																  </td>
+															   </tr>
+															   <tr class="top_font" align="center">
+																  <td width="35">#</td>																  
+																  <td width="90"><%:E_Mail%> </td>
+																  <td width="90"><%:Modify%></td>
+															   </tr>
+
+															  <% luci.sys.net.sendto(function(rt) %>					  
+									                          <tr class="table_font" align="center">
+									                            <td><%=rt.index%></td>
+									                            <td><%=rt.email%></td>
+									                            <td>
+									                            	<a href="<%=controller%>/expert/configuration/management/send_mail/mail_edit?edit=<%=rt.rule%>" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image19','','images/i_edit_on.gif',1)" ><img src="<%=media%>/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19"  title="<%:Edit%>"/></a>&nbsp;&nbsp;<a href="#"><a href="<%=controller%>/expert/configuration/management/send_mail/mail_edit?remove=<%=rt.rule%>"><img src="<%=media%>/admin/images/i_delete.gif" name="Image141" width="18" height="18" border="0" id="Image141"  title="<%:Delete%>" onclick="MM_popupMsg('<%:msg_confirm_1%> ')" onmouseover="MM_swapImage('Image141','','<%=media%>/admin/images/i_delete_on.gif',1)" onmouseout="MM_swapImgRestore()"/></a>
+									                            	<a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image14','','<%=media%>/admin/images/i_delete_on.gif',1)"></a>
+									                            </td>
+									                          </tr>
+															  <% end) %>
+
+															</table>
+														 
+												
+									   </td>
+									</tr>
+								 </table>
+							  </div>
+                  <div class="spaceair"></div>
+               </ul>
+
+
+               <div class="spaceair"></div>
+ 			   <li class="space"></li>
+               <div class="w_text"><span class="i_note"><%:Note%>:</span></div>
+               <div class="w_text"><%:Email_Note%>
+               </div>
+               <div class="spaceair"></div>
+            </ul>
+
+         </div>
+      </li>
+      <li class="table_button">
+         <div class="button" align="center">
+            <input name="apply" value="<%:Apply%>" type="submit" />
+               &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+            <input name="Cancel" value="<%:Cancel%>" type="reset" onclick="init()"/>
+         </div>
+      </li>
+   </ul>
+</div>
+</form>
+</body>
+<script language="JavaScript">
+   showFullPath(' <%:Management%> > <%:Mail%> > <%:myMail%>');
+   showWebMessage( 0, '<%:Message%>', '<%:Ready%>' );
+</script>
+</html>

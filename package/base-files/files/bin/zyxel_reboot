@@ -1,0 +1,15 @@
+#!/bin/sh
+
+do_reboot(){
+	sleep 5
+	reboot -f
+}
+
+case "$1" in
+	reboot)
+		do_reboot &
+		;;
+	*)
+		# should not be happen
+		echo "Not reboot"
+esac

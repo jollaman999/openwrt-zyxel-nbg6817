@@ -1,0 +1,69 @@
+#!/bin/sh
+
+. /etc/functions.sh
+include /lib/config
+hostIP=223.254.253.252
+
+help()
+{
+        echo "ZyXEL HTP script v1.0"
+	echo;echo "Usage:       productionFlow <Behavior>"
+	echo "Behavior:    <disabled> <check>"
+}
+
+sysSTART(){
+	echo "1" > /tmp/wlan_on
+	/etc/init.d/preboot boot
+	/etc/init.d/boot start
+	/etc/init.d/password start
+	/etc/init.d/ubus start
+	/etc/init.d/network boot
+	/etc/init.d/wireless start
+	/etc/init.d/dnsmasq boot
+	/etc/init.d/telnet start
+	/etc/init.d/qca-nss-ecm start
+	/etc/init.d/sysctl start
+
+	uci set system.led.on=0
+	uci commit system
+	sync #This command is for emmc and ext4 filesystem
+
+	echo "first OK" > /tmp/check_LED
+	/sbin/zyxel_led_ctrl all
+	/sbin/zyxel_led_ctrl productionFlow &
+}
+
+sysSTOP(){
+	uci set system.led.on=1
+	uci commit system
+	sync #This command is for emmc and ext4 filesystem
+	fw_setenv bootmode
+	fw_setenv readonly ro
+	echo "Set HTP is OK."
+}
+
+check(){
+	chk_HTP=$(fw_printenv | grep HTP=1)
+	if [ "$chk_HTP" ]; then
+		echo "The HTP is enabled."
+	else
+		echo "The HTP is disabled."
+	fi
+}
+
+case $1 in
+	enabled)
+		sysSTART
+	;;
+	disabled)
+		sysSTOP
+	;;
+	check)
+		check
+	;;
+	*)
+		help
+		exit 4
+	;;
+esac
+exit 0

@@ -1,0 +1,885 @@
+Source-Makefile: feeds/qca/net/qca-hostap/Makefile
+Package: qca-hostap-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_kmod-qca-wifi-10.4-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-dakota-perf||PACKAGE_kmod-qca-wifi-10.4-perf||PACKAGE_kmod-qca-wifi-perf||PACKAGE_kmod-qca-wifi-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-unified-perf @(!(PACKAGE_hostapd)) +libnl-bf
+Menu-Depends: 
+Provides: 
+Build-Variant: default
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-unified-perf:qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: Hostap authenticator
+Maintainer: Qualcomm Atheros
+Source: qca-hostap-10.4.tar.bz2
+Type: ipkg
+Description:  This package contains the IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-hostap-10.4
+	config qca-hostap-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-hostap-10.4
+		bool "Use custom source directory"
+		default n
+	config qca-hostap-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-hostap-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-hostap-10.4
+	config qca-hostap-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-hostap-10.4
+		bool "Use custom package version"
+		default n
+
+	config qca-hostap-10.4_CUSTOM_VERSION
+		depends on qca-hostap-10.4_USE_CUSTOM_VERSION
+		string "qca-hostap-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: qca-wpa-supplicant-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_kmod-qca-wifi-10.4-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-dakota-perf||PACKAGE_kmod-qca-wifi-10.4-perf||PACKAGE_kmod-qca-wifi-perf||PACKAGE_kmod-qca-wifi-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-unified-perf @(!(PACKAGE_wpa-supplicant)) +libopenssl +libnl-bf
+Menu-Depends: 
+Provides: 
+Build-Variant: supplicant-default
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-unified-perf:qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: WPA Supplicant
+Maintainer: Qualcomm Atheros
+Source: qca-hostap-10.4.tar.bz2
+Type: ipkg
+Description: WPA Supplicant
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+
+Package: qca-wpa-supplicant-10.4-macsec
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_kmod-qca-wifi-10.4-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-dakota-perf||PACKAGE_kmod-qca-wifi-10.4-perf||PACKAGE_kmod-qca-wifi-perf||PACKAGE_kmod-qca-wifi-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-unified-perf @(!(PACKAGE_wpa-supplicant)) +libopenssl +libnl-bf @TARGET_ipq806x +DEFAULT_kmod-qca-nss-macsec:kmod-qca-nss-macsec
+Menu-Depends: 
+Provides: 
+Build-Variant: supplicant-macsec
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-unified-perf:qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: WPA Supplicant (MACSEC)
+Maintainer: Qualcomm Atheros
+Source: qca-hostap-10.4.tar.bz2
+Type: ipkg
+Description: WPA Supplicant (MACSEC)
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+
+Package: qca-hostapd-cli-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread qca-hostap-10.4 +librt
+Menu-Depends: 
+Provides: 
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-unified-perf:qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: Hostap authenticator command line interface
+Maintainer: Qualcomm Atheros
+Source: qca-hostap-10.4.tar.bz2
+Type: ipkg
+Description:  This package contains a command line utility to control the
+ IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+
+Package: qca-wpa-cli-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_qca-wpa-supplicant-10.4||PACKAGE_qca-wpa-supplicant-10.4-macsec +librt
+Menu-Depends: 
+Provides: 
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-10.4-unified-perf:qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: WPA Supplicant command line interface
+Maintainer: Qualcomm Atheros
+Source: qca-hostap-10.4.tar.bz2
+Type: ipkg
+Description: WPA Supplicant command line interface
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+
+
+Source-Makefile: feeds/qca/net/qca-wifi/Makefile
+Package: kmod-qca-wifi-10.4-akronite-perf
+Menu: 1
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: +libgcc +libc +wireless-tools +librt +iproute2 @PACKAGE_qca-wifi-fw-hw2-10.4-asic||PACKAGE_qca-wifi-fw-hw3-10.4-asic||PACKAGE_qca-wifi-fw-hw4-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw4-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw4-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-asic||PACKAGE_qca-wifi-fw-hw6-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw5-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw7-10.4-asic @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211)) @TARGET_ipq806x +TARGET_ipq806x:kmod-qca-nss-drv
+Menu-Depends: 
+Provides: kmod-qca-wifi-10.4
+Build-Variant: akronite-perf
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wireless LAN Driver
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wireless LAN Driver
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf
+	config qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf
+	config qca-wifi-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-10.4_CUSTOM_VERSION
+		depends on qca-wifi-10.4_USE_CUSTOM_VERSION
+		string "qca-wifi-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: kmod-qca-wifi-10.4-akronite-perf-emu
+Menu: 1
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: +libgcc +libc +wireless-tools +librt +iproute2 @PACKAGE_qca-wifi-fw-hw2-10.4-asic||PACKAGE_qca-wifi-fw-hw3-10.4-asic||PACKAGE_qca-wifi-fw-hw4-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw4-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw4-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-asic||PACKAGE_qca-wifi-fw-hw6-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw5-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw7-10.4-asic @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211)) @TARGET_ipq806x +TARGET_ipq806x:kmod-qca-nss-drv
+Menu-Depends: 
+Provides: kmod-qca-wifi-10.4
+Build-Variant: akronite-perf-emu
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wireless LAN Driver
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wireless LAN Driver
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf-emu
+	config qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf-emu
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf-emu
+	config qca-wifi-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-wifi-10.4-akronite-perf-emu
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-10.4_CUSTOM_VERSION
+		depends on qca-wifi-10.4_USE_CUSTOM_VERSION
+		string "qca-wifi-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: kmod-qca-wifi-10.4-perf
+Menu: 1
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: +libgcc +libc +wireless-tools +librt +iproute2 @PACKAGE_qca-wifi-fw-hw2-10.4-asic||PACKAGE_qca-wifi-fw-hw3-10.4-asic||PACKAGE_qca-wifi-fw-hw4-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw4-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw4-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-asic||PACKAGE_qca-wifi-fw-hw6-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw5-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw7-10.4-asic @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211)) @TARGET_ar71xx
+Menu-Depends: 
+Provides: kmod-qca-wifi-10.4
+Build-Variant: perf
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wireless LAN Driver
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wireless LAN Driver
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-wifi-10.4-perf
+	config qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-wifi-10.4-perf
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-wifi-10.4-perf
+	config qca-wifi-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-wifi-10.4-perf
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-10.4_CUSTOM_VERSION
+		depends on qca-wifi-10.4_USE_CUSTOM_VERSION
+		string "qca-wifi-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: kmod-qca-wifi-10.4-unified-perf
+Menu: 1
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: +libgcc +libc +wireless-tools +librt +iproute2 @PACKAGE_qca-wifi-fw-hw2-10.4-asic||PACKAGE_qca-wifi-fw-hw3-10.4-asic||PACKAGE_qca-wifi-fw-hw4-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw4-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw4-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-asic||PACKAGE_qca-wifi-fw-hw6-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw5-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw7-10.4-asic @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211)) @TARGET_ar71xx
+Menu-Depends: 
+Provides: kmod-qca-wifi-10.4
+Build-Variant: unified-perf
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wireless LAN Driver
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wireless LAN Driver
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-wifi-10.4-unified-perf
+	config qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-wifi-10.4-unified-perf
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-wifi-10.4-unified-perf
+	config qca-wifi-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-wifi-10.4-unified-perf
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-10.4_CUSTOM_VERSION
+		depends on qca-wifi-10.4_USE_CUSTOM_VERSION
+		string "qca-wifi-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: kmod-QCA-Version
+Default: y
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: 
+Menu-Depends: 
+Provides: driver-Version
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA WiFi driver Version
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA WiFi driver Version
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	source "qca/feeds/qca/qca_10.4-4.0.1756.382/net/qca-wifi/Config.in"
+@@
+
+Package: kmod-qca-wifi-10.4-dakota-perf
+Menu: 1
+Prereq-Check: 1
+Version: <LINUX_VERSION>-1
+Depends: +libgcc +libc +wireless-tools +librt +iproute2 @PACKAGE_qca-wifi-fw-hw2-10.4-asic||PACKAGE_qca-wifi-fw-hw3-10.4-asic||PACKAGE_qca-wifi-fw-hw4-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw4-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw4-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-asic||PACKAGE_qca-wifi-fw-hw6-10.4-asic||PACKAGE_qca-wifi-fw-hw5-10.4-emu_bb||PACKAGE_qca-wifi-fw-hw5-10.4-emu_m2m||PACKAGE_qca-wifi-fw-hw7-10.4-asic @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211)) @TARGET_ipq806x +TARGET_ipq806x:kmod-qca-nss-drv
+Menu-Depends: 
+Provides: kmod-qca-wifi-10.4
+Build-Variant: dakota-perf
+Build-Depends: qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw4-10.4-asic qca-wifi-fw-hw5-10.4-asic qca-wifi-fw-hw5-10.4-asic
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wireless LAN Driver
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wireless LAN Driver
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-wifi-10.4-dakota-perf
+	config qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-wifi-10.4-dakota-perf
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-wifi-10.4-dakota-perf
+	config qca-wifi-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-wifi-10.4-dakota-perf
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-10.4_CUSTOM_VERSION
+		depends on qca-wifi-10.4_USE_CUSTOM_VERSION
+		string "qca-wifi-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/net/qca-wpc/Makefile
+Package: qca-wpc-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread kmod-qca-wifi-10.4 +libpthread
+Menu-Depends: 
+Provides: 
+Build-Depends: qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wifi Positioning
+Maintainer: Qualcomm Atheros
+Source: qca-wpc-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wifi Positioning
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-wpc-10.4
+	config qca-wpc-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wpc-10.4
+		bool "Use custom source directory"
+		default n
+	config qca-wpc-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wpc-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-wpc-10.4
+	config qca-wpc-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wpc-10.4
+		bool "Use custom package version"
+		default n
+
+	config qca-wpc-10.4_CUSTOM_VERSION
+		depends on qca-wpc-10.4_USE_CUSTOM_VERSION
+		string "qca-wpc-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/net/qca-wifi-fw/Makefile
+Package: qca-wifi-fw-hw2-10.4-asic
+Version: CNSS.BL.3.0.2-00068-S-1-1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread 
+Menu-Depends: 
+Provides: 
+Build-Variant: -AR900B_hw_2
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wifi Firmware-hw2-10.4-asic
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-fw-CNSS.BL.3.0.2-00068-S-1.tar.bz2
+Type: ipkg
+Description:     This package contains the qca-wifi firmware used in 10.x drivers
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "custom source directory"
+		depends on PACKAGE_qca-wifi-fw-hw2-10.4-asic
+	config qca-wifi-fw_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wifi-fw-hw2-10.4-asic
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-fw_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-fw_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+  	menu "overwrite package version"
+		depends on PACKAGE_qca-wifi-fw-hw2-10.4-asic
+	config qca-wifi-fw_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wifi-fw-hw2-10.4-asic
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-fw_CUSTOM_VERSION
+		depends on qca-wifi-fw_USE_CUSTOM_VERSION
+		string "qca-wifi-fw version as string (default version: CNSS.BL.3.0.2-00068-S-1)"
+		default "CNSS.BL.3.0.2-00068-S-1"
+
+	endmenu
+@@
+
+Package: qca-wifi-fw-hw4-10.4-asic
+Version: CNSS.BL.3.0.2-00068-S-1-1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread 
+Menu-Depends: 
+Provides: 
+Build-Variant: -QCA9984_hw_1
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wifi Firmware-hw4-10.4-asic
+Maintainer: Qualcomm Atheros
+Source: qca-wifi-fw-CNSS.BL.3.0.2-00068-S-1.tar.bz2
+Type: ipkg
+Description:     This package contains the qca-wifi firmware used in 10.x drivers
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "custom source directory"
+		depends on PACKAGE_qca-wifi-fw-hw4-10.4-asic
+	config qca-wifi-fw_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wifi-fw-hw4-10.4-asic
+		bool "Use custom source directory"
+		default n
+	config qca-wifi-fw_CUSTOM_SOURCE_DIR
+		depends on qca-wifi-fw_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+  	menu "overwrite package version"
+		depends on PACKAGE_qca-wifi-fw-hw4-10.4-asic
+	config qca-wifi-fw_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wifi-fw-hw4-10.4-asic
+		bool "Use custom package version"
+		default n
+
+	config qca-wifi-fw_CUSTOM_VERSION
+		depends on qca-wifi-fw_USE_CUSTOM_VERSION
+		string "qca-wifi-fw version as string (default version: CNSS.BL.3.0.2-00068-S-1)"
+		default "CNSS.BL.3.0.2-00068-S-1"
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/net/qca-acfg/Makefile
+Package: qca-acfg-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread kmod-qca-wifi-10.4 @(!(PACKAGE_hostapd))
+Menu-Depends: 
+Provides: 
+Build-Depends: qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Configuration Utility
+Maintainer: Qualcomm Atheros
+Source: qca-acfg-10.4.tar.bz2
+Type: ipkg
+Description:  QCA configuration utility provides a set of library
+ API's through which user applications can configure
+ and register events for wifi driver and hostap
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-acfg
+	config qca-acfg-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-acfg
+		bool "Use custom source directory"
+		default n
+	config qca-acfg-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-acfg-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-acfg
+	config qca-acfg-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-acfg
+		bool "Use custom package version"
+		default n
+
+	config qca-acfg-10.4_CUSTOM_VERSION
+		depends on qca-acfg-10.4_USE_CUSTOM_VERSION
+		string "qca-acfg-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/net/qca-wrapd/Makefile
+Package: qca-wrapd-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread qca-hostap-10.4 @(!(PACKAGE_hostapd))
+Menu-Depends: 
+Provides: 
+Build-Depends: qca-hostap-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA wrapd daemon
+Maintainer: Qualcomm Atheros
+Source: qca-wrapd-10.4.tar.bz2
+Type: ipkg
+Description:   User Space application to support QWRAP feature
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-wrapd
+	config qca-wrapd-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wrapd
+		bool "Use custom source directory"
+		default n
+	config qca-wrapd-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wrapd-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-wrapd
+	config qca-wrapd-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wrapd
+		bool "Use custom package version"
+		default n
+
+	config qca-wrapd-10.4_CUSTOM_VERSION
+		depends on qca-wrapd-10.4_USE_CUSTOM_VERSION
+		string "qca-wrapd-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qca-mcs/qca-mcs-apps/Makefile
+Package: qca-mcs-apps
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_kmod-qca-wifi-10.4-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-dakota-perf||PACKAGE_kmod-qca-wifi-perf||PACKAGE_kmod-qca-wifi-akronite-perf +kmod-qca-mcs +libhyficommon +libpthread @PACKAGE_kmod-qca-ssdk-nohnat||PACKAGE_kmod-qca-ssdk-hnat +kmod-qca-ssdk-nohnat
+Menu-Depends: 
+Provides: 
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-ssdk-nohnat:qca-ssdk-nohnat PACKAGE_kmod-qca-ssdk-hnat:qca-ssdk-hnat
+Section: QCA
+Category: QCA Proprietary software
+Title: IGMP/MLD snooping daemon and tools
+Maintainer: Qualcomm Atheros
+Source: qca-mcs-apps.tar.bz2
+Type: ipkg
+Description:   This package installs the IGMP/MLD snooping daemon and tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "overwrite package version"
+		depends on PACKAGE_qca-mcs-apps
+	config qca-mcs-apps_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-mcs-apps
+		bool "Use custom package version"
+		default n
+
+	config qca-mcs-apps_CUSTOM_VERSION
+		depends on qca-mcs-apps_USE_CUSTOM_VERSION
+		string "qca-mcs-apps version as string (default version: )"
+		default ""
+
+	endmenu
+  	menu "custom source directory"
+		depends on PACKAGE_qca-mcs-apps
+	config qca-mcs-apps_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-mcs-apps
+		bool "Use custom source directory"
+		default n
+	config qca-mcs-apps_CUSTOM_SOURCE_DIR
+		depends on qca-mcs-apps_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qca-mcs/qca-mcs-lkm/Makefile
+Package: kmod-qca-mcs
+Submenu: Network Support
+Version: <LINUX_VERSION>-1
+Depends: 
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: QCA Multicast Snooping Support
+Maintainer: Qualcomm Atheros, Inc.
+Source: qca-mcs.tar.bz2
+Type: ipkg
+Kernel-Config: CONFIG_NETFILTER=y CONFIG_BRIDGE_NETFILTER=y
+Description:   This package installs the IGMP/MLD Snooping Module
+http://www.qca.qualcomm.com
+Qualcomm Atheros, Inc.
+@@
+Config:
+   	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-mcs
+	config qca-mcs_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-mcs
+		bool "Use custom package version"
+		default n
+
+	config qca-mcs_CUSTOM_VERSION
+		depends on qca-mcs_USE_CUSTOM_VERSION
+		string "qca-mcs version as string (default version: )"
+		default ""
+
+	endmenu
+   	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-mcs
+	config qca-mcs_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-mcs
+		bool "Use custom source directory"
+		default n
+	config qca-mcs_CUSTOM_SOURCE_DIR
+		depends on qca-mcs_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qca-spectral/Makefile
+Package: qca-spectral-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread kmod-qca-wifi-10.4 +libpthread
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Spectral Analysis
+Maintainer: Qualcomm Atheros
+Source: qca-spectral-10.4.tar.bz2
+Type: ipkg
+Description: QCA Spectral Analysis
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+   	menu "overwrite package version"
+		depends on PACKAGE_qca-spectral-10.4
+	config qca-spectral-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-spectral-10.4
+		bool "Use custom package version"
+		default n
+
+	config qca-spectral-10.4_CUSTOM_VERSION
+		depends on qca-spectral-10.4_USE_CUSTOM_VERSION
+		string "qca-spectral-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+   	menu "custom source directory"
+		depends on PACKAGE_qca-spectral-10.4
+	config qca-spectral-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-spectral-10.4
+		bool "Use custom source directory"
+		default n
+	config qca-spectral-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-spectral-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qcmbr/Makefile
+Package: qcmbr-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libpthread +librt
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: - QCA ART Driver & tools
+Maintainer: Qualcomm Atheros
+Source: qcmbr-10.4.tar.bz2
+Type: ipkg
+Description: - QCA ART Driver & tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qcmbr
+		bool "Use custom source directory"
+		default n
+	config qcmbr-10.4_CUSTOM_SOURCE_DIR
+		depends on qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qcmbr
+		bool "Use custom package version"
+		default n
+
+	config qcmbr-10.4_CUSTOM_VERSION
+		depends on qcmbr-10.4_USE_CUSTOM_VERSION
+		string "qcmbr-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: qcmbr-10.4-netlink
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libpthread +librt +libnl-tiny
+Menu-Depends: 
+Provides: 
+Build-Variant: netlink
+Section: QCA
+Category: QCA Proprietary software
+Title: netlink - QCA ART Driver & tools
+Maintainer: Qualcomm Atheros
+Source: qcmbr-10.4.tar.bz2
+Type: ipkg
+Description: netlink - QCA ART Driver & tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "custom source directory"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qcmbr
+		bool "Use custom source directory"
+		default n
+	config qcmbr-10.4_CUSTOM_SOURCE_DIR
+		depends on qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qcmbr
+		bool "Use custom package version"
+		default n
+
+	config qcmbr-10.4_CUSTOM_VERSION
+		depends on qcmbr-10.4_USE_CUSTOM_VERSION
+		string "qcmbr-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qca-thermald/Makefile
+Package: qca-thermald-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libpthread @TARGET_ipq806x
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: Thermal Mitigation daemon
+Maintainer: Qualcomm Atheros
+Source: qca-thermald-10.4.tar.bz2
+Type: ipkg
+Description:   This package is IPQ Thermal Mitigation daemon.
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "overwrite package version"
+		depends on PACKAGE_qca-thermald-10.4
+	config qca-thermald-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-thermald-10.4
+		bool "Use custom package version"
+		default n
+
+	config qca-thermald-10.4_CUSTOM_VERSION
+		depends on qca-thermald-10.4_USE_CUSTOM_VERSION
+		string "qca-thermald-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+  	menu "custom source directory"
+		depends on PACKAGE_qca-thermald-10.4
+	config qca-thermald-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-thermald-10.4
+		bool "Use custom source directory"
+		default n
+	config qca-thermald-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-thermald-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+
+Source-Makefile: feeds/qca/utils/qca-lib/libqcacommon/Makefile
+Package: libhyficommon
+Submenu: Hy-Fi features
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread 
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: Hy-Fi Common Functionality Library
+Maintainer: Qualcomm Atheros, Inc.
+Source: libhyficommon.tar.bz2
+Type: ipkg
+Description:   This Package contains the Hy-Fi Common Functionality Library
+http://www.qca.qualcomm.com
+Qualcomm Atheros, Inc.
+@@
+Config:
+  
+  
+@@
+
+

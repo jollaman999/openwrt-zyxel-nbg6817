@@ -1,0 +1,2638 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local enable_streamboost = uci:get("appflow","tccontroller","enable_streamboost")
+local enable_streamboostDebug = uci:get("appflow","tccontroller","enable_streamboostDebug")
+local firmwareVersion = luci.sys.exec("cat /tmp/firmware_version | tr -d '\n'")
+local wan_proto = uci:get("network","wan","proto")
+-%>
+<!doctype html>
+  <head>
+    <meta http-equiv='content-type' content='text/html;charset=utf-8;IE=9'>
+    <META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+    <link href="<%=media%>/css/inside.css" rel="stylesheet" type="text/css" />
+    <link href="<%=media%>/css/table.css" rel="stylesheet" type="text/css" />
+    <link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+    <link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+    <link href="/css/zyxel_streamboost.css?<%=firmwareVersion%>" rel="stylesheet" type="text/css" />
+    <link href="/css/bootstrap.min.css?<%=firmwareVersion%>" rel="stylesheet" type="text/css" />
+    <link href="/css/networkMonitor.css?<%=firmwareVersion%>" rel="stylesheet" type="text/css" >
+
+    <script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+    <script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+
+    <!-- include the prerequisite libraries for the flux kit-->
+    <script src="/js/excanvas.min.js" type="text/javascript"></script>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery.contextMenu.js" type="text/javascript"></script>
+    <link href="/css/jquery.contextMenu.css" rel="stylesheet" type="text/css" />
+
+    <!-- include flux itself-->
+    <script language="javascript" type="text/javascript" src="/js/fxPageMenu.js?<%=firmwareVersion%>"></script>
+
+   <!-- custom local styles-->
+    <!-- Load all of our header files-->
+    <!-- // <script type="text/javascript" src="https://www.google.com/jsapi"></script> -->
+    <script src="/js/jquery.min.js?<%=firmwareVersion%>"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js?<%=firmwareVersion%>" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/fxCharts.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/fxEnvironment.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/fxTranslate.js?<%=firmwareVersion%>"></script>
+    <script type="text/javascript" src="/js/utility.js?<%=firmwareVersion%>"></script>
+
+    <!-- Load all of our styles files-->
+    <!--<link rel="stylesheet" href="/css/nh2.css" type="text/css" media="screen">-->
+    <link type="text/css" href="/css/custom-theme/jquery-ui-1.8.21.custom.css?<%=firmwareVersion%>" rel="stylesheet" />
+
+    <!-- custom local styles-->
+    <style type="text/css">
+
+    .overlay {
+      fill: none;
+      pointer-events: all;
+    }
+
+    .focus circle {
+      fill: none;
+      stroke: steelblue;
+    }
+
+        input[type=radio] {
+            margin: 0 5px 5px 5px;
+        }
+
+        select {
+          border: 1px solid #cccccc;
+          margin: 0 0 5px 5px;
+          padding: 6px 4px;
+          background: #ffffff none repeat scroll 0% 50%;
+          -moz-border-radius-topleft: 2px;
+          -moz-border-radius-topright: 2px;
+          -moz-border-radius-bottomright: 2px;
+          -moz-border-radius-bottomleft: 2px;
+          font-family: Arial, Helvetica, sans-serif;
+          font-style: normal;
+          font-variant: normal;
+          font-weight: normal;
+          font-size: 13px;
+          line-height: normal;
+          font-size-adjust: none;
+          font-stretch: normal;
+          color: #666;
+          max-width: 100%;
+          outline: none;
+          /*display: block;*/
+        }
+
+        select {
+          width: 150px;
+          height: 29px;
+        }
+
+        .select_line {
+            stroke: rgba(0,00,0,1.0);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        .unselect_line {
+            stroke: rgba(0, 0, 0, 0.3);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        .vertical-align {
+            display: flex;
+            align-items: center;
+        }
+
+        .wordwrap {
+           white-space: pre-wrap;      /* CSS3 */
+           white-space: -moz-pre-wrap; /* Firefox */
+           white-space: -pre-wrap;     /* Opera <7 */
+           white-space: -o-pre-wrap;   /* Opera 7 */
+           word-wrap: break-word;      /* IE */
+        }
+
+        /* Start by setting display:none to make this hidden.
+           Then we position it in relation to the viewport window
+           with position:fixed. Width, height, top and left speak
+           speak for themselves. Background we set to 80% white with
+           our animation centered, and no-repeating */
+        .modalUsage {
+            display:    none;
+            position:   fixed;
+            z-index:    1000;
+            top:        0;
+            left:       0;
+            height:     100%;
+            width:      100%;
+            background: rgba( 64, 64, 64, .7 )
+                        50% 50%
+                        no-repeat;
+        }
+
+        .modalContentUsage {
+            font-size:  1.2em;
+        }
+
+        input.text { margin-bottom:12px; width:60%; padding: .4em; }
+
+        .validateTips { border: 1px solid transparent; padding: 0.3em; }
+
+        #idEmailSetting {
+            color:#0000FF;
+        }
+
+    </style>
+
+    <!-- this files custom javascript -->
+    <script type="text/javascript">
+
+        // Returns path data for a rectangle with rounded right corners.
+        // The top-left corner is ?x,y?.
+
+        function rightRoundedRect(x, y, width, height, radius) {
+            return "M" + x + "," + y + "h" + (width - radius) + "a" + radius + "," + radius + " 0 0 1 " + radius + "," + radius + "v" + (height - 2 * radius) + "a" + radius + "," + radius + " 0 0 1 " + -radius + "," + radius + "h" + (radius - width) + "z";
+        }
+
+        //set up googl chart on page load
+        // google.load("visualization", "1", {
+        //     packages: ["corechart"]
+        // });
+
+        // this is the update interval
+        // current set to 30 seconds
+        // note: currently checks whether it has reached MinUpdateInterval,
+        // if yes -> do update, else ignore this udpate.
+        var g_nIntervalLookupInstantBandwidth = 2000;
+        var g_nIntervalModifier = 60;
+        var g_nUpdateTime = g_nIntervalModifier*1000;
+        var g_nMinUpdateInterval = g_nIntervalModifier*5*1000 ;
+        // var g_nMinUpdateInterval = 20*1000;
+        var g_nLastUpdateTime = new Date().getTime();
+        var g_handlerIntervalUpdateBandwidth = null;
+        var g_showTotalDataInsteadOfBandwidth = false;
+        var g_TimeUsageSelectedTimestamp = 0;
+        var g_showDataUsageMonitor = true; // true:  showing data usage monitor in data usage alert tab,
+                                           // false: showing data usage alert .
+        var g_usageInfo = null;
+        //global variables for large data chunks
+        var rtPolicy = null;    //policy data /api/policy
+        var rtDevices = null;   //device data /api/nodes
+        var rawData = null;     //raw events getEvents
+        var rtData = null;      //processed events getDeviceData()
+        var lsFilterEvent = []; //unused?
+        var isDrawingChart = 0;
+
+        //global chart stuff
+        var options = null; //options for the chart
+        var chart = null;   //the google chart object
+        var data = null;    //data table for the chart
+
+        //start and stop time ranges
+        var g_nStart = 0;
+        var g_nEnd = new Date().getTime();
+        var g_nTotalEventFlows = 0;
+        var g_nRemainingEventFlows = 0;
+        var g_nNumOfEventFlowFirstFetch = 500;
+        var g_nNumOfEventFlowRemainingFetch  = 3000;
+        var g_nNumOfEventFlowPerFetch   = 0;
+        var g_dStartFetchEventFlows = new Date();
+        var g_dEventFlowBegin = new Date(0);
+        var g_bShowDetailedLoadingMessage =<%if enable_streamboostDebug == "1" then%>true<%else%>false<%end%>;
+        var g_InstantFlowData = null;
+
+        // Event flow loading estimation related variables.
+        var g_sFormatEstimatedNormal = "<%:SB_EstimatedNormal%>";
+        var g_sFormatEstimatedExceed = "<%:SB_EstimatedExceed%>";
+        var g_nExtimatedExceed       = 10;
+        var g_usingPrecalculatedData = true;
+
+        var g_usageMonitorTranslation = {
+            Download: "<%:Usage_Download%>",
+            Upload: "<%:Usage_Upload%>",
+            DownloadPeak: "<%:Usage_DownloadPeak%>",
+            UploadPeak: "<%:Usage_UploadPeak%>",
+            ShowBy: "<%:Usage_ShowBy%>",
+            ShowByDevice: "<%:Usage_ShowByDevice%>",
+            ShowByApp: "<%:Usage_ShowByApp%>",
+            Daily: "<%:Usage_Daily%>",
+            Weekly: "<%:Usage_Weekly%>",
+            Monthly: "<%:Usage_Monthly%>",
+            Quarterly: "<%:Usage_Quarterly%>",
+            Data: "<%:Usage_Data%>",
+            Bandwidth: "<%:Usage_Bandwidth%>",
+            Total: "<%:Usage_Total%>",
+            Average: "<%:Usage_Average%>",
+            PeakBandwidth: "<%:Usage_PeakBandwidth%>",
+            UnlimitedInternetUsageWarning: "<%:Usage_UnlimitedInternetUsageWarning%>",
+            Plan: "<%:Usage_Plan%>",
+            LoadingPleaseWait: "<%:Usage_LoadingPleaseWait%>",
+            DataUsage: "<%:Usage_DataUsage%>",
+            Remaining: "<%:Usage_Remaining%>",
+            DaysLeft: "<%:Usage_DaysLeft%>",
+            Days: "<%:Usage_Days%>",
+            DataHistory: "<%:Usage_DataHistory%>",
+            AverageUsed: "<%:Usage_AverageUsed%>",
+            ExpectedUsed: "<%:Usage_ExpectedUsed%>",
+
+        };
+
+        /**
+         * shouldDrawSlice:
+         *
+         */
+        function shouldDrawSlice(rtData, deviceTableData) {
+            if (g_usingPrecalculatedData) {
+                if( deviceTableData >= 1 &&
+                    rtData.rx_total > 0 &&
+                    deviceTableData / rtData.rx_total > 0.01 ) {
+                    // console.log(deviceTableData + '/' + rtData.rx_total + ' == ' + deviceTableData / rtData.rx_total);
+                    return true;
+                }
+
+            }
+            else {
+                if(deviceTableData >= 1)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function filterNode(data, selectedNode, filterType) {
+            if (data == null) {
+                return null;
+            }
+
+            if (typeof data.tx_total == 'undefined' ||
+                typeof data.rx_total == 'undefined' ||
+                typeof data.startTimestamp == 'undefined' ||
+                typeof data.endTimestamp == 'undefined' ||
+                typeof data.devices == 'undefined') {
+                return null;
+            }
+
+            var returnData = {};
+            returnData.tx_total = data.tx_total;
+            returnData.rx_total = data.rx_total;
+            returnData.startTimestamp = data.startTimestamp;
+            returnData.flowPeak = data.flowPeak;
+            returnData.macPeak = data.macPeak;
+            returnData.overallPeak = data.overallPeak;
+
+            returnData.devices = [];
+            for (var mac in data.devices) {
+                if (selectedNode == mac && filterType == "device") {
+                    returnData.devices.push(data.devices[mac]);
+                }
+                else if (filterType == "application" &&
+                    typeof data.devices[mac].flows != 'undefined') {
+                    returnData.devices[mac] = {};
+                    returnData.devices[mac].flow = {};
+                    for (var flowUUID in data.devices[mac].flows) {
+                        if (flowUUID == selectedNode) {
+                            returnData.devices[mac].flow[flowUUID] = data.devices[mac].flows[flowUUID];
+                        }
+                        else {
+                            // console.log(flowUUID+" was filtered out ");
+                        }
+                    }
+                    returnData.devices.push(data.devices[mac]);
+                }
+                else {
+                    // console.log(mac+" was filtered out ");
+                }
+            }
+
+            return returnData;
+        }
+
+        /*
+            Function: drawChart
+
+            draw the google pie chart for devices
+
+            Parameters:
+            bFetchData - should this fetch data? undefined = true
+            nSelect    - which pie wedge is selected?
+
+            returns:
+            nothing
+        */
+        function drawChart(bFetchData,nSelect)
+        {
+            if(typeof bFetchData == 'undefined' || bFetchData != false)
+            {
+
+                if( isNaN(g_nStart) || isNaN(g_nEnd))
+                {
+                    g_nStart = 0;
+                    g_nEnd = new Date().getTime();
+                }
+
+                // console.log('(start, end) :' + g_nStart + ', ' + g_nEnd);
+                //get the raw event
+                if(rawData == null)
+                {
+                    rawData = getEvents(g_nStart/1000,g_nEnd/1000);
+
+                    initBillTab();
+                }
+
+                // g_nStart = 0;
+                // console.log('drawchart!');
+                // console.log('g_nStart:');
+                // console.log(new Date(g_nStart));
+                // console.log('g_nEnd:');
+                // console.log(new Date(g_nEnd));
+
+                var activeTabID = getAtciveTabID();
+                var selectedNode = $('#selectDevAppFilter option:selected').val();
+                var filterByDevOrApp = $('[name=radioShowBy]:checked').val();
+                // console.log("selectedNode: " + selectedNode);
+
+                //culled data
+                cullData = [];
+                var nStartMS = Math.floor(g_nStart/1000);
+                var nEndMS = Math.floor(g_nEnd/1000);
+
+                // console.log('rawData.length: ' + rawData.length);
+                //cull the raw data to g_nStart/g_nEnd
+
+                if (g_usingPrecalculatedData == false) {
+                    //cull the raw data to g_nStart/g_nEnd
+                    for(var x in rawData)
+                    {
+                        var myTime = parseInt(rawData[x].time);
+
+                        if(myTime >= nStartMS && myTime <= nEndMS)
+                        {
+                            cullData.push(rawData[x]);
+                        }
+                    }
+
+                    // console.log( 'cullData.length:' + cullData.length );
+
+                    // get the current events
+                    // console.log( 'getDeviceData start' );
+                    rtData  = null;
+                    rtData  = getFlowData(cullData);
+                }
+                else {
+                    //cull the raw data to g_nStart/g_nEnd
+                    for (var x in rawData)
+                    {
+
+                        var startTimestamp = rawData[x].startTimestamp;
+                        var endTimestamp = rawData[x].endTimestamp;
+
+                        // console.log("rawData[" + x + "]: ");
+                        // console.log(rawData[x]);
+                        // console.log("  start: " + stringOfFormattedTimestamp(startTimestamp));
+                        // console.log("  end: " + stringOfFormattedTimestamp(endTimestamp));
+
+                        if ( (startTimestamp >= nStartMS && startTimestamp <= nEndMS) &&
+                             (endTimestamp >= nStartMS && endTimestamp <= nEndMS) ) {
+                                cullData.push(rawData[x]);
+                        }
+                        else {
+                            // console.log("  *** data was filtered time range!");
+                        }
+
+                    }
+                    // rtData = appendPreCalculatedPerFlowData(null, cullData);
+                }
+
+                // console.log('rawData :');
+                // console.log(rawData);
+                // console.log('cullData :');
+                // console.log(cullData);
+                if (filterByDevOrApp == "application" && rtData == null) {
+                    rtData = getCurrentFlowsInData(cullData);
+                    // console.log("initFlowSelectionWithData, data:");
+                    // console.log(rtData);
+                    initFlowSelectionWithData(rtData);
+                }
+                else if (filterByDevOrApp == "device" && rtData == null) {
+                    rtData = getCurrentDevicesInData(cullData);
+                    // console.log("initDeviceSelectionWithData, data:");
+                    // console.log(rtData);
+                    initDeviceSelectionWithData(rtData);
+                }
+
+                if (activeTabID != "liTimeUsage") {
+                    initSelectTimeUsageDeviceWithData(getCurrentDevicesInData(rawData));
+                }
+
+                // console.log("before sort:");
+
+                // for (var index in cullData) {
+                //     console.log(stringOfFormattedTimestamp(cullData[index].startTimestamp));
+                // }
+
+                function compareDate(a,b) {
+                    if(a.startTimestamp>b.startTimestamp)
+                        return 1;
+                    if(a.startTimestamp<b.startTimestamp)
+                        return -1;
+                    return 0;
+                };
+
+                //sort the rows by flow name alpha
+                cullData.sort(compareDate);
+
+                // console.log("after sort:");
+
+                if (appendEmptyData(cullData, nStartMS, nEndMS)) {
+                    // sort again just in case.
+                    cullData.sort(compareDate);
+                }
+
+                //set up the filter by flow list
+                // initFlowFilter(rtData);
+
+                // if (selectedNode != "*") {
+                //    for (var index in cullData) {
+                //         var rx_total = 0;
+                //         var tx_total = 0;
+                //         cullData[index].rx_total = rx_total;
+                //         cullData[index].tx_total = tx_total;
+                //         if (filterByDevOrApp == "device") {
+                //             if (typeof cullData[index].devices == 'undefined' || typeof cullData[index].devices.length == 0) {
+                //                 continue;
+                //             }
+                //             for (x in cullData[index].devices) {
+                //                 rx_total += parseIntFilterNaN(cullData[index].devices[x].rx_total);
+                //                 tx_total += parseIntFilterNaN(cullData[index].devices[x].tx_total);
+                //             }
+                //         }
+                //         else {
+                //             for (mac in cullData[index].devices) {
+                //                 if (typeof cullData[index].devices[mac].flows == 'undefined') {
+                //                     continue;
+                //                 }
+                //                 else if (typeof cullData[index].devices[mac].flows[selectedNode] == 'undefined') {
+                //                     continue;
+                //                 }
+                //                 else {
+                //                     rx_total += parseIntFilterNaN(cullData[index].devices[mac].flows[selectedNode].rx_bytes);
+                //                     tx_total += parseIntFilterNaN(cullData[index].devices[mac].flows[selectedNode].tx_bytes);
+                //                 }
+                //             }
+                //         }
+                //         cullData[index].rx_total = rx_total;
+                //         cullData[index].tx_total = tx_total;
+                //     }
+                //
+                //     // console.log('cullData after filtered by :' + filterByDevOrApp + ' with node: ' + selectedNode);
+                //     // console.log(cullData);
+                //
+                // }
+
+                // console.log("cullData: ");
+                // console.log(cullData);
+
+                <%if enable_streamboostDebug == "1" then%>
+                $("#divCullDataDialog").html(JSON.stringify(cullData));
+                // outputFlowStats(rtData);
+                <%end%>
+
+                //////////////////////////////////////////////////
+                /// Convert data to Bandwidth history
+                var overallPeak = 0;
+                var numOfValidPeak = 0;
+                var dataBandwidthHistory = [];
+
+                for (var index in cullData) {
+                    // console.log("Generate Bandwidth history,cullData[index].devices.length: " + cullData[index].devices.length + " cullData[index]:");
+                    // console.log(cullData[index]);
+                    var timestamp = parseInt(cullData[index].startTimestamp);
+
+                    var peak = emptyIfNullPeak(null);
+
+                    if (selectedNode != "*") {
+                        if (filterByDevOrApp == "device") {
+                            if (typeof cullData[index].macPeak == 'undefined') {
+                                peak = emptyIfNullPeak(null);
+                            }
+                            else if (typeof cullData[index].macPeak[selectedNode] == 'undefined') {
+                                peak = emptyIfNullPeak(null);
+                            }
+                            else {
+                                peak = emptyIfNullPeak(cullData[index].macPeak[selectedNode].peak);
+                            }
+                        }
+                        else if (typeof cullData[index].flowPeak == 'undefined'){
+                            peak = emptyIfNullPeak(null);
+                        }
+                        else if (typeof cullData[index].flowPeak[selectedNode] == 'undefined') {
+                            peak = emptyIfNullPeak(null);
+                        }
+                        else {
+                            peak = emptyIfNullPeak(cullData[index].flowPeak[selectedNode].peak);
+                        }
+
+                    }
+                    else {
+                        peak = emptyIfNullPeak(cullData[index].overallPeak);
+                    }
+
+                    // console.log("peak of " + stringOfFormattedTimestamp(timestamp) + ":");
+                    // console.log(peak);
+
+                    var value = parseInt(peak.peakOverall) / 5 / 60 * 8;
+                    if (value > 0) {
+                        ++numOfValidPeak;
+                        overallPeak += value;
+                        // console.log(overallPeak);
+                    }
+
+
+                    //////////////////////////////////////////////////
+                    /// Breakdown into hourly peak
+                    for (var hour = 0; hour < 24; ++hour ) {
+                        var date = new Date(0);
+                        date.setUTCSeconds(timestamp);
+                        date.setHours(hour,0,0);
+                        var peakDataToPush = {date:date, x:index * 24 + hour, overallPeak:0, uploadPeak:0, downloadPeak:0};
+                        if (peak.peakTxByHour != null ) {
+                            peakDataToPush.uploadPeak = parseInt(peak.peakTxByHour[hour] / 5 / 60 * 8);
+                        } // if (peak.peakTxByHour != null ) {
+
+                        if (peak.peakRxByHour != null ) {
+                            peakDataToPush.downloadPeak = parseInt(peak.peakRxByHour[hour] / 5 / 60 * 8);
+                        } // if (peak.peakTxByHour != null ) {
+
+                        // console.log("peakDataToPush: ");
+                        // console.log(peakDataToPush);
+
+                        dataBandwidthHistory.push(peakDataToPush);
+
+                    } // for () breakdown into hourly peak
+
+                    // var totalFlow = cullData[index].rx_total + cullData[index].tx_total;
+                }
+
+                if (numOfValidPeak != 0) {
+                    overallPeak /= numOfValidPeak;
+                }
+
+                //////////////////////////////////////////////////
+                /// Generate TimeUsageData
+                var resultTimeUsageData = null;
+                var selectTimeUsageVal = $('#selectTimeUsageDateRange option:selected').val();
+                var selectedTimeUsageDeviceMac = $('#selectTimeUsageDevice option:selected').val();
+
+                if ( selectTimeUsageVal!= "daily") {
+                    var range = getRangeBySelectVal(selectTimeUsageVal);
+                    range.startTimestamp = Math.floor(range.startTimestamp/1000);
+                    range.endTimestamp = Math.floor(range.endTimestamp/1000);
+                    var accumulatedData = getTimeUsageDataByDateRange(rawData, range);
+                    resultTimeUsageData = accumulatedData[selectedTimeUsageDeviceMac];
+                }
+                else if (rawData[0] != null) {
+                    //////////////////////////////////////////////////
+                    /// Use today as showing day, if not selected.
+                    if (g_TimeUsageSelectedTimestamp == 0) {
+                        g_TimeUsageSelectedTimestamp = parseInt(rawData[0].startTimestamp);
+                    }
+                    var dateTimeUsage = new Date(0);
+                    dateTimeUsage.setUTCSeconds(g_TimeUsageSelectedTimestamp);
+                    var nDay    = dateTimeUsage.getDate();
+                    var nMonth  = dateTimeUsage.getMonth()+1; //January is 0!
+
+                    if ($('#selectTimeUsageDateRange option:selected').val() == "daily") {
+                        $('#selectTimeUsageDateRange > option:first-child').text(nMonth + '/' + nDay);
+                    }
+                    var index = indexOfStartTimestampInData(rawData, g_TimeUsageSelectedTimestamp);
+                    resultTimeUsageData = rawData[index].devices[selectedTimeUsageDeviceMac];
+                }
+
+                if (typeof(resultTimeUsageData) == "undefined" || resultTimeUsageData == null) {
+                    resultTimeUsageData = [newEmptyFlowData()];
+                }
+                else {
+                    resultTimeUsageData = convertTimeUsageDataToSortable(resultTimeUsageData.flows);
+                    resultTimeUsageData = sortTimeUsageData(resultTimeUsageData);
+                }
+
+                //////////////////////////////////////////////////
+                /// Generate DataUsage
+                var dataUsageAlert = [];
+
+                for (var index in cullData) {
+                    // console.log("Generate DataUsage,cullData[index].devices.length: " + cullData[index].devices.length + " cullData[index]:");
+                    // console.log(cullData[index]);
+                    //////////////////////////////////////////////////
+                    /// Breakdown into hourly Data
+                    var dataUsageTxHourly = [   0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0];
+                    var dataUsageRxHourly = [   0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0,0,
+                                                0,0,0,0];
+
+                    for (var mac in cullData[index].devices) {
+                        if (filterByDevOrApp == "device" && selectedNode != "*" && selectedNode != mac) {
+                            continue;
+                        }
+                        for (var flowID in cullData[index].devices[mac].flows) {
+                            if (filterByDevOrApp == "application" && selectedNode != "*" && selectedNode != flowID) {
+                                continue;
+                            }
+                            if (cullData[index].devices[mac].flows[flowID].rxHourly != null &&
+                                cullData[index].devices[mac].flows[flowID].rxHourly.length == 24) {
+                                for (var hour in cullData[index].devices[mac].flows[flowID].rxHourly) {
+                                    dataUsageRxHourly[hour] += cullData[index].devices[mac].flows[flowID].rxHourly[hour];
+                                }
+                            }
+                            if (cullData[index].devices[mac].flows[flowID].txHourly != null &&
+                                cullData[index].devices[mac].flows[flowID].txHourly.length == 24) {
+                                for (var hour in cullData[index].devices[mac].flows[flowID].txHourly) {
+                                    dataUsageTxHourly[hour] += cullData[index].devices[mac].flows[flowID].txHourly[hour];
+                                }
+                            }
+                        }
+                    } // for (var mac in cullData[index].devices)
+
+                    //////////////////////////////////////////////////
+                    /// Append into data UsageAlert
+                    var timestamp = parseInt(cullData[index].startTimestamp);
+                    for (var hour = 0; hour < 24; ++hour ) {
+                        var date = new Date(0);
+                        date.setUTCSeconds(timestamp);
+                        date.setHours(hour,0,0);
+                        var dataToPush = {date:date, x:index * 24 + hour, tx:dataUsageTxHourly[hour], rx:dataUsageRxHourly[hour]};
+                        dataUsageAlert.push(dataToPush);
+                    } // for (var hour = 0; hour < 24; ++hour )
+
+                } // for (var index in cullData)
+
+                // console.log('resultTimeUsageData :');
+                // console.log(resultTimeUsageData);
+
+                // console.log('dataBandwidthHistory :');
+                // console.log(dataBandwidthHistory);
+
+                // angular.element($("d3-Animatedlinechart")).scope().data =
+                //     resultLineChartData;
+
+                //////////////////////////////////////////////////
+                /// Bandwidth History
+                angular.element($("d3-Animatedlinechart")).scope().data = dataBandwidthHistory;
+                angular.element($("d3-Animatedlinechart")).scope().unitUpload = "bps";
+                angular.element($("d3-Animatedlinechart")).scope().unitDownload = "bps";
+                angular.element($("d3-Animatedlinechart")).scope().initialBrushIndex = getInitialBrushIndexByDateRangeWithData(dataBandwidthHistory);
+                angular.element($("d3-Animatedlinechart")).scope().render(angular.element($("d3-Animatedlinechart")).scope().data);
+
+                //////////////////////////////////////////////////
+                /// Time usage
+                angular.element($("d3-Timeusage")).scope().data = resultTimeUsageData;
+                angular.element($("d3-Timeusage")).scope().showBy = selectTimeUsageVal;
+                angular.element($("d3-Timeusage")).scope().render(angular.element($("d3-Timeusage")).scope().data);
+
+                //////////////////////////////////////////////////
+                /// Data Usage Alert
+                angular.element($("d3-Datausagealert")).scope().data = dataUsageAlert;
+                angular.element($("d3-Datausagealert")).scope().unitUpload = "Byte";
+                angular.element($("d3-Datausagealert")).scope().unitDownload = "Byte";
+                angular.element($("d3-Datausagealert")).scope().initialBrushIndex = getInitialBrushIndexByDateRangeWithData(dataUsageAlert);
+                var dataUsageInfo = getDataUsageInfo();
+                // console.log(dataUsageInfo);
+                angular.element($("d3-Datausagealert")).scope().dataUsageInfo = dataUsageInfo;
+                initModalDialogWithDataUsageInfo(dataUsageInfo);
+                angular.element($("d3-Datausagealert")).scope().render(angular.element($("d3-Datausagealert")).scope().data);
+
+                isDrawingChart = 0;
+                // console.log( 'drawChart end, hide modal' );
+                // $("body").removeClass("loading");
+                // $("#divModal").hide();
+
+            }
+
+        }
+
+        function emptyIfNullPeak(data) {
+            var emptyPeak = {};
+            emptyPeak.peakRx = 0;
+            emptyPeak.peakRxTimestamp = 0;
+            emptyPeak.peakTx = 0;
+            emptyPeak.peakTxTimestamp = 0;
+            emptyPeak.peakOverall = 0;
+            emptyPeak.peakOverallTimestamp = 0;
+
+            if (typeof data == 'undefined' || data == null) {
+                return emptyPeak;
+            }
+
+            return data;
+        }
+
+        function reloadDataAndDrawChart() {
+            if (isDrawingChart)
+            {
+                // console.log( 'still drawing chart, ignore this update' );
+                $("#divDebugMesg").show().html("still drawing chart, ignore this update.<br/>"+$("#divDebugMesg").html());
+                return;
+            }
+
+            $("#mydiv").hide();
+            angular.element($("d3-Loading")).scope().openAndEnable();
+
+            // $("body").addClass("loading");
+            // refreshModalDescription(!g_usingPrecalculatedData, g_bShowDetailedLoadingMessage);
+            // $("#divModal").show();
+            // $("#divModalDescriptionDialog").dialog("open");
+
+            isDrawingChart = 1;
+
+            var retRetireOzker = retireOzker();
+            console.log( 'retRetireOzker result:' + retRetireOzker);
+
+            var numbersOfFlowEvents = getNumbersOfFlowEvents();
+            g_nTotalEventFlows = numbersOfFlowEvents.numOfCurrentEventFlows;
+            g_nTotalPreCalculatedFlows = numbersOfFlowEvents.numOfPreCalculatedFlows;
+
+            console.log( 'Number of total event flows:' + g_nTotalEventFlows);
+
+            g_dEventFlowBegin = new Date(0);
+
+            initializeTabs();
+            $("#tabs").tabs("option", "selected", 0);
+
+            initUsageMonitorTab();
+            changeFilterBySelection();
+
+            var activeTabID = getAtciveTabID();
+
+            if (activeTabID == "liInstanceBandwidth") {
+
+                angular.element($("d3-Loading")).scope().closeAndDisable(function(){
+                    $("#mydiv").show();
+                    startInstantBandwidth();
+                    isDrawingChart = 0;
+                    g_nLastUpdateTime = new Date().getTime();
+                });
+            }
+            else  {
+                rawData = [];
+                g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+                g_dStartFetchEventFlows = new Date();
+                startDraw();
+            }
+
+        } // function reloadDataAndDrawChart
+
+        function initializeTabs() {
+            //setup tabs
+            initBillTab();
+            initCustomTab();
+            initLastQuarterTab();
+            initSelectOptions();
+            initRadio();
+
+            $("#selectTimeUsageDevice, #selectTimeUsageDateRange").hide();
+
+        }
+
+        /*
+            Function: initialize
+
+            set up the page on first drawing/load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initialize()
+        {
+
+            // disable items
+            $("#datestart").attr('disabled','disabled');
+            $("#dateend").attr('disabled','disabled');
+            $("#quarter").attr('disabled','disabled');
+
+            //redraw chart on resize
+            $(window).resize(function() {
+                drawChart();
+            });
+
+            //create tab filter dialog
+            $("#tabs").tabs();
+
+            initializeTabs();
+
+            initUsageMonitorTab();
+            changeFilterBySelection();
+
+            $("[name=radioShowBy]").val(["device"]);
+
+            //hook tabs up to click
+            $('#tabs').bind('tabsshow', function(event, ui) {
+              //initFilter on tab change
+              initFilter(ui.index);
+            });
+
+            //set up refresh / filter buttons
+            initButtons();
+
+            //this is the update interval
+            setInterval(function()
+            {
+
+                // console.log( 'isDrawingChart:' + isDrawingChart );
+
+                // stop update if interval is too short.
+                if (new Date().getTime() - g_nLastUpdateTime < g_nMinUpdateInterval)
+                {
+                    return;
+                }
+
+                reloadDataAndDrawChart();
+            },
+            g_nUpdateTime);
+
+            // $("#mydiv").show();
+
+             // makeLoadingModalDialog("#divModalDescriptionDialog", "<%=controller%>/expert/status/system_status");
+
+            <%if enable_streamboostDebug == "1" then%>
+
+            // Make dialog
+            $( "#divCullDataDialog, #divFlowDataDialog, #divEventTransferHistoryDialog" ).dialog({
+                autoOpen: false,
+                modal: true,
+                width: 1024,
+                maxHeight: 700,
+                buttons: [
+                    {
+                        text: "Ok",
+                        click: function() {
+                            $( this ).dialog( "close" );
+                        }
+                    }
+                ]
+            });
+
+            $( "#divImportRawDataDialog" ).dialog({
+                autoOpen: false,
+                modal: true,
+                width: 1024,
+                maxHeight: 700,
+                buttons: [
+                    {
+                        text: "Ok",
+                        click: function() {
+                            var parsedObj = $.parseJSON($("#taImportRawData").val());
+                            if (parsedObj != null)
+                            {
+                                rawData = parsedObj.events;
+                            }
+                            drawChart();
+                            $( this ).dialog( "close" );
+                        }
+                    },
+                    {
+                        text: "Cancel",
+                        click: function() {
+                            $( this ).dialog( "close" );
+                        }
+                    }
+                ]
+            });
+
+            // Link to open the ozkerz dialog
+            $( "#buttonCullDataDialog" ).button().click(function( event ) {
+                $( "#divCullDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonFlowDataDialog" ).button().click(function( event ) {
+                $( "#divFlowDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonImportRawDataDialog" ).button().click(function( event ) {
+                $( "#divImportRawDataDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            $( "#buttonEventTransferHistoryDialog" ).button().click(function(event) {
+                $( "#divEventTransferHistoryDialog" ).dialog( "open" );
+                event.preventDefault();
+            }).show();
+
+            <%end%>
+        }
+
+        /*
+            Function: initButtons
+
+            set up the buttons on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initButtons()
+        {
+            //init the refresh button
+            $( "#btRefresh" ).button({
+                  icons: {
+                    primary: "ui-icon-refresh"
+                  }
+            });
+
+            //when refresh is selected
+            $("#btRefresh").click(function()
+            {
+                reloadDataAndDrawChart();
+            });
+
+            //flow filter button
+            $( "#btFilter" ).button({
+                  icons: {
+                    primary: "ui-icon-triangle-2-n-s"
+                  }
+            });
+
+            //when the flow filter button is clicked
+            $("#btFilter").click(function(){
+
+                //get the current checked/unchecked of the box
+                var bChecked = $("#btFilter").attr('checked');
+
+                //if checked
+                if(bChecked)
+                {
+                    //show the filter list
+                    $("#listFlows").css("display","block");
+                }
+                else //if not checked
+                {
+                    //hide the filter lif
+                    $("#listFlows").css("display","none");
+                }
+            });
+
+            $("#btCheck").click(function(){
+                for(var x in lsFilterEvent)
+                {
+                    $("input[name='"+lsFilterEvent[x]+"']").attr('checked','checked');
+                }
+                //draw chart without a data fetch
+                drawChart(false);
+            });
+
+            $("#btUncheck").click(function(){
+                for(var x in lsFilterEvent)
+                {
+                    $("input[name='"+lsFilterEvent[x]+"']").removeAttr('checked');
+                }
+                //draw chart without a data fetch
+                drawChart(false);
+            });
+        }
+
+        /*
+            Function: initFilter
+
+            redraw the chart on tab changes
+
+            Parameters:
+            nTab - tab number of the filter
+
+            returns:
+            nothing
+        */
+        function initFilter(nTab)
+        {
+            switch(nTab)
+            {
+                case 0: // billing cycle
+                {
+                    //get selected info
+                    var nID =$('#billcycle option:selected').val();
+                    var strDate =$('#billcycle option:selected').text();
+
+
+                    //split the date string
+                    var splitted = strDate.split(" to ");
+
+                    var strStart    = splitted[0];
+                    var strEnd      = splitted[1];
+
+                    //get our start and end date in objects
+                    var start = new Date(strStart);
+                    var end   = new Date(strEnd);
+
+                    //now adjust the time to beginning of 1st day
+                    //and end of last day
+                    start.setHours(0,0,0);
+                    end.setHours(23,59,59);
+
+                    //init the range
+                    g_nStart    = start.getTime();
+                    g_nEnd      = end.getTime();
+
+                    drawChart();
+                }
+                break;
+                case 1: //custom period
+                {
+                    var startDate = $("#datestart").val();
+                    var endDate = $("#dateend").val();
+
+                    startDate = startDate.replace(/\//g, '-');
+                    endDate = endDate.replace(/\//g, '-');
+
+                    //get numbers
+                    var dtNow = new Date();
+                    var nDay    = dtNow.getDate();
+                    var nMonth  = dtNow.getMonth()+1; //January is 0!
+                    var nYear   = dtNow.getFullYear();
+
+                    //get our start and end date in objects
+                    var start = new Date(startDate);
+                    var end   = new Date(endDate);
+
+                    //now adjust the time to beginning of 1st day
+                    //and end of last day
+                    start.setHours(0,0,0);
+                    end.setHours(23,59,59);
+
+                    <%if enable_streamboostDebug == "1" then%>
+                    // Debug mode, set start & end with textTimeStart & textTimeStart
+
+                    var splitted = $("#textTimeStart").val().split(":");
+
+                    if (splitted.length == 3)
+                    {
+                        start.setHours(parseInt(splitted[0]),splitted[1],splitted[2]);
+                    }
+
+                    splitted = $("#textTimeEnd").val().split(":");
+
+                    if (splitted.length == 3)
+                    {
+                        end.setHours(parseInt(splitted[0]),splitted[1],splitted[2]);
+                    }
+
+                    <%end%>
+
+                    //init the range
+                    g_nStart    = start.getTime();
+                    g_nEnd      = end.getTime();
+
+                    drawChart();
+
+                    //make min and max date objects
+                    var min = g_dEventFlowBegin;
+                    var max = new Date();
+
+                    min.setHours(0,0,0);
+
+                    max.setHours(23,59,59);
+
+                    //set min max values of each control
+                    $("#dateend").datepicker( "option", "minDate", start);
+                    $("#dateend").datepicker( "option", "maxDate", max);
+                    $("#datestart").datepicker( "option", "minDate", min);
+                    $("#datestart").datepicker( "option", "maxDate", end);
+                }
+                break;
+                case 2: // quarterly
+                {
+                    var nID =$('#quarter option:selected').val();
+                    var start = "";
+                    var end = "";
+
+                    if(nID == 1)
+                    {
+                        start = q1.strStart;
+                        end = q1.strEnd;
+                    }
+                    else if(nID == 2)
+                    {
+                        start = q2.strStart;
+                        end = q2.strEnd;
+                    }
+                    else if(nID == 3)
+                    {
+                        start = q3.strStart;
+                        end = q3.strEnd;
+                    }
+                    else //if(nID == 4)
+                    {
+                        start = q4.strStart;
+                        end = q4.strEnd;
+                    }
+
+                    //init the range
+                    var startTime = new Date(start);
+                    var endTime = new Date(end);
+                    startTime.setHours(0,0,0);
+                    endTime.setHours(23,59,59);
+                    g_nStart    = startTime.getTime();
+                    g_nEnd      = endTime.getTime();
+
+                    drawChart();
+                }
+                break;
+            }
+        }
+
+        function getExtendedRangeBySelectVal(value) {
+            var range = null;
+            switch (value) {
+                case "daily" :
+                    range = pastWeekRangeByTimestamp();
+                    break;
+                case "weekly" :
+                    range = pastMonthRangeByTimestamp();
+                    break;
+                case "monthly" :
+                case "quarterly" :
+                default :
+                    range = pastQuarterRangeByTimestamp();
+                    break;
+            }
+            return range;
+        }
+
+        function getRangeBySelectVal(value) {
+            var range = null;
+            switch (value) {
+                case "weekly" :
+                    range = pastWeekRangeByTimestamp();
+                    break;
+                case "monthly" :
+                    range = pastMonthRangeByTimestamp();
+                    break;
+                case "quarterly" :
+                default :
+                    //make current Quarter
+                    range = pastQuarterRangeByTimestamp();
+                    break;
+            }
+            return range;
+        }
+
+        function calculateCurrentUsageByDateRange(dateRange) {
+            if (!dateRange) {
+                return 0;
+            }
+            var startTimeStamp = dateRange.start.getTime() / 1000;
+            var endTimeStamp = dateRange.end.getTime() / 1000;
+            var returnValue = 0;
+            for(var x in rawData) {
+                var walkStartTime = parseInt(rawData[x].startTimestamp);
+                var walkEndTime = parseInt(rawData[x].endTimestamp);
+                if(walkStartTime >= startTimeStamp && walkStartTime <= endTimeStamp &&
+                   walkEndTime >= startTimeStamp && walkEndTime <= endTimeStamp) {
+                    returnValue += parseInt(rawData[x].tx_total) + parseInt(rawData[x].rx_total);
+                }
+            }
+
+            return returnValue;
+        }
+
+        function getRangeFromTodayAndResetDay(today, resetDay) {
+            today.setHours(0,0,0);
+            var workingDate = new Date(today);
+
+            var lastDayOfWorkingDate = lastDay(workingDate.getFullYear(), workingDate.getMonth());
+            if (resetDay > lastDayOfWorkingDate) {
+                workingDate.setDate(lastDayOfWorkingDate);
+            }
+            else {
+                workingDate.setDate(resetDay);
+            }
+
+            var dateRange = { };
+            if (workingDate <= today) {
+                var lastDayOfRangeEndMonth = lastDay(workingDate.getFullYear(), workingDate.getMonth() + 1);
+                if (resetDay > lastDayOfRangeEndMonth) {
+                    resetDay = lastDayOfRangeEndMonth;
+                }
+                var rangeEnd = new Date(workingDate.getFullYear(), workingDate.getMonth() + 1, resetDay)
+                rangeEnd.setDate(rangeEnd.getDate() - 1);
+                rangeEnd.setHours(23,59,59);
+                dateRange = { start:workingDate, end:rangeEnd  };
+            }
+            else {
+                var lastDayOfRangeEndMonth = lastDay(workingDate.getFullYear(), workingDate.getMonth() - 1);
+                if (resetDay > lastDayOfRangeEndMonth) {
+                    resetDay = lastDayOfRangeEndMonth;
+                }
+                var rangeStart = new Date(workingDate.getFullYear(), workingDate.getMonth() - 1, resetDay);
+                workingDate.setDate(workingDate.getDate() - 1);
+                workingDate.setHours(23,59,59);
+                dateRange = { start:rangeStart, end:workingDate  };
+            }
+            return dateRange;
+        }
+
+        function getDataUsageInfo() {
+
+            var resetDay = 1;
+            var quotaUsage = 0;
+            var warningThreshold = 0;
+            if (g_usageInfo != null) {
+                resetDay = g_usageInfo.resetDay;
+                quotaUsage = g_usageInfo.quotaUsage;
+                warningThreshold = g_usageInfo.warningThreshold;
+            }
+            var today = new Date();
+            var dateRange = getRangeFromTodayAndResetDay(today, resetDay);
+            return {
+                currentDataUsage: calculateCurrentUsageByDateRange(dateRange),
+                quotaUsage: quotaUsage,
+            	resetDay: resetDay,
+                warningThreshold: warningThreshold,
+                dateRange : dateRange,
+                remainingDays : diffDaysBetweenTimestamp(today.getTime() / 1000, dateRange.end.getTime() / 1000),
+                pastDays : diffDaysBetweenTimestamp(today.getTime() / 1000, dateRange.start.getTime() / 1000),
+                today: today
+            }
+        }
+
+        function getInitialBrushIndexByDateRangeWithData(data) {
+
+            var resultIndexes = {begin:0, end:0};
+            if (data == null || data.length == 0) {
+                return resultIndexes;
+            }
+            var selectedVal =$('#selectDateRange option:selected').val();
+            switch (selectedVal) {
+                case "daily" :
+                    return {begin:data.length - 24, end:data.length - 1};
+                case "weekly" :
+                    return {begin:data.length - 24 * 7, end:data.length - 1};
+                case "monthly" :
+                    return {begin:data.length - 24 * 30, end:data.length - 1};
+                case "quarterly" :
+                    return {begin:0, end:data.length - 1};
+                default:
+                    return resultIndexes;
+            }
+            return resultIndexes;
+        }
+
+        function changeFilterBySelection() {
+           //get selected info
+            var selectedVal =$('#selectDateRange option:selected').val();
+            var range = null;
+            var range = getExtendedRangeBySelectVal(selectedVal);
+            rtData = null;
+
+            // console.log("range: ");
+            // console.log(range);
+            // console.log(stringOfFormattedTimestamp(range.startTimestamp / 1000));
+            // console.log(stringOfFormattedTimestamp(range.endTimestamp / 1000));
+
+            g_nStart = range.startTimestamp;
+            g_nEnd   = range.endTimestamp;
+
+        }
+
+        function getCurrentFlowsInData(data) {
+            var returnData = {};
+            for (var index in data) {
+                if (typeof data[index].devices == 'undefined') {
+                    continue;
+                }
+                for (var mac in data[index].devices) {
+                    if (typeof data[index].devices[mac].flows == 'undefined') {
+                        continue;
+                    }
+                    for (var flowUUID in data[index].devices[mac].flows) {
+                        returnData[flowUUID] = {};
+                    }
+                }
+            }
+            return returnData;
+        }
+
+        function getCurrentDevicesInData(data) {
+            var returnData = {};
+            for (var index in data) {
+                if (typeof data[index].devices == 'undefined' ||
+                    data[index].devices == null ||
+                    data[index].devices.length == 0) {
+                    continue;
+                }
+                for (var mac in data[index].devices) {
+                    // console.log(mac);
+                    returnData[mac] = {};
+                }
+            }
+            return returnData;
+        }
+
+        function initFlowSelectionWithData(rtData) {
+            $('#selectDevAppFilter').html('<option value="*">All</option>');
+
+            if(rtPolicy == null) {
+                rtPolicy    = getPolicy();
+            }
+            if(rtPolicy == null) {
+                return;
+            }
+
+            if (rtData == null) {
+                return;
+            }
+
+            for (var flowUUID in rtData) {
+                $('#selectDevAppFilter').append('<option value="' + flowUUID + '">' + flowName(policyname(flowUUID)) + '</option>');
+            }
+        }
+
+        function initDeviceSelectionWithData(data) {
+            $('#selectDevAppFilter').html('<option value="*">All</option>');
+
+            if(rtDevices == null) {
+                rtDevices = getDevices();
+            }
+            if(rtDevices == null) {
+                return;
+            }
+            if (data == null) {
+                return;
+            }
+            for (var mac in data) {
+                if (mac != "") {
+                    $('#selectDevAppFilter').append('<option value="' + mac + '">' + mac2name(mac) + '</option>');
+                }
+            }
+        }
+
+        function initSelectTimeUsageDeviceWithData(data) {
+            $('#selectTimeUsageDevice').html('');
+
+            if(rtDevices == null) {
+                rtDevices = getDevices();
+            }
+            if(rtDevices == null) {
+                return;
+            }
+            if (data == null) {
+                return;
+            }
+            for (var mac in data) {
+                if (mac != "") {
+                    $('#selectTimeUsageDevice').append('<option value="' + mac + '">' + mac2name(mac) + '</option>');
+                }
+            }
+        }
+
+        function changeFilterByDeviceApp() {
+           //get selected info
+            // console.log("radioShowBy: "+$('[name=radioShowBy]:checked').val());
+
+            var activeTabID = getAtciveTabID();
+
+            if (activeTabID == "liBandwidthHistory") {
+                switch ($('[name=radioShowBy]:checked').val()) {
+                    case "application" :
+                        initFlowSelectionWithData(rtData);
+                        break;
+                    default: // device
+                        initDeviceSelectionWithData(rtData);
+                        break;
+                }
+            }
+            else if (activeTabID == "liInstanceBandwidth") {
+                startInstantBandwidth();
+            }
+
+
+        } // function changeFilterByDeviceApp() {
+
+        function initSelectOptions() {
+
+            $("#selectDateRange").change(function(e) {
+                // console.log("select changed");
+                rtData = null;
+                changeFilterByDeviceApp();
+                changeFilterBySelection();
+                drawChart();
+            })
+
+            $("#selectDevAppFilter, #selectTimeUsageDevice, #selectTimeUsageDateRange").change(function(e) {
+                // console.log("select changed");
+                drawChart();
+            })
+
+        } // function initSelectOptions()
+
+        function initRadio() {
+            $( 'input[name="radioShowBy"]:radio' ).change(function(e) {
+                // console.log("select changed");
+                rtData = null;
+                changeFilterByDeviceApp();
+                drawChart();
+            })
+        }
+
+        function stopInstantBandwidth() {
+            if (g_handlerIntervalUpdateBandwidth != null) {
+                clearInterval(g_handlerIntervalUpdateBandwidth);
+            }
+        }
+
+        function startInstantBandwidth() {
+
+            var getFlowCallbackReload = function (data, status) {
+                getFlowCallback(data, status, true);
+            }
+
+            var getFlowCallbackUpdate = function (data, status) {
+                getFlowCallback(data, status, false);
+            }
+
+            var getFlowCallback = function(data, status, reload) {
+
+                if (status == 0)
+                {
+                    if (data == null || typeof data.flows == "undefined" || data.flows == null) {
+                        return;
+                    }
+
+                    var instantFlowData = data.flows;
+                    // console.log("instantFlowData:");
+                    // console.log(instantFlowData);
+
+                    g_InstantFlowData = updateInstantFlowData(g_InstantFlowData, instantFlowData);
+
+                    for (var index in g_InstantFlowData) {
+
+                        var nameOfFlow = flowName(g_InstantFlowData[index].name);
+                        var deviceDescription = mac2name(g_InstantFlowData[index].mac);
+
+                        g_InstantFlowData[index].nameOfFlow = nameOfFlow;
+                        g_InstantFlowData[index].deviceDescription = deviceDescription;
+
+                        // console.log("Device: " + deviceDescription + ", flow: " + nameOfFlow + ", download: " + g_InstantFlowData[index].down_bytes + ", upload: " + g_InstantFlowData[index].up_bytes + ", download bps: " + g_InstantFlowData[index].down_bps + ", upload bps: " + g_InstantFlowData[index].up_bps + ", last update: " + stringOfFormattedTimestamp(g_InstantFlowData[index].epoch) + ", uid:" + g_InstantFlowData[index].uid);
+
+                    } // for (var index in instantFlowData) {
+
+                    // while (g_InstantFlowData.length > 1) {
+                    //     g_InstantFlowData.pop();
+                    // }
+                    //
+                    if (reload) {
+                        angular.element($("d3-Instantbandwidth")).scope().currentBarIndex = 0;
+                    }
+
+                    angular.element($("d3-Instantbandwidth")).scope().currentBarIndex = angular.element($("d3-Instantbandwidth")).scope().currentBarIndex;
+
+                    angular.element($("d3-Instantbandwidth")).scope().showTotalDataInsteadOfBandwidth = g_showTotalDataInsteadOfBandwidth;
+
+                    angular.element($("d3-Instantbandwidth")).scope().data = instantInfoByDevApp(g_InstantFlowData,
+                        $('[name=radioShowBy]:checked').val(), g_showTotalDataInsteadOfBandwidth);
+
+                    angular.element($("d3-Instantbandwidth")).scope().showBy = $('[name=radioShowBy]:checked').val();
+
+                    angular.element($("d3-Instantbandwidth")).scope().render(angular.element($("d3-Instantbandwidth")).scope().data, reload);
+
+                } // if (status == 0) successful
+                else
+                {
+                    $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());
+                    // console.log( 'failed, remove modal' );
+                } // failed
+            } // getFlowCallback
+
+            getFlows(getFlowCallbackReload);
+
+            stopInstantBandwidth();
+
+            g_handlerIntervalUpdateBandwidth = setInterval(function() {
+                getFlows(getFlowCallbackUpdate);
+            }, g_nIntervalLookupInstantBandwidth);
+
+        } // function startInstantBandwidth() {
+
+        function closingPreviousTab(idOfTab, callback) {
+            switch (idOfTab) {
+                case "liInstanceBandwidth" : {
+                    stopInstantBandwidth();
+                    angular.element($("d3-Instantbandwidth")).scope().closeAndDisable(callback);
+                    break;
+                }
+                case "liBandwidthHistory" : {
+                    stopInstantBandwidth();
+                    angular.element($("d3-Animatedlinechart")).scope().closeAndDisable(callback);
+                    break;
+                }
+                case "liTimeUsage" : {
+                    stopInstantBandwidth();
+                    angular.element($("d3-Timeusage")).scope().closeAndDisable(callback);
+                    break;
+                }
+                default : {
+                    stopInstantBandwidth();
+                    angular.element($("d3-Datausagealert")).scope().closeAndDisable(callback);
+                    break;
+                }
+            }
+        }
+
+        function hideTabButTabID(idOfTab) {
+            if (idOfTab != "liInstanceBandwidth") {
+                angular.element($("d3-Instantbandwidth")).css('line-height', '0');
+                // angular.element($("d3-Instantbandwidth")).css('display', 'none');
+            }
+            if (idOfTab != "liBandwidthHistory") {
+                angular.element($("d3-Animatedlinechart")).css('line-height', '0');
+                // angular.element($("d3-Animatedlinechart")).css('display', 'none');
+            }
+            if (idOfTab != "liTimeUsage") {
+                angular.element($("d3-Timeusage")).css('line-height', '0');
+                // angular.element($("d3-Timeusage")).css('display', 'none');
+            }
+            if (idOfTab != "liDataUsageAlert") {
+                angular.element($("d3-Datausagealert")).css('line-height', '0');
+                // angular.element($("d3-Datausagealert")).css('display', 'none');
+            }
+        }
+
+        function showTabElementByTabID(idOfTab, callback) {
+            var previousTabID = getAtciveTabID();
+            switch (idOfTab) {
+                case "liInstanceBandwidth" :
+                    $("#selectDateRange, #selectDevAppFilter, #selectTimeUsageDevice, #selectTimeUsageDateRange, img.ui-datepicker-trigger").hide();
+                    $("#divFilterOptions, .classFilterShowBy").show();
+                    closingPreviousTab(previousTabID, function() {
+                        startInstantBandwidth();
+                        hideTabButTabID(idOfTab);
+                        angular.element($("d3-Instantbandwidth")).css('line-height', '1.4');
+                        angular.element($("d3-Instantbandwidth")).css('display', null);
+                        angular.element($("d3-Instantbandwidth")).scope().openAndEnable();
+                        callback();
+                    });
+                    break;
+                case "liBandwidthHistory" :
+                    $("#selectTimeUsageDevice, #selectTimeUsageDateRange, img.ui-datepicker-trigger").hide();
+                    $("#selectDateRange, #selectDevAppFilter, #divFilterOptions, .classFilterShowBy").show();
+                    closingPreviousTab(previousTabID, function() {
+                        hideTabButTabID(idOfTab);
+                        angular.element($("d3-Animatedlinechart")).css('line-height', '1.4');
+                        angular.element($("d3-Animatedlinechart")).css('display', null);
+                        angular.element($("d3-Animatedlinechart")).scope().openAndEnable();
+                        callback();
+                    });
+                    break;
+                case "liTimeUsage" :
+                    $("#selectDateRange, #selectDevAppFilter, .classFilterShowBy").hide();
+                    $("#selectTimeUsageDevice, #selectTimeUsageDateRange, #divFilterOptions, img.ui-datepicker-trigger").show();
+                    closingPreviousTab(previousTabID, function() {
+                        hideTabButTabID(idOfTab);
+                        angular.element($("d3-Timeusage")).css('line-height', '1.4');
+                        angular.element($("d3-Timeusage")).css('display', null);
+                        angular.element($("d3-Timeusage")).scope().openAndEnable();
+                        callback();
+                    });
+                    break;
+                default :
+                    if (g_showDataUsageMonitor) {
+                        $("#selectTimeUsageDevice, #selectTimeUsageDateRange, img.ui-datepicker-trigger").hide();
+                        $("#selectDateRange, #selectDevAppFilter, #divFilterOptions, .classFilterShowBy").show();
+                    }
+                    else {
+                        $("#selectDateRange, #selectDevAppFilter, #selectTimeUsageDevice, #selectTimeUsageDateRange, #divFilterOptions, .classFilterShowBy, img.ui-datepicker-trigger").hide();
+                    }
+                    closingPreviousTab(previousTabID, function() {
+                        hideTabButTabID(idOfTab);
+                        angular.element($("d3-Datausagealert")).css('line-height', '1.4');
+                        angular.element($("d3-Datausagealert")).css('display', null);
+                        angular.element($("d3-Datausagealert")).scope().openAndEnable();
+                        callback();
+                    });
+                    break;
+            }
+        }
+
+        function disableUsageMonitorTab() {
+            $(".usageMonitorTabs").toggleClass('disabled', true);
+        }
+
+        function enableUsageMonitorTab() {
+            $(".usageMonitorTabs").toggleClass('disabled', false);
+        }
+
+        function initUsageMonitorTab() {
+            angular.element($("d3-Datausagealert")).scope().translation = g_usageMonitorTranslation;
+            angular.element($("d3-Timeusage")).scope().translation = g_usageMonitorTranslation;
+            angular.element($("d3-Instantbandwidth")).scope().translation = g_usageMonitorTranslation;
+            angular.element($("d3-Animatedlinechart")).scope().translation = g_usageMonitorTranslation;
+            angular.element($("d3-Datausagealert")).scope().closeAndDisable(function(){});
+            angular.element($("d3-Timeusage")).scope().closeAndDisable(function(){});
+
+            // angular.element($("d3-Instantbandwidth")).css('display', 'none');
+            angular.element($("d3-Animatedlinechart")).css('display', null);
+            // angular.element($("d3-Datausagealert")).css('display', 'none');
+            // angular.element($("d3-Timeusage")).css('display', 'none');
+
+            angular.element($("d3-Instantbandwidth")).css('line-height', '0');
+            angular.element($("d3-Animatedlinechart")).css('line-height', '1.4');
+            angular.element($("d3-Datausagealert")).css('line-height', '0');
+            angular.element($("d3-Timeusage")).css('line-height', '0');
+
+            $(".usageMonitorTabs").click(function(e) {
+                // console.log("currentActiveTabID:");
+                // console.log(getAtciveTabID());
+                if (this.id == getAtciveTabID()) {
+                    return;
+                }
+
+                if ($(this).hasClass('disabled')) {
+                  return false;
+                };
+
+                disableUsageMonitorTab();
+
+                showTabElementByTabID(this.id, enableUsageMonitorTab);
+                $(".usageMonitorTabs").removeClass("active");
+                $(this).addClass("active");
+            });
+        } // function initUsageMonitorTab() {
+
+        function getAtciveTabID() {
+            return $('.usageMonitorTabs.active').first().attr('id');
+        } // function getAtciveTabID() {
+
+        /*
+            Function: initBillTab
+
+            set up the billing cycle tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initBillTab()
+        {
+            //get numbers
+            var dtNow = new Date();
+            var nDay    = dtNow.getDate();
+            var nMonth  = dtNow.getMonth()+1; //January is 0!
+            var nYear   = dtNow.getFullYear();
+
+            //set start date to beginning of epoch time
+            var nStartMonth = g_dEventFlowBegin.getMonth()+1;
+            var nStartYear  = g_dEventFlowBegin.getFullYear();
+
+            //init the range
+            g_nStart    = new Date(nMonth+"-01-"+nYear).getTime();
+            g_nEnd      = new Date(nMonth+"-31-"+nYear).getTime();
+
+            $("#mnth1").remove();
+            $("#mnth2").remove();
+            $("#mnth3").remove();
+            $("#mnth4").remove();
+
+            $("#billcycle").append("<option id=\"mnth1\" value=\"1\">04/01/2014 to 04/31/2014</option>");
+
+            var month1 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            $("#mnth1").text(month1);
+            $("#mnth1").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+
+            var month2 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth2").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth2\" value=\"2\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth2").text(month2);
+            $("#mnth2").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month3 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth3").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth3\" value=\"3\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth3").text(month3);
+            $("#mnth3").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month4 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth4").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth4\" value=\"4\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth4").text(month4);
+            $("#mnth4").val(nMonth);
+
+            $("#billcycle").change(function(e)
+            {
+                //draw changes for billing filter
+                initFilter(0);
+            })
+        }
+
+        function initTimeUsageDatePickerWithRawData() {
+            //start date button picker
+            $("#dateTimeUsageDaily").datepicker({
+                buttonImage: '/images/usage_monitor/icon_date.png',
+                showOn: "both",
+                buttonImageOnly: true,
+                changeMonth: true,
+                changeYear: true,
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    // console.log('dateText: ' + dateText);
+                    g_TimeUsageSelectedTimestamp = utcTimeStampFromStringOfDate(dateText);
+                    $('#selectTimeUsageDateRange > option:first-child').prop("selected",true);
+                    drawChart();
+                    // if ($('#selectTimeUsageDateRange option:selected').val() == "daily") {
+                    //     $('#selectTimeUsageDateRange > option:first-child').text(nMonth + '/' + nDay);
+                    // }
+
+                  }
+            });
+
+            var min = new Date(getOldestTimestampInData(rawData)*1000);
+            var max = new Date();
+
+            //now adjust the time to set our 90 day min max
+            min.setHours(0,0,0);
+
+            // console.log(min);
+            max.setHours(23,59,59);
+
+            //set min max values of each control
+            $("#dateTimeUsageDaily").datepicker( "option", "maxDate", max);
+            $("#dateTimeUsageDaily").datepicker( "option", "minDate", min);
+
+        } // initTimeUsageDatePickerWithRawData
+
+        /*
+            Function: initCustomTab
+
+            set up the custom range tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initCustomTab()
+        {
+
+            //start date button picker
+            $("#datestart").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //end date button picker
+            $("#dateend").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //make min and max date objects
+            var min = new Date(getOldestTimestampInData(rawData)*1000);
+            var max = new Date();
+
+            //now adjust the time to set our 90 day min max
+            min.setHours(0,0,0);
+
+            // console.log(min);
+            max.setHours(23,59,59);
+
+            //set min max values of each control
+            $("#dateend").datepicker( "option", "minDate", min);
+            $("#dateend").datepicker( "option", "maxDate", max);
+            $("#datestart").datepicker( "option", "minDate", min);
+            $("#datestart").datepicker( "option", "maxDate", max);
+
+            //set the start and end times
+            $("#datestart").datepicker( "setDate", min);
+            $("#dateend").datepicker( "setDate", max);
+
+            <%if enable_streamboostDebug == "1" then%>
+            $("#textTimeStart, #textTimeEnd").change(function(){
+                initFilter(1);
+            });
+            <%end%>
+
+        }
+
+        //make default quarters
+        var q1 = quarterRange(1, 15);
+
+        function initLastQuarterTab()
+        {
+            //get today
+            var dtNow = new Date();
+
+            //make current monthly
+            q1 = lastQuarterRange(dtNow,  -3);
+
+            $("#quarter1").text(q1.strStart + " to " +  q1.strEnd);
+
+
+            //figure out what quarter today is in
+            $("#quarter").change(function(e)
+            {
+                //draw changes for quarter
+                initFilter(2);
+            });
+        }
+
+        <%if enable_streamboostDebug == "1" then%>
+
+        function outputFlowStats(lsEvents)
+        {
+            var outputResult = "";
+            //make array of policies
+            for(var x in lsEvents.flows)
+            {
+                var policy = policyname(x);
+
+                outputResult += flowName(policy) + '(' + policy + ')\'s (rx_percent, rx_total, tx_percent, tx_total):' + lsEvents.flows[x].rx_percent + ', ' + lsEvents.flows[x].rx_total + ', ' + lsEvents.flows[x].tx_percent + ', ' + lsEvents.flows[x].tx_total + "<br/>";
+            }
+
+            $("#divFlowDataDialog").html(outputResult);
+
+        }
+
+        <%end%>
+
+        function shouldShowFilter(rtData, deviceTableData) {
+            if (g_usingPrecalculatedData) {
+                if( deviceTableData.rx_total >= 1 &&
+                    rtData.rx_total > 0 &&
+                    deviceTableData.rx_total / rtData.rx_total > 0.01 ) {
+                    // console.log(deviceTableData.rx_total + '/' + rtData.rx_total + ' == ' + deviceTableData.rx_total / rtData.rx_total);
+                    return true;
+                }
+
+            }
+            else {
+                if(deviceTableData.rx_percent >= 1)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /*
+            Function: initFlowFilter
+
+            set up the flow filter on 1st load or click
+
+            Parameters:
+            lsEvents the events to filter based on flow
+
+            returns:
+            nothing
+        */
+        function initFlowFilter(lsEvents)
+        {
+            //make array of policies
+            for(var x in lsEvents.flows)
+            {
+                var policy = policyname(x);
+
+                //if this has enough data to show in the graph
+                // if(parseFloat(lsEvents.flows[x].rx_percent) >= 1.0)
+                if (shouldShowFilter(lsEvents, lsEvents.flows[x]))
+                {
+                    lsFilterEvent.push(policy);
+                }
+            }
+
+            function compare(a,b)
+            {
+                var namea = flowName(a);
+                var nameb = flowName(b);
+
+                if(namea<nameb)
+                    return -1;
+                if(namea>nameb)
+                    return 1;
+                return 0;
+            };
+
+            lsFilterEvent.sort(compare);
+
+            for(var x in lsFilterEvent)
+            {
+                var policy = lsFilterEvent[x];
+
+                if($("input[name='"+policy+"']").length == 0)
+                {
+                    var html = "<li><input type=\"checkbox\" name=\""+policy+"\" value=\""+policy+"\" checked>"+flowName(policy)+"<br></li>";
+                    $("#flowchecks").append(html);
+
+                    $("input[name='"+lsFilterEvent[x]+"']").click(function(e)
+                    {
+                        //draw chart without a data fetch
+                        drawChart(false);
+                    });
+                }
+            }
+        }
+
+        var callback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // console.log('callback, status:' + status);
+            if (status == 0)
+            {
+                // rawData = data;
+                // console.log('data: ');
+                // console.log(data);
+                if (data[0].time != null)
+                {
+                    g_dEventFlowBegin = new Date(0);
+                    g_dEventFlowBegin.setUTCSeconds(parseInt(data[0].time));
+                }
+                // console.log('before merge, data.length: ' + data.length + ', rawData.length: ' + rawData.length);
+
+                $.merge(rawData, data);
+
+                // console.log('after merge, data.length: ' + data.length + ', rawData.length: ' + rawData.length);
+
+                // console.log( 'drawChart, async got data' );
+                // $("body").addClass("loading");
+                // $("#divModal").show();
+                drawChart();
+
+                g_nRemainingEventFlows -= g_nNumOfEventFlowPerFetch;
+
+                if (g_nNumOfEventFlowPerFetch == g_nNumOfEventFlowFirstFetch)
+                {
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowRemainingFetch;
+                }
+
+                if (g_nRemainingEventFlows >= 0)
+                {
+                    // $("#divModal").show();
+                    // refreshModalDescription(false, g_bShowDetailedLoadingMessage);
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);
+                }
+                else
+                {
+                    isDrawingChart = 0;
+                    // $("#divEventTransferHistoryDialog").html($("#divEventTransferHistoryDialog").html() + (new Date()) + ": " + $("#divModalDescription").html() + "<br/><br/>");
+                    // refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                    // initializeTabs();
+                    // $("#divModalDescriptionDialog").dialog("close");
+                    // $("body").removeClass("loading");
+                    // $("#divModal").hide();
+
+                }
+            }
+            else
+            {
+                isDrawingChart = 0;
+                // $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());
+                // // console.log( 'failed, remove modal' );
+                // refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                // $("body").removeClass("loading");
+                // $("#divModal").hide();
+                // $("#divModalDescriptionDialog").dialog("close");
+            }
+            // console.log( rawData );
+        }  // callback
+
+
+        var patchLatestFlowCallback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+
+            // console.log("patchLatestFlowCallback, status: " + status + ", data.length: " + data.length);
+
+            if (status == 0)
+            {
+
+                // console.log('patchLatestFlowCallback data :');
+                // console.log(data);
+
+                var cullData = [];
+
+                var currentTimestamp = getCurrentTimestamp();
+                var nStartMS = zeroHourOfTimestamp(currentTimestamp);
+                var nEndMS = lastHourOfTimestamp(currentTimestamp);
+
+                // console.log( 'nStartMS:' + stringOfFormattedTimestamp(nStartMS));
+                // console.log( 'nEndMS:' + stringOfFormattedTimestamp(nEndMS));
+
+                //cull the raw data to g_nStart/g_nEnd
+                for(var x in data)
+                {
+                    var myTime = parseInt(data[x].time);
+
+                    if(myTime >= nStartMS && myTime <= nEndMS)
+                    {
+                        cullData.push(data[x]);
+                    }
+                }
+
+                var deviceData = getDeviceData(cullData, data);
+
+                console.log('deviceData :');
+                console.log(deviceData);
+
+                if (deviceData != null &&
+                    typeof deviceData.devices != 'undefined') {
+                    var dataToPatch = {};
+
+                    dataToPatch.devices = {};
+
+                    for (var mac in deviceData.devices) {
+                        dataToPatch.devices[mac] = deviceData.devices[mac];
+                    }
+
+                    dataToPatch.rx_total = deviceData.rx_total;
+                    dataToPatch.tx_total = deviceData.tx_total;
+                    dataToPatch.startTimestamp = getCurrentTimestamp();
+                    dataToPatch.endTimestamp = getCurrentTimestamp();
+                    dataToPatch.eggPatched = "1234";
+
+                    // console.log('dataToPatch :');
+                    // console.log(dataToPatch);
+                    // console.log("start: " + stringOfFormattedTimestamp(dataToPatch.startTimestamp));
+                    // console.log("end: " + stringOfFormattedTimestamp(dataToPatch.endTimestamp));
+
+                    // after patch, we need to regenerate device & app filters.
+                    rtData = null;
+                    rawData.push(dataToPatch);
+
+                    // console.log('after merge, rawData :');
+                    // console.log(rawData);
+
+                    // $("body").addClass("loading");
+                    // $("#divModal").show();
+
+                    // console.log("close loading and drawChart");
+
+                    angular.element($("d3-Loading")).scope().closeAndDisable(function(){
+                        $("#mydiv").show();
+                        drawChart();
+                    });
+
+
+                }
+
+                // console.log( 'drawChart end, hide modal' );
+                // $("body").removeClass("loading");
+                // $("#divModal").hide();
+                // $("#divModalDescriptionDialog").dialog("close");
+
+                // setTimeout(function() {
+                // }, 1000);
+
+            }
+            else
+            {
+                isDrawingChart = 0;
+                // $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());
+                // console.log( 'failed, remove modal' );
+                // refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                // $("body").removeClass("loading");
+                // $("#divModal").hide();
+                // $("#divModalDescriptionDialog").dialog("close");
+            }
+        } // patchLatestFlowCallback
+
+        var preCalculationCallback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // rawData = data;
+            // console.log('preCalculationCallback callback, status:' + status);
+            // console.log('data.length: '+ data.length);
+            // console.log('rawData.length: '+ rawData.length);
+            // console.log( 'data: ' );
+            // console.log( data );
+            // console.log( rawData );
+            // console.log( rawData );
+            if (status == 0)
+            {
+                if( typeof data != 'undefined' && data.length > 0 ) {
+                    var lastIndex = data.length -1;
+
+                    if( typeof data[lastIndex] != 'undefined' &&
+                        typeof data[lastIndex].startTimestamp != 'undefined' &&
+                        typeof data[lastIndex].endTimestamp != 'undefined') {
+                        var myTime = parseInt(data[lastIndex].startTimestamp);
+                        g_dEventFlowBegin = new Date(0);
+                        g_dEventFlowBegin.setUTCSeconds(myTime);
+                        // console.log('g_dEventFlowBegin: ');
+                        // console.log(g_dEventFlowBegin);
+                    }
+
+                }
+
+                // $("body").addClass("loading");
+                // $("#divModal").show();
+
+                // console.log('data :');
+                // console.log(data);
+                rawData = data;
+                // rawData = appendPreCalculatedPerDeviceData(rawData, data);
+                // console.log('rawData :');
+                // console.log(rawData);
+
+                changeFilterByDeviceApp();
+                initTimeUsageDatePickerWithRawData();
+                showTabElementByTabID(getAtciveTabID(), enableUsageMonitorTab);
+                drawChart();
+
+                angular.element($("d3-Loading")).scope().closeAndDisable(function(){
+                    $("#mydiv").show();
+                    drawChart();
+                });
+
+                // var lowBoundIndex = getLowBoundIndexByTimestamp(zeroHourOfTimestamp(getCurrentTimestamp()));
+                // console.log('patchLatestFlowCallback, lowBoundIndex: ' + lowBoundIndex);
+                // asyncEvents(g_nStart/1000,g_nEnd/1000, lowBoundIndex, -1, patchLatestFlowCallback);
+
+            }
+            else
+            {
+                isDrawingChart = 0;
+                // $("#divDebugMesg").show().html("error ! statusCode: " + status +"<br/>"+$("#divDebugMesg").html());
+                // // console.log( 'failed, remove modal' );
+                // refreshModalDescription(true, g_bShowDetailedLoadingMessage);
+                initializeTabs();
+                // $("body").removeClass("loading");
+                // $("#divModal").hide();
+                // $("#divModalDescriptionDialog").dialog("close");
+            }
+
+        } // preCalculationCallback
+
+        var startDraw = function () {
+            // console.log('startDraw');
+
+            // $("body").addClass("loading");
+            // refreshModalDescription(false, g_bShowDetailedLoadingMessage);
+            // $("#divModal").show();
+
+            if (g_usingPrecalculatedData) {
+                asyncPerDevice(0, -1, preCalculationCallback);
+            }
+            else {
+                asyncEvents(g_nStart/1000,g_nEnd/1000,
+                    g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);
+            }
+        }
+
+        function initModalDialogWithDataUsageInfo(dataUsageInfo) {
+             $("#idQuota").val(dataUsageInfo.quotaUsage / 1000000);
+             $("#idResetDay").val(dataUsageInfo.resetDay);
+             $("#idWarningThreshold").val(dataUsageInfo.warningThreshold);
+            $( "#divModalDescriptionDialogUsage" ).dialog({
+                autoOpen: false,
+                modal: true,
+                width: 600,
+                draggable: true,
+                resizable: false,
+                closeOnEscape: false,
+                buttons: [
+                    {
+                        text: "<%:Cancel%>",
+                        click: function() {
+                            console.log("cancel!");
+                            $( this ).dialog( "close" );
+                            $("#divModalUsage").hide();
+                        }
+                    },
+                    {
+                        text: "<%:Usage_Done%>",
+                        click: function() {
+
+                          tips = $( ".validateTips" );
+
+                          function updateTips( t ) {
+                            tips
+                              .text( t )
+                              .addClass( "ui-state-highlight" );
+                            setTimeout(function() {
+                              tips.removeClass( "ui-state-highlight", 1500 );
+                            }, 500 );
+                          }
+
+                          function checkNumber( o, n, min, max ) {
+                              var value = parseInt(o.val());
+                            if ( isNaN(value) || value > max || value < min ) {
+                              o.addClass( "ui-state-error" );
+                              updateTips( "" + n + ": " +
+                                min + " ~ " + max + "." );
+                              return false;
+                            } else {
+                              return true;
+                            }
+                          }
+
+                            function validateInput() {
+                                var valid = true;
+                                 $("#idQuota, #idResetDay, #idWarningThreshold").removeClass( "ui-state-error" );
+
+                                valid = valid && checkNumber( $("#idQuota"), "<%:Usage_Quota%>", 1, Math.floor(Number.MAX_SAFE_INTEGER / 1000000)  );
+                                valid = valid && checkNumber( $("#idResetDay"), "<%:Usage_ResetDateOfEachMonth%>", 1, 31 );
+                                valid = valid && checkNumber( $("#idWarningThreshold"), "<%:Usage_WarningThreshold%>", 1, 100 );
+
+                                return valid;
+                            }
+                            console.log("OK!");
+                            var validatedSuccessful = validateInput();
+                            if (validatedSuccessful) {
+                                writeUsageInfo($("#idResetDay").val(), $("#idQuota").val() * 1000000, $("#idWarningThreshold").val(), function(usageInfo, status) {
+                                    console.log(usageInfo);
+                                    g_usageInfo = usageInfo;
+                                    drawChart();
+                                }); // writeUsageInfo
+
+                                $( this ).dialog( "close" );
+                                $("#divModalUsage").hide();
+                            }
+                        }
+                    },
+
+                ],
+                open: function() {
+                    $(this).parent().find(".ui-dialog-titlebar-close").hide();
+                },
+                drag: function(event, ui) {
+                    var top = event.pageY - $(document).scrollTop();
+                    if (top < 0) {
+                        top = 0;
+                    }
+
+                    var maxTop = $(window).height() - $(this).parent().height();
+                    if (top > maxTop) {
+                        top = maxTop;
+                    }
+                    ui.position.top = top;
+                }
+            });
+        } // function initModalDialogWithDataUsageInfo
+
+        //called when page 1st loads
+        $(document).ready(function() {
+
+            //////////////////////////////////////////////////
+            /// start button
+            initGlobalVariables();
+
+            var streamboostEnabled = <%=enable_streamboost%>;
+            var wanProto = "<%=wan_proto%>";
+
+            if (!streamboostEnabled || wanProto == "pptp") {
+                return;
+            }
+
+            if(rtPolicy == null) {
+                rtPolicy    = getPolicy();
+            }
+
+            // load the flow table
+            flowTable(function()
+            {
+                //load the device table
+                loadDeviceTable(function()
+                {
+                    // console.log( 'loadDeviceTable when document.ready' );
+
+                    getUsageInfo(function(usageInfo, status) {
+
+                        //init start to ridiculously early date
+                        g_nStart = 0;
+                        g_nEnd = new Date().getTime();
+                        g_dStartFetchEventFlows = new Date();
+
+                        g_usageInfo = usageInfo;
+
+                        //do a 1st fetch of all data before setting a filter
+                        // rawData = getEvents(g_nStart/1000,g_nEnd/1000);
+
+
+                        //draw the page
+                        initialize();
+
+                        rawData = [];
+                        isDrawingChart = 1;
+                        g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+                        doPreCalculationIfNeeded(startDraw);
+                    }); // getUsageInfo
+                }); // loadDeviceTable
+            }); // flowTable
+        }); // ready
+
+        function menu(){
+            window.parent.menu.location.href = "<%=controller%>/expert/configuration/security/menu_app";
+        }
+
+    </script>
+
+  </head>
+  <body ng-app="ZyXEL">
+
+    <div id="title_c" >
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td width="300"><div id="title_n" ><%:Usage_Monitor%></div></td>
+            <td>&nbsp;</td>
+          </tr>
+        </table>
+    </div>
+
+   <div id="all_w"> <!-- style="padding:5px !important;" -->
+         <% if enable_streamboost == "1" then%>
+         <% if wan_proto == "pptp" then%>
+            <div class="data" >
+            <div class="w_text">
+                <%:Streamboost_on_warning5%>
+            </div>
+            </div>
+         <%else%>
+
+        <div class="row">
+            <div class="col-xs-12">
+
+                <!-- Loading -->
+                <div class="row">
+                    <div ng-controller="loadingController">
+                        <d3-Loading></d3-Loading>
+                    </div>
+                </div>
+
+                <div id="mydiv" style="display:none;">
+
+                    <ul class="nav nav-pills nav-justified">
+                      <li id ="liInstanceBandwidth" class="usageMonitorTabs"><a href="javascript:void(0)"><%:Usage_InternetDataUsageMonitor%></a></li>
+                      <li id ="liBandwidthHistory" class="usageMonitorTabs active"><a href="javascript:void(0)"><%:Usage_BandwidthHistory%></a></li>
+                      <li id ="liTimeUsage" class="usageMonitorTabs"><a href="javascript:void(0)"><%:Usage_TimeTracker%></a></li>
+                      <li id ="liDataUsageAlert" class="usageMonitorTabs"><a href="javascript:void(0)"><%:Usage_DataUsageAlert%></a></li>
+                    </ul>
+                    <div id="divFilterOptions" style="text-align:center;font-size:14px;margin-top:5px;">
+                        <label class="classFilterShowBy"><%:Usage_ShowBy%>:</label>
+                        <input class="classFilterShowBy" type="radio" name="radioShowBy" value="device"><label class="classFilterShowBy" for "device"><%:Usage_ShowByDevice%></label>
+                        <input class="classFilterShowBy" type="radio" name="radioShowBy" value="application"><label class="classFilterShowBy" for "device"><%:Usage_ShowByApp%></label>
+
+                        <select id="selectDateRange" class="dateRangeFilter">
+                            <option id="optionDateRangeWeekly" value="daily"><%:Usage_Daily%></option>
+                            <option id="optionDateRangeWeekly" value="weekly"><%:Usage_Weekly%></option>
+                            <option id="optionDateRangeMonthly" value="monthly"><%:Usage_Monthly%></option>
+                            <option id="optionDateRangeQuarterly" value="quarterly"><%:Usage_Quarterly%></option>
+                        </select>
+                        <select id="selectDevAppFilter" class="dateRangeFilter">
+                        </select>
+                        <select id="selectTimeUsageDevice" class="dateRangeFilter">
+                        </select>
+                        <select id="selectTimeUsageDateRange" class="dateRangeFilter">
+                            <option id="optionDateRangeDay" value="daily"></option>
+                            <option id="optionDateRangeWeekly" value="weekly"><%:Usage_Weekly%></option>
+                            <option id="optionDateRangeMonthly" value="monthly"><%:Usage_Monthly%></option>
+                            <option id="optionDateRangeQuarterly" value="quarterly"><%:Usage_Quarterly%></option>
+                        </select>
+                        <input type="hidden" id="dateTimeUsageDaily" />
+                    </div> <!-- options -->
+
+                    <div style="display:none;">
+                        <div id="dialog-flows" title="Select Flow Filter...">
+                          <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+                        </div>
+                    </div>
+                    <div style="float: right;margin-right:64px;font-size:10px;display:none;">
+                        <div id="tabs">
+                            <ul>
+                                <li><a href="#tabs-1"><%:SB_BillingPeriod%></a></li>
+                                <li><a href="#tabs-2"><%:SB_CustomPeriod%></a></li>
+                                <li><a href="#tabs-3"><%:SB_LastQuarter%></a></li>
+                            </ul>
+                            <div id="tabs-1">
+                                <div>
+                                    <div><%:SB_Period%>:</div>
+                                    <select id="billcycle" class="dateRangeFilter">
+                                        <option id="mnth1" value="1">04/01/2014 to 04/31/2014</option>
+                                        <option id="mnth2" value="2">03/01/2014 to 03/31/2014</option>
+                                        <option id="mnth3" value="3">02/01/2014 to 02/31/2014</option>
+                                        <option id="mnth4" value="4">01/01/2014 to 01/31/2014</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="tabs-2">
+                                <div>
+                                    <div><%:SB_RangeStart%>:</div>
+                                    <input type="text" id="datestart" value="01/01/2014">
+                                    <%if enable_streamboostDebug == "1" then%>
+                                    <input type="text" id="textTimeStart" value="00:00:00">
+                                    <%end%>
+                                </div>
+                                <div>
+                                    <div><%:SB_RangeEnd%>:</div>
+                                    <input type="text" id="dateend" value="12/31/2014">
+                                    <%if enable_streamboostDebug == "1" then%>
+                                    <input type="text" id="textTimeEnd" value="23:59:59">
+                                    <%end%>
+                                </div>
+                            </div>
+                            <div id="tabs-3">
+                                <div>
+                                    <div><%:SB_LastQuarter%>:</div>
+                                    <select id="quarter" class="dateRangeFilter">
+                                        <option id="quarter1" value="1">01/01/2014 to 03/31/2014</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="listFlows" class="text ui-widget-content ui-corner-all" style="height:25%;width:100%;margin-top:8px;display:none;overflow:hidden;">
+                            <h1 style="font-size: 13px;text-align: center;color: rgb(37, 112, 186);"><%:SB_CheckVisibleFlow%>:</h1>
+                            <div class="text ui-widget-content ui-corner-all" style="border-radius: 0px;height:70%;margin: 4px;">
+                                <div  style="height: 99%;overflow-y: scroll;">
+                                    <ul id="flowchecks" style="list-style-type: none;">
+                                    </ul>
+                                </div>
+                                <button id="btCheck" style="margin-top:10px;"><%:SB_CheckAll%></button>
+                                <button id="btUncheck" style="margin-top:10px;"><%:SB_UnCheckAll%></button>
+                            </div>
+                        </div>
+                        <button id="btRefresh" style="float:right;margin-top:8px;height: 30px;width: 96px;"><%:Refresh%></button>
+                        <input type="checkbox" id="btFilter" ><label for="btFilter" style="margin-top:8px;margin-left:4px;margin-top: 7px;width: 96px;"><%:SB_FlowFilter%></label>
+                    </div>
+                    <div id="piechart" style="display:none;width:0%; height:0%;"></div>
+
+                    <!-- Bandwidth History & Instant Bandwidth Monitor -->
+
+                    <div class="row">
+                      <div ng-controller="instantBandwidthController" style="line-height:0;">  <!-- style="line-height:0;" -->
+                        <d3-Instantbandwidth data="data" currentBarIndex="currentBarIndex" showTotalDataInsteadOfBandwidth="showTotalDataInsteadOfBandwidth" translation="translation" showBy="showBy"></d3-Instantbandwidth>
+                      </div>
+                      <div ng-controller="dataUsageAlertController" style="line-height:0;">  <!-- style="line-height:0;" -->
+                        <d3-Datausagealert data="data" initialBrushIndex="initialBrushIndex" unitUpload="unitUpload" unitDownload="unitDownload" totalTransfer="totalTransfer" translation="translation" showBy="showBy" dataUsageInfo="dataUsageInfo"></d3-Datausagealert>
+                        <d3-Timeusage data="data" translation="translation" showBy="showBy"></d3-Timeusage>
+                      </div>
+                    </div>
+
+                    <!-- <div class="row"><br/></div> -->
+
+                    <!-- Animated Line Chart -->
+
+                    <div class="row">
+                      <div ng-controller="animatedLineChartController" style="line-height:0;">
+                        <d3-Animatedlinechart data="d3Data" initialBrushIndex="initialBrushIndex" unitUpload="unitUpload" unitDownload="unitDownload" totalTransfer="totalTransfer" translation="translation" label="title"></d3-Animatedlinechart>
+                      </div>
+                    </div>
+                </div> <!-- myDiv -->
+
+            </div> <!-- col-xs-12 -->
+        </div> <!-- row -->
+
+         <% end %>
+         <%else%>
+          <div class="data" >
+            <div class="w_text">
+
+                <%:Streamboost_on_warning%>
+		<a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxbandwidth" onclick="menu();" ><%:Streamboost_on_warning3%> </a> <%:Streamboost_on_warning4%>
+
+            </div>
+          </div>
+         <% end %>
+    </div> <!-- id=all_w -->
+
+    <%if enable_streamboostDebug == "1" then%>
+    <button id="buttonCullDataDialog" style="display:none;">Show event flow data</button>
+    <button id="buttonFlowDataDialog" style="display:none;">Show statistic data</button>
+    <button id="buttonEventTransferHistoryDialog" style="display:none;">Show Event Transfer History</button>
+    <button id="buttonImportRawDataDialog" style="display:none;">Import event flow raw data</button>
+    <div id="divCullDataDialog" title="Ozker event flow" style="display:none;"></div>
+    <div id="divFlowDataDialog" title="Statistic of event flow" style="display:none;"></div>
+    <div id="divEventTransferHistoryDialog" title="Event transfer history" style="display:none;"></div>
+    <div id="divImportRawDataDialog" title="Import event flow raw data" style="display:none;">
+        <textarea id="taImportRawData" cols="200" rows="60"></textarea>
+    </div>
+    <%end%>
+
+    <%if enable_streamboostDebug == "1" then%>
+    <div class="debug" id="divDebugMesg"></div>
+    <%end%>
+
+    <script src="/js/angular.1.1.5.min.js"></script>
+    <script src="/js/app/usageMonitor.js"></script>
+    <script src="/js/services/d3.js"></script>
+    <script src="/js/controllers/stackedBarController.js"></script>
+    <script src="/js/controllers/animatedLineChartController.js"></script>
+    <script src="/js/controllers/dataUsageAlertController.js"></script>
+    <script src="/js/controllers/instantBandwidthController.js"></script>
+    <script src="/js/controllers/loadingController.js"></script>
+    <script src="/js/directives/d3Animatedlinechart.js"></script>
+    <script src="/js/directives/d3Instantbandwidth.js"></script>
+    <script src="/js/directives/d3Timeusage.js"></script>
+    <script src="/js/directives/d3Datausagealert.js"></script>
+    <script src="/js/directives/d3Loading.js"></script>
+
+    <div class="modalUsage" id="divModalUsage">
+        <div title="<%:Usage_ModalTitleSettingUsage%>" id="divModalDescriptionDialogUsage">
+            <div class="modalContentUsage" id="divModalDescriptionUsage">
+                    <p class="validateTips"></p>
+
+                    <label for="inputQuota"><%:Usage_Quota%>(MByte)</label>
+                    <br/>
+                    <input type="text" name="idQuota" id="idQuota" value="" class="text ui-widget-content ui-corner-all">
+                    <br/>
+                    <label for="idResetDay"><%:Usage_ResetDateOfEachMonth%></label>
+                    <br/>
+                    <input type="text" name="idResetDay" id="idResetDay" value="" class="text ui-widget-content ui-corner-all">
+                    <br/>
+                    <label for="idWarningThreshold"><%:Usage_WarningThreshold%>(%)</label>
+                    <br/>
+                    <input type="text" name="idWarningThreshold" id="idWarningThreshold" value="" class="text ui-widget-content ui-corner-all">
+
+            </div>
+            <div>
+                <%:Usage_WarningData_1%><a id="idEmailSetting" href='<%=luci.dispatcher.build_url("expert", "configuration", "security", "ParentalControl", "ParentalMonitor")%>'><%:Usage_WarningData_2%></a><%:Usage_WarningData_3%>
+            </div>
+        </div>
+    </div>
+
+  </body>
+</html>

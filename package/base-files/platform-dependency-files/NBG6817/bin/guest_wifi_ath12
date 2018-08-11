@@ -1,0 +1,2 @@
+#!/bin/sh
+/bin/guestWifiTimer.sh disable_guest_wifi 2 24G

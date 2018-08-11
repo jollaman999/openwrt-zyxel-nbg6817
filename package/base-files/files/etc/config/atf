@@ -1,0 +1,40 @@
+config atf 'atf'
+    option enable '0'
+    option sta_num '0'
+
+config atf 'atf5G'
+	option enable '0'
+	option sta_num '0'
+
+config iface 'ath0'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+
+config iface 'ath1'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100 
+
+config iface 'ath2'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+
+config iface 'ath3'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+	
+config iface 'ath10'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+
+config iface 'ath11'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100 
+
+config iface 'ath12'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+
+config iface 'ath13'
+    option configmethod 'auto'      #auto / manual
+    option percentage '25'          #0~100
+

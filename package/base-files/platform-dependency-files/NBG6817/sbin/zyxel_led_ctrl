@@ -1,0 +1,256 @@
+#!/bin/sh
+
+. /etc/functions.sh
+include /lib/config
+
+chk_iface=$(uci_get wireless iface wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+fi
+
+led_status=$(uci_get system led on)
+
+help()
+{
+	echo "ZyXEL LED control script v1.0"
+	echo;echo "Usage:       zyxel_led_ctrl <Behavior>"
+	echo "Behavior:    <ResetDefault> <upgrate> <sysStart> <all> <WPS24G> <WPS5G> <cloudagent> <productionFlow>"
+}
+
+resetDef(){
+
+	i=1
+	while [ $i -le 5 ]
+	do
+		sleep 1
+		chk=$(cat /tmp/ResetTime)
+		if [ $chk == 0 ];then
+			exit 0
+		fi
+		i=`expr $i + 1`
+	done
+
+	sleep 1
+	Upgrate
+}
+
+wifi_led_cmd(){
+	dev="$1"
+	status="$2"
+
+#	led_status=$(uci_get system led on)
+
+	##status 1-->off  0-->on
+	if [ $led_status == 1 ];then
+		iwpriv $dev gpio_config 17 "$status" 0 0
+	else
+		iwpriv $dev gpio_config 17 1 0 0
+	fi
+}
+
+Upgrate(){
+	led_ctrl POWER off 
+	led_ctrl INTERNET off
+
+	led_ctrl WiFi_2G on					#WPS2.4G LED
+	led_ctrl WiFi_5G on					#WPS5G LED
+	wifi_led_cmd $DEV24G 1	#WiFi2.4G LED off
+	wifi_led_cmd $DEV5G 1	#WiFi2.4G LED off
+}
+
+sysSTART(){
+	allLED 150 "sysSTART"
+}
+
+wifi24G(){
+#	led_status=$(uci_get system led on)
+#	if [ $led_status == 1 ];then
+		wifi_led_cmd $DEV24G 0   ##WiFi 24gG LED on
+#	fi
+}
+
+wifi5G(){
+#	led_status=$(uci_get system led on)
+#	if [ $led_status == 1 ];then
+		wifi_led_cmd $DEV5G 0
+#	fi
+}
+
+wps24g(){
+	if [ $1 == 1 ];then
+		wifi_led_cmd $DEV24G 1
+		led_ctrl WiFi_2G blink 150 150
+	else
+		wifi_led_cmd $DEV24G 0
+		led_ctrl WiFi_2G off
+	fi
+}
+
+wps5g(){
+	if [ $1 == 1 ];then
+		wifi_led_cmd $DEV5G 1
+		led_ctrl WiFi_5G blink 150 150
+	else
+		wifi_led_cmd $DEV5G 0
+		led_ctrl WiFi_5G off
+	fi
+}
+
+cloudagentStart(){
+	if [ $led_status == 1 ];then
+		led_ctrl POWER blink 50 50
+	fi
+}
+
+All(){
+	chkLED_PATH="/tmp/check_LED"
+	if [ ! -e $chkLED_PATH ];then
+		exit 0
+	fi
+#	led_status=$(uci_get system led on)
+	if [ $led_status == 1 ];then
+		chk_wifi24G=$(uci get wireless."$DEV24G".disabled)
+		chk_wifi5G=$(uci get wireless."$DEV5G".disabled)
+		wifiHW_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+		wifiON=$(uci get wireless.wifi.on)
+
+		led_ctrl POWER on
+
+		chk_Internet
+
+		if [ "$wifiHW_btn" == "1" ] && [ "$wifiON" == "1" ];then
+			if [ "$chk_wifi24G" == "0" ];then
+				wifi_led_cmd $DEV24G 0
+			else
+				wifi_led_cmd $DEV24G 1
+			fi
+
+			if [ "$chk_wifi5G" == "0" ];then
+				wifi_led_cmd $DEV5G 0
+			else
+				wifi_led_cmd $DEV5G 1
+			fi
+		else
+			wifi_led_cmd $DEV24G 1
+			wifi_led_cmd $DEV5G 1
+		fi
+
+		led_ctrl WiFi_2G off
+		led_ctrl WiFi_5G off
+	else
+		allLED "off"
+	fi
+}
+
+chk_Internet(){
+#	led_status=$(uci_get system led on)
+	IP_version=$(uci_get network wan IP_version)
+	if [ $led_status == 1 ];then
+		proto=$(uci_get network wan proto)
+		if [ "$proto" == "pppoe" ] || [ "$proto" == "pptp" ]; then
+			WAN=$proto-wan
+		else
+			WAN=$(uci_get network wan ifname)
+		fi
+
+		if [ "$IP_version" == "IPv6_Only" ]; then
+			chk_wan=$(ifconfig $WAN | awk '/Global/{print $3}')
+		else
+			chk_wan=$(ifconfig $WAN | grep "inet addr" | awk '{print $2}' | awk -F":" '{print $2}')
+		fi
+
+		if [ "$chk_wan" != "" ]; then
+			if [ ! -f "/sys/devices/platform/leds-gpio/leds/INTERNET/interval" ];then
+				local WAN_interface
+				WAN_interface=$(uci get network.wan.ifname)
+				echo "netdev" > /sys/devices/platform/leds-gpio/leds/INTERNET/trigger
+				echo "$WAN_interface" > /sys/devices/platform/leds-gpio/leds/INTERNET/device_name
+				echo "50" > /sys/devices/platform/leds-gpio/leds/INTERNET/interval
+				echo "rx link" > /sys/devices/platform/leds-gpio/leds/INTERNET/mode
+			fi
+		else
+			if [ -f "/sys/devices/platform/leds-gpio/leds/INTERNET/interval" ];then
+				led_ctrl INTERNET off
+			fi
+		fi
+	fi
+}
+
+allLED(){
+	if [ "$1" == "off" ];then
+		led_ctrl POWER $1
+		led_ctrl INTERNET $1
+	else
+		led_ctrl POWER blink $1 $1
+		if [ "$2" == "sysSTART" ];then
+			led_ctrl INTERNET off
+		else
+			led_ctrl INTERNET blink $1 $1
+		fi
+	fi
+
+	led_ctrl WiFi_2G off					#WPS2.4G LED
+	led_ctrl WiFi_5G off					#WPS5G LED
+	wifi_led_cmd $DEV24G 1			#WiFi2.4G LED off
+	wifi_led_cmd $DEV5G 1			#WiFi5G LED off
+}
+
+productionCtrl(){
+	while true; do
+		led_ctrl POWER on
+		led_ctrl INTERNET on
+		led_ctrl WiFi_2G off
+		led_ctrl WiFi_5G off
+		sleep 1
+		led_ctrl POWER off
+		led_ctrl INTERNET off
+		led_ctrl WiFi_2G on
+		led_ctrl WiFi_5G on
+		sleep 1
+	done
+}
+
+case $1 in
+	ResetDefault)
+		resetDef &
+	;;
+	upgrate)
+		Upgrate
+	;;
+	sysStart)
+		sysSTART
+	;;
+	all)
+		All
+	;;
+	WiFi24G)
+		wifi24G
+	;;
+	WiFi5G)
+		wifi5G
+	;;
+	WPS24G)
+		wps24g $2
+	;;
+	WPS5G)
+		wps5g $2
+	;;
+	cloudagent)
+		cloudagentStart
+	;;
+	productionFlow)
+		productionCtrl
+	;;
+	chk_Internet)
+		chk_Internet
+	;;
+	*)
+		help
+		exit 4
+	;;
+esac
+exit 0

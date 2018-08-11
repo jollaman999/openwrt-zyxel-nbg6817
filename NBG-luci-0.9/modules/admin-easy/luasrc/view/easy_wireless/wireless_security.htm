@@ -1,0 +1,458 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local i18n = require("luci.i18n")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="<%=media%>/easy/js/jquery-1.2.6.js"></script>
+<script type="text/javascript" src="<%=media%>/easy/js/wireless_security.js"></script>
+<script type='text/javascript' src='<%=media%>/easy/js/jquery.simplemodal.js' ></script>
+<link href="<%=media%>/css/lockforeasy.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="<%=media%>/css/popup.css" media="screen" type="text/css" />
+
+<title><%:Guest_Wi_Fi%></title>
+
+<style>
+.on {display:on}
+.off {display:none}
+</style>
+<script type="text/JavaScript">
+$(document).ready(function(){
+	$('#wlanPwd').click(function(){
+		this.type = 'text';
+	});
+
+	$('#wlanPwd').blur(function() { 
+		this.type = 'password';
+	});
+
+	$('#wlanValidatePwd').click(function(){
+		this.type = 'text';
+	});
+
+	$('#wlanValidatePwd').blur(function() { 
+		this.type = 'password';
+	});
+});
+
+function changeSec()
+{	
+	with ( document.forms[0] ){
+		if(wlanSec.selectedIndex != 0){
+			document.getElementById("div_password_id").className  = "on" ;
+		}
+		else{
+			document.getElementById("div_password_id").className  = "off" ;
+		}
+	}
+}
+function changeRadio()
+{
+	with ( document.forms[0] ){
+		/* 2.4G */
+		if(wlanRadio.selectedIndex == 0 || wlanRadio.selectedIndex == 1){
+			<%
+			if not SSID then
+				SSID=luci.sys.exec("cat /tmp/tmpSSID24G")
+			end
+			%>
+			wlanSSID.value = "<%=SSID%>";
+			<%
+				if security == "NONE" then
+			%>
+				wlanSec.selectedIndex = 0;
+			<%
+				elseif security == "WPA2PSK" then
+			%>
+				wlanSec.selectedIndex = 1;
+			
+			<% end
+			   if pwd then
+				  pwd = pwd:gsub("\\","\\\\")
+				  pwd = pwd:gsub("\"", "\\\"")
+			   end
+            %>
+			
+			wlanPwd.value = "<%=pwd%>";
+		}
+		else{ /* 5G */
+		
+			<%
+			if not SSID_5G then
+				SSID_5G=luci.sys.exec("cat /tmp/tmpSSID5G")
+			end
+			%>
+		
+			wlanSSID.value = "<%=SSID_5G%>";
+			<%
+				if security_5G == "NONE" then
+			%>
+				wlanSec.selectedIndex = 0;
+			<%
+				elseif security_5G == "WPA2PSK" then
+			%>
+				wlanSec.selectedIndex = 1;
+			
+			<% end
+			-- Modify the display errors of "wireless security password" for easy mode, NBG6816, WenHsiang, 2012/04/30
+			-- The 『"』 character and the 『\』 character will lead to some display errors.
+			-- We must use the escape characters to avoid some display errors.
+			if pwd_5G then
+				pwd_5G = pwd_5G:gsub("\\","\\\\")
+				pwd_5G = pwd_5G:gsub("\"", "\\\"")
+			end
+		%>
+			
+			wlanPwd.value = "<%=pwd_5G%>";
+		}
+		changeSec();
+	}
+}
+
+function checkPSK(str)
+{
+        var len = str.length;
+
+        if( len == 0 )
+                return false;
+
+        if( len < 8 )
+                return false;
+
+        if( len > 64 )
+                return false;
+
+        if ( len == 64 ){
+                re=/^[a-fA-F0-9]{64}$/;
+                if (re.test(str))
+                        return true;
+                else
+                        return false;
+        }
+        /*  Modify check "wireless security password" for easy mode, NBG6816, WenHsiang, 2012/02/16
+        if( len >= 8 && len <=63 ){
+                re=/^[a-zA-Z0-9]{8,63}$/;
+                if (re.test(str))
+                        return true;
+                else
+                        return false;
+        }
+		*/
+}
+
+function checkInjection(str)
+{
+	var len = str.length;      
+	for (var i=0; i<str.length; i++) {
+		if ( str.charAt(i) == '"' || str.charAt(i) == "'" || str.charAt(i) == '`' || str.charAt(i) == '<' || str.charAt(i) == '>' || str.charAt(i) == '^' || str.charAt(i) == '$' || str.charAt(i) == '&'){
+				return false;
+		}else
+	        continue;
+	}
+	return true;	
+}
+
+function Check_wifi24G_Status(){
+	<%
+		local file_s 
+		local wifi24gStatus
+		if io.open("/tmp/wifi24G_Status","r") then
+			file_s = io.open("/tmp/wifi24G_Status","r")
+			wifi24gStatus = file_s:read("*line")
+			file_s:close()
+		else
+			wifi24gStatus = "wifi24Gisidle"
+		end
+
+		if wifi24gStatus == "wifi24GisSetting" then
+	%>	
+			return false;
+	<%
+		end
+	%>
+		return true;
+}
+
+function Check_wifi5G_Status(){
+	<%
+		local file_s 
+		local wifi5gStatus
+		if io.open("/tmp/wifi5G_Status","r") then
+			file_s = io.open("/tmp/wifi5G_Status","r")
+			wifi5gStatus = file_s:read("*line")
+			file_s:close()
+		else
+			wifi5gStatus = "wifi5Gisidle"
+		end
+
+		if wifi5gStatus == "wifi5GisSetting" then
+	%>
+			return false;
+	<%
+		end
+	%>
+		return true;
+}
+
+function CheckValue(){
+	var Injection_alert="<%:Injection_alert%>";
+	with ( document.forms[0] ){
+		if(wlanRadio.value == "both" ){
+			if( Check_wifi24G_Status() == false || Check_wifi5G_Status() == false){
+				alert("<%:easy_guest_wireless_0%>");
+				window.location.reload();
+				return false;
+			}
+		}else if(wlanRadio.value == "2.4G" ){
+			if( Check_wifi24G_Status() == false){
+				alert("<%:easy_guest_wireless_0%>");
+				window.location.reload();
+				return false;
+			}
+		}else{
+			if( Check_wifi5G_Status() == false){
+				alert("<%:easy_guest_wireless_0%>");
+				window.location.reload();
+				return false;
+			}
+		}
+
+		if(wlanSSID.value == ""){
+			alert("<%:eaZy123_AP2_note_1%>");
+			return false;
+		}else{
+			if(!(checkInjection(wlanSSID.value))){
+				alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+				return false;
+			}
+		}
+
+		if(wlanSec.selectedIndex != 0 && checkPSK(wlanPwd.value) == false){
+			alert('<%:wlan_note11%>');
+			return false;
+		}		
+			
+		if(wlanSec.selectedIndex != 0 && wlanPwd.value != wlanValidatePwd.value){
+			alert("<%:easy_wireless_password_w%>");
+			return false;
+		}else{
+			skm_LockScreen();
+			return true;
+		}
+	}
+}
+
+function btnApply(buttonSel){
+	var loc = '<%=luci.dispatcher.build_url("easy","wlan")%>';
+	var Injection_alert="<%:Injection_alert%>";
+	with ( document.forms[0] ){
+		if(buttonSel == 1){
+			
+			loc += '?apply=Apply';
+
+			if(wlanSSID.value == ""){
+			        alert("<%:eaZy123_AP2_note_1%>");
+			        return false;
+			}
+			else
+			{
+				if(!(checkInjection(wlanSSID.value)))
+				{
+					alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+					return false;
+				}
+			}
+			
+			if(wlanSec.selectedIndex != 0 && checkPSK(wlanPwd.value) == false){
+                                alert('<%:wlan_note11%>');
+                                return;
+                        }		
+			
+			if(wlanSec.selectedIndex != 0 && wlanPwd.value != wlanValidatePwd.value){
+				alert("<%:easy_wireless_password_w%>");
+				return;
+			}
+			
+			loc += '&wlan_ssid=' + wlanSSID.value; 
+			loc += '&wlan_sec=' + wlanSec.options[wlanSec.selectedIndex].value;
+			if(wlanSec.selectedIndex != 0){
+				loc += '&wlan_pwd=' + escape(wlanPwd.value);
+                /*  Modify check "wireless security password" for easy mode, NBG6816, WenHsiang, 2012/02/16
+                The escape() function encodes a string.
+                This function makes a string portable, so it can be transmitted across any network to any computer that supports ASCII characters.
+                This function encodes special characters, with the exception of: * @ - _ + . /
+                */
+			}
+		}
+		else if(buttonSel == 2){
+			loc += '?enable_wps_btn=1';
+		}
+		else if(buttonSel == 3){
+			loc += '?enable_wps_pin=1';
+			loc += '&pin_code=' + parseInt(wlanPIN.value);
+		}
+		loc += '&wlan_radio=' + wlanRadio.options[wlanRadio.selectedIndex].value;
+		
+		//submit();
+		//return;
+		
+		var code = 'location="' + loc + '"';		
+     	eval(code);
+	}
+}
+function skm_unLockScreen(){
+		
+			var load = document.getElementById("load");
+			 var lock = document.getElementById("skm_LockPane");
+
+			 if (lock) 
+				lock.className = 'LockOff'; 
+				load.className = 'LockOff'; 
+			
+}
+
+function skm_LockScreen(){ 
+		
+		
+		
+			var load = document.getElementById("load");
+			 var lock = document.getElementById("skm_LockPane");
+			 
+			 
+			 
+			 if (lock) 
+				lock.className = 'LockOn'; 
+				load.className = 'spinner'; 
+			 
+				    
+      }
+</script>
+
+</head>
+
+<body class="bandwidth_bg" onLoad="changeRadio();skm_unLockScreen();" style="visibility:visible !important">
+<form method="post" name="Wireless_Scurity" target="_top" action="<%=controller%>/easy/wlan" onSubmit="return CheckValue();">
+<div id="load" class="LockOff">
+  <div class="spinner-container container1">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container2">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container3">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+</div>
+<div id="skm_LockPane" class="LockOff"></div>
+<div id="easy123_w">
+ 
+    <div id="popup_t"><%:Wi_Fi%></div>
+    <div id="popup" class="popup" ><a class="close" href="<%=controller%>/easy/networkmap" target="_top">&times;</a></div >
+    
+    <div class="apply"><input name="apply" value="<%:apply%>" type="submit" /></div>
+    <div id="cancel"><a href="<%=controller%>/easy/networkmap" target="_top"><%:Cancel%></a></div>
+   
+	<div id="popup_tab">
+	  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+	  
+		<tr>
+		  <td height="35"><p><%:easy_wireless_remind2%></p>
+			<p>&nbsp;</p></td>
+		</tr>
+		
+		<tr>
+		  <td align="left" valign="middle">
+		  
+			  <table align="center" width="455" border="0" cellpadding="0" cellspacing="0">
+			  
+				
+				
+				<tr>
+				  <td height="36" class="ws1"><span class="p3"><%:easy_wireless_radio%> </span></td>
+				  <td><label>
+						<select name="wlanRadio" class="ws" onchange="changeRadio()">
+						  <option value="both" selected="selected"><%:Both%></option>
+						  <option value="2.4G"><%:easy_wlan_24G%></option>
+						  <option value="5G"><%:easy_wlan_5G%></option>
+						</select>
+				  </label></td>
+				</tr>
+			
+				
+				
+				<tr>
+				  <td width="240" height="36" class="ws1"><%:easy_wlan_name%> :</td>
+				  <td width="227"><input name="wlanSSID" maxlength="32" type="text" class="ws" size="28"></td>
+				</tr>
+				
+				
+				
+				<tr>
+				  <td height="36" class="ws1"><%:security_mode%> :</td>
+				  <td><label>
+						<select name="wlanSec" class="ws" onchange="changeSec()">
+						  <option value="none" selected="selected"><%:no_security%></option>
+						  <option value="WPA2-PSK">WPA2-PSK</option>
+						</select>
+				  </label></td>
+				</tr>
+
+				
+
+			  </table>
+
+				<span id="div_password_id" class="off">	  
+					<table align="center" width="455" border="0" cellpadding="0" cellspacing="0">
+					  <tr >
+						<td width="240" height="36" class="ws1"><span class="p3"><%:easy_wlan_password%></span></td>
+						<td width="227"><input name="wlanPwd" id="wlanPwd" type="password" maxlength="64" type="text" class="ws" size="28"></td>
+					  </tr>
+					  <tr >
+						<td width="240" height="36" class="ws1"><span class="p3"><%:easy_verify_password%></span></td>
+						<td width="227"><input name="wlanValidatePwd" id="wlanValidatePwd" type="password" maxlength="64" type="text" class="ws" size="28"></td>
+						</tr >
+					</table>
+				</span>	  
+		 </td>
+		 
+		</tr>
+	  
+	</div>
+
+</div>
+
+</form>
+
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local load1, load5, load15 = luci.sys.loadavg()
+local request  = require("luci.dispatcher").context.path
+local category = request[1]
+local tree     = luci.dispatcher.node()
+local cattree  = category and luci.dispatcher.node(category)
+local node     = luci.dispatcher.context.dispatched
+local hostname = luci.sys.hostname()
+
+local c = tree
+for i,r in ipairs(request) do
+	if c.nodes and c.nodes[r] then
+		c = c.nodes[r]
+		c._menu_selected = true
+	end
+end
+
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Status</title>
+</head>
+<frameset rows="*" cols="220,*,50" framespacing="0" frameborder="no" border="0">
+  <frame src="<%=controller%>/expert/configuration/security/menu_app" name="menu" frameborder="no" scrolling="no" noresize="noresize" id="menu" title="leftFrame" />
+<% if sys_op_mode ~= "2" then%>
+  <frame src="<%=controller%>/expert/configuration/security/ParentalControl" name="data" id="data" title="mainFrame" />
+ <% else%> 
+  <frame src="<%=controller%>/expert/configuration/management/media_sharing/dlna" name="data" id="data" title="mainFrame" />
+ <% end%> 
+  <frame src="<%=controller%>/expert/configuration/network/mode_ex" name="easy" frameborder="no" scrolling="no" noresize="noresize" id="easy" title="rightFrame" />
+</frameset>
+<noframes><body>
+</body></noframes>
+</html>

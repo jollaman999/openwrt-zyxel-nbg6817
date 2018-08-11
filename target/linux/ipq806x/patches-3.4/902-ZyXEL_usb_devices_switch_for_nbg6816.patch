@@ -1,0 +1,47 @@
+From 2b3fb025a626f36939e876a84a4cd27502f89d2e Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Fri, 4 Sep 2015 17:09:36 +0800
+Subject: [PATCH 6/8] ZyXEL_usb_devices_switch_for_nbg6816
+
+---
+ arch/arm/mach-msm/devices-ipq806x.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/mach-msm/devices-ipq806x.c b/arch/arm/mach-msm/devices-ipq806x.c
+index ff28aff..7c85341 100755
+--- a/arch/arm/mach-msm/devices-ipq806x.c
++++ b/arch/arm/mach-msm/devices-ipq806x.c
+@@ -1045,24 +1045,24 @@ static struct dwc3_platform_data dwc3_pdata_host2 = {
+ struct platform_device ipq806x_device_dwc3_host1 = {
+ 	.name		= "ipq-dwc3",
+ 	.id		= 0,
+-	.num_resources	= ARRAY_SIZE(resources_dwc3_host1),
+-	.resource	= resources_dwc3_host1,
++	.num_resources	= ARRAY_SIZE(resources_dwc3_host2),
++	.resource	= resources_dwc3_host2,
+ 	.dev		= {
+ 		.dma_mask		= &dma_mask,
+ 		.coherent_dma_mask	= 0xffffffff,
+-		.platform_data		= &dwc3_pdata_host1,
++		.platform_data		= &dwc3_pdata_host2,
+ 	},
+ };
+ 
+ struct platform_device ipq806x_device_dwc3_host2 = {
+ 	.name		= "ipq-dwc3",
+ 	.id		= 1,
+-	.num_resources	= ARRAY_SIZE(resources_dwc3_host2),
+-	.resource	= resources_dwc3_host2,
++	.num_resources	= ARRAY_SIZE(resources_dwc3_host1),
++	.resource	= resources_dwc3_host1,
+ 	.dev		= {
+ 		.dma_mask		= &dma_mask,
+ 		.coherent_dma_mask	= 0xffffffff,
+-		.platform_data          = &dwc3_pdata_host2,
++		.platform_data          = &dwc3_pdata_host1,
+ 	},
+ };
+ 
+-- 
+1.9.1
+

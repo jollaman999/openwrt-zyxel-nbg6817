@@ -1,0 +1,23 @@
+Source-Makefile: feeds/qca/utils/qca-lib/libqcacommon/Makefile
+Package: libhyficommon
+Submenu: Hy-Fi features
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread 
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: Hy-Fi Common Functionality Library
+Maintainer: Qualcomm Atheros, Inc.
+Source: libhyficommon.tar.bz2
+Type: ipkg
+Description:   This Package contains the Hy-Fi Common Functionality Library
+http://www.qca.qualcomm.com
+Qualcomm Atheros, Inc.
+@@
+Config:
+  
+  
+@@
+
+

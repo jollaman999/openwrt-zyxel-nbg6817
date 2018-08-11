@@ -1,0 +1,1350 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local product_name = uci:get("system","main","product_name")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<title>.::Welcome to the <%=product_name%>::.</title>
+<link href="<%=media%>/css/table.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js"></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script language="JavaScript" type="text/javascript">
+
+function atoi(str, num)
+{
+	i = 1;
+	if (num != 1) {
+		while (i != num && str.length != 0) {
+			if (str.charAt(0) == '.') {
+				i++;
+			}
+			str = str.substring(1);
+		}
+		if (i != num)
+			return -1;
+	}
+
+	for (i=0; i<str.length; i++) {
+		if (str.charAt(i) == '.') {
+			str = str.substring(0, i);
+			break;
+		}
+	}
+	if (str.length == 0)
+		return -1;
+	return parseInt(str, 10);
+}
+
+function checkRange(str, num, min, max)
+{
+	d = atoi(str, num);
+	if (d > max || d < min)
+		return false;
+	return true;
+}
+
+function isNum(str)
+{
+	for (var i=0; i<str.length; i++) {
+		if ((str.charAt(i) >= '0' && str.charAt(i) <= '9'))
+			continue;
+		return 0;
+	}
+	return 1;
+}
+
+function isAllNum(str)
+{
+	for (var i=0; i<str.length; i++) {
+		if ((str.charAt(i) >= '0' && str.charAt(i) <= '9') || (str.charAt(i) == '.' ))
+			continue;
+		return 0;
+	}
+	return 1;
+}
+
+function backToList()
+{
+   var submit_url = '<%=luci.dispatcher.build_url("expert", "configuration", "management", "qos", "advance")%>';
+        var loc = submit_url;
+        var code = 'location="' + loc + '"';
+    eval(code);
+}
+
+function btnApply()
+{
+
+    var enable1 = "";
+    var enable2 = "";
+    var enable3 = "";
+    var enable4 = "";
+	var B1,B2,B3,B4;
+
+	with ( document.forms[0] ){
+
+			Upstream = atoi(document.QoSAppEdit.Upstream_value.value, 1);
+			Downstream = atoi(document.QoSAppEdit.Downstream_value.value, 1);
+			LAN_miniSum = atoi(document.QoSAppEdit.LAN_mini_sum.value, 1);
+			WAN_miniSum = atoi(document.QoSAppEdit.WAN_mini_sum.value, 1);
+		
+            if( '0' == '<%=section_name%>' )
+			{
+
+				B1 = atoi(document.QoSAppEdit.Bandwidth_value1.value, 1);
+				B2 = atoi(document.QoSAppEdit.Bandwidth_value2.value, 1);
+				B3 = atoi(document.QoSAppEdit.Bandwidth_value3.value, 1);
+				B4 = atoi(document.QoSAppEdit.Bandwidth_value4.value, 1);				
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(document.getElementById("Bandwidth_enable1").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select1.value == 1){
+						LAN_miniSum+=B1;
+					}				
+
+				}
+					
+				if(document.getElementById("Bandwidth_enable2").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select2.value == 1){
+						LAN_miniSum+=B2;
+					}				
+						
+				}
+
+				if(document.getElementById("Bandwidth_enable3").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select3.value == 1){
+						WAN_miniSum+=B3;
+					}				
+					
+				}
+
+				if(document.getElementById("Bandwidth_enable4").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select4.value == 1){
+						WAN_miniSum+=B4;
+					}				
+					
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if( LAN_miniSum > Downstream ){
+					alert("<%:qos_warn3%>");
+					return false;
+				}
+				
+				if( WAN_miniSum > Upstream ){
+					alert("<%:qos_warn4%>");
+					return false;
+				}
+
+            }
+			else if( '1' == '<%=section_name%>' )
+			{
+
+				B1 = atoi(document.QoSAppEdit.Bandwidth_value1.value, 1);
+				B2 = atoi(document.QoSAppEdit.Bandwidth_value2.value, 1);
+				B3 = atoi(document.QoSAppEdit.Bandwidth_value3.value, 1);
+				B4 = atoi(document.QoSAppEdit.Bandwidth_value4.value, 1);				
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(document.getElementById("Bandwidth_enable1").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select1.value == 1){
+						LAN_miniSum+=B1;
+					}				
+
+				}
+					
+				if(document.getElementById("Bandwidth_enable2").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select2.value == 1){
+						LAN_miniSum+=B2;
+					}				
+						
+				}
+
+				if(document.getElementById("Bandwidth_enable3").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select3.value == 1){
+						WAN_miniSum+=B3;
+					}				
+					
+				}
+
+				if(document.getElementById("Bandwidth_enable4").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select4.value == 1){
+						WAN_miniSum+=B4;
+					}				
+					
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if( LAN_miniSum > Downstream ){
+					alert("<%:qos_warn3%>");
+					return false;
+				}
+				
+				if( WAN_miniSum > Upstream ){
+					alert("<%:qos_warn4%>");
+					return false;
+				}
+
+			}
+			else if( '2' == '<%=section_name%>' )
+			{
+
+				B1 = atoi(document.QoSAppEdit.Bandwidth_value1.value, 1);
+				B2 = atoi(document.QoSAppEdit.Bandwidth_value2.value, 1);
+				B3 = atoi(document.QoSAppEdit.Bandwidth_value3.value, 1);
+				B4 = atoi(document.QoSAppEdit.Bandwidth_value4.value, 1);				
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(document.getElementById("Bandwidth_enable1").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select1.value == 1){
+						LAN_miniSum+=B1;
+					}				
+
+				}
+					
+				if(document.getElementById("Bandwidth_enable2").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select2.value == 1){
+						LAN_miniSum+=B2;
+					}				
+						
+				}
+
+				if(document.getElementById("Bandwidth_enable3").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select3.value == 1){
+						WAN_miniSum+=B3;
+					}				
+					
+				}
+
+				if(document.getElementById("Bandwidth_enable4").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select4.value == 1){
+						WAN_miniSum+=B4;
+					}				
+					
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if( LAN_miniSum > Downstream ){
+					alert("<%:qos_warn3%>");
+					return false;
+				}
+				
+				if( WAN_miniSum > Upstream ){
+					alert("<%:qos_warn4%>");
+					return false;
+				}
+
+			}
+			else if( '9' == '<%=section_name%>' )
+			{
+
+				B1 = atoi(document.QoSAppEdit.Bandwidth_value1.value, 1);
+				B2 = atoi(document.QoSAppEdit.Bandwidth_value2.value, 1);
+				B3 = atoi(document.QoSAppEdit.Bandwidth_value3.value, 1);
+				B4 = atoi(document.QoSAppEdit.Bandwidth_value4.value, 1);				
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(document.getElementById("Bandwidth_enable1").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select1.value == 1){
+						LAN_miniSum+=B1;
+					}				
+
+				}
+					
+				if(document.getElementById("Bandwidth_enable2").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select2.value == 1){
+						LAN_miniSum+=B2;
+					}				
+						
+				}
+
+				if(document.getElementById("Bandwidth_enable3").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select3.value == 1){
+						WAN_miniSum+=B3;
+					}				
+					
+				}
+
+				if(document.getElementById("Bandwidth_enable4").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select4.value == 1){
+						WAN_miniSum+=B4;
+					}				
+					
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value3.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value4.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if( LAN_miniSum > Downstream ){
+					alert("<%:qos_warn3%>");
+					return false;
+				}
+				
+				if( WAN_miniSum > Upstream ){
+					alert("<%:qos_warn4%>");
+					return false;
+				}
+
+			}
+			else
+			{
+
+				B1 = atoi(document.QoSAppEdit.Bandwidth_value1.value, 1);
+				B2 = atoi(document.QoSAppEdit.Bandwidth_value2.value, 1);
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(document.getElementById("Bandwidth_enable1").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select1.value == 1){
+						LAN_miniSum+=B1;
+					}				
+
+				}
+					
+				if(document.getElementById("Bandwidth_enable2").checked == true){
+
+					if(document.QoSAppEdit.Bandwidth_select2.value == 1){
+						WAN_miniSum+=B2;
+					}				
+						
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value1.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if(isAllNum( document.QoSAppEdit.Bandwidth_value2.value ) == 0){
+					alert("<%:qos_warn1%>");
+					return false;
+				}
+				
+				if( LAN_miniSum > Downstream ){
+					alert("<%:qos_warn3%>");
+					return false;
+				}
+				
+				if( WAN_miniSum > Upstream ){
+					alert("<%:qos_warn4%>");
+					return false;
+				}
+			}
+	}
+	return true;
+}
+
+</script>
+<style type="text/css"></style>
+</head>
+<body>
+
+<form method="post" name="QoSAppEdit" action="<%=controller%>/expert/configuration/management/qos/AppEdit" onSubmit="return btnApply();">
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Application_List%></div></td>
+    <td>&nbsp;</td>
+    <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="cancel" value="<%:Cancel%>" type="button" id="back" onclick="backToList()" /></div></td>
+  </tr>
+</table>
+</div>
+
+<div id="all_w">
+
+<div id="table">
+  <ul>
+     <li class="table_content">
+        <div class="data">
+        <ul>
+			<div class="w_text">
+			  <ul>
+				<li class="title">
+				  <table border="0" cellpadding="0" cellspacing="0">
+<% if section_name == "0" then %>
+					<tr><%:Rule_Configuration%> - <%:XBox_Live%></tr>
+<% elseif section_name == "1" then %>
+					<tr><%:Rule_Configuration%> - <%:PlayStation%></tr>
+<% elseif section_name == "2" then %>
+					<tr><%:Rule_Configuration%> - <%:MSN_Game_Zone%></tr>
+<% elseif section_name == "3" then %>
+					<tr><%:Rule_Configuration%> - <%:Battlenet%></tr>
+<% elseif section_name == "4" then %>
+					<tr><%:Rule_Configuration%> - <%:VoIP%></tr>
+<% elseif section_name == "5" then %>
+					<tr><%:Rule_Configuration%> - <%:Instant_Messenger%></tr>
+<% elseif section_name == "6" then %>
+					<tr><%:Rule_Configuration%> - <%:Web_Surfing%></tr>
+<% elseif section_name == "7" then %>
+					<tr><%:Rule_Configuration%> - <%:FTP%></tr>
+<% elseif section_name == "8" then %>
+					<tr><%:Rule_Configuration%> - <%:eMule%></tr>
+<% elseif section_name == "9" then %>
+					<tr><%:Rule_Configuration%> - <%:BitTorrent%></tr>
+<% else %>
+					<tr><%:Rule_Configuration%> - <%:E_Mail%></tr>
+<% end %>
+				  </table>
+				</li>
+			  </ul>
+
+			  <div class="spaceair"></div>
+
+			  <table width="100%" border="0" cellspacing="0" cellpadding="0" >
+				<tr>
+					<td>
+						<input type="hidden" id="apply_edit_AdvSet" name="apply_edit_AdvSet" value="<%=section_name%>">
+						<input type="hidden" name="Upstream_value" size="6" maxlength="6" value="<%=upstream_value%>" >
+						<input type="hidden" name="Downstream_value" size="6" maxlength="6" value="<%=downstream_value%>" >
+						<input type="hidden" name="LAN_mini_sum" size="6" maxlength="6" value="<%=LAN_sum%>" >
+						<input type="hidden" name="WAN_mini_sum" size="6" maxlength="6" value="<%=WAN_sum%>" >						
+					
+						<table width="92%" border="0" align=center cellspacing="0" class="wtext_3">
+							<tr><td width="5%" ><center><span class="top_left">#</span></center></td>
+								<td width="8%" height="26"><span class="top_font" id="appEditEnable"><%:Enable%></span></center></td>
+								<td width="16%"><center><span class="top_font" id="appEditDir"><%:Direction%></span></center></td>
+								<td width="35%"><center><span class="top_font" id="appEditBandwidth"><%:Bandwidth%></span></center></td>
+								<td width="15%"><center><span class="top_font" id="appEditDstPort"><%:Destination_Port%></span></center></td>
+								<td width="13%"><center><span class="top_font" id="appEditSrcPort"><%:Source_Port%></span></center></td>
+								<td width="8%"><center><span class="top_right" id="appEditProto"><%:Protocol%></span></center></td>
+							</tr>
+							
+							
+							<% if section_name == "0" then %>
+							
+								<% local Q0_Enabled_1 = uci:get("qos","app_policy_0","lan_tcp_enable")%>
+								<% local Q0_Enabled_2 = uci:get("qos","app_policy_0","lan_udp_enable")%>
+								<% local Q0_Enabled_3 = uci:get("qos","app_policy_0","wan_tcp_enable")%>
+								<% local Q0_Enabled_4 = uci:get("qos","app_policy_0","wan_udp_enable")%>
+								<% local Q0_Min_1 = uci:get("qos","app_policy_0","lan_tcp_min")%>
+								<% local Q0_Min_2 = uci:get("qos","app_policy_0","lan_udp_min")%>
+								<% local Q0_Min_3 = uci:get("qos","app_policy_0","wan_tcp_min")%>
+								<% local Q0_Min_4 = uci:get("qos","app_policy_0","wan_udp_min")%>
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q0_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q0_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q0_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q0_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q0_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q0_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>3</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable3" id="Bandwidth_enable3" <%if Q0_Enabled_3 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select3" id="Bandwidth_select3" size="1" >
+								<option value="0" <%if Q0_Min_3=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q0_Min_3=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value3" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue3%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>4</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable4" id="Bandwidth_enable4" <%if Q0_Enabled_4 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select4" id="Bandwidth_select4" size="1" >
+								<option value="0" <%if Q0_Min_4=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q0_Min_4=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value4" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue4%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+                            <%end%>	
+
+							<% if section_name == "1" then %>							
+
+								<% local Q1_Enabled_1 = uci:get("qos","app_policy_1","lan_tcp_enable")%>
+								<% local Q1_Enabled_2 = uci:get("qos","app_policy_1","lan_udp_enable")%>
+								<% local Q1_Enabled_3 = uci:get("qos","app_policy_1","wan_tcp_enable")%>
+								<% local Q1_Enabled_4 = uci:get("qos","app_policy_1","wan_udp_enable")%>
+								<% local Q1_Min_1 = uci:get("qos","app_policy_1","lan_tcp_min")%>
+								<% local Q1_Min_2 = uci:get("qos","app_policy_1","lan_udp_min")%>
+								<% local Q1_Min_3 = uci:get("qos","app_policy_1","wan_tcp_min")%>
+								<% local Q1_Min_4 = uci:get("qos","app_policy_1","wan_udp_min")%>
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q1_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q1_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q1_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q1_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q1_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q1_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>
+
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>3</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable3" id="Bandwidth_enable3" <%if Q1_Enabled_3 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select3" id="Bandwidth_select3" size="1" >
+								<option value="0" <%if Q1_Min_3=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q1_Min_3=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value3" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue3%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>4</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable4" id="Bandwidth_enable4" <%if Q1_Enabled_4 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select4" id="Bandwidth_select4" size="1" >
+								<option value="0" <%if Q1_Min_4=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q1_Min_4=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value4" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue4%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+                            <%end%>	
+
+							<% if section_name == "2" then %>							
+
+								<% local Q2_Enabled_1 = uci:get("qos","app_policy_2","lan_tcp_enable")%>
+								<% local Q2_Enabled_2 = uci:get("qos","app_policy_2","lan_udp_enable")%>
+								<% local Q2_Enabled_3 = uci:get("qos","app_policy_2","wan_tcp_enable")%>
+								<% local Q2_Enabled_4 = uci:get("qos","app_policy_2","wan_udp_enable")%>
+								<% local Q2_Min_1 = uci:get("qos","app_policy_2","lan_tcp_min")%>
+								<% local Q2_Min_2 = uci:get("qos","app_policy_2","lan_udp_min")%>
+								<% local Q2_Min_3 = uci:get("qos","app_policy_2","wan_tcp_min")%>
+								<% local Q2_Min_4 = uci:get("qos","app_policy_2","wan_udp_min")%>
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q2_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q2_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q2_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q2_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q2_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q2_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>3</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable3" id="Bandwidth_enable3" <%if Q2_Enabled_3 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select3" id="Bandwidth_select3" size="1" >
+								<option value="0" <%if Q2_Min_3=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q2_Min_3=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value3" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue3%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+								<tr><td><center><span class=table_left>4</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable4" id="Bandwidth_enable4" <%if Q2_Enabled_4 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select4" id="Bandwidth_select4" size="1" >
+								<option value="0" <%if Q2_Min_4=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q2_Min_4=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value4" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue4%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+                            <%end%>	
+							
+							<% if section_name == "3" then %>
+
+								<% local Q3_Enabled_1 = uci:get("qos","app_policy_3","lan_tcp_enable")%>
+								<% local Q3_Enabled_2 = uci:get("qos","app_policy_3","wan_tcp_enable")%>
+								<% local Q3_Min_1 = uci:get("qos","app_policy_3","lan_tcp_min")%>
+								<% local Q3_Min_2 = uci:get("qos","app_policy_3","wan_tcp_min")%>							
+								
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q3_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q3_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q3_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q3_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q3_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q3_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+
+							<% if section_name == "4" then %>							
+
+								<% local Q4_Enabled_1 = uci:get("qos","app_policy_4","lan_tcp_enable")%>
+								<% local Q4_Enabled_2 = uci:get("qos","app_policy_4","wan_tcp_enable")%>
+								<% local Q4_Min_1 = uci:get("qos","app_policy_4","lan_tcp_min")%>
+								<% local Q4_Min_2 = uci:get("qos","app_policy_4","wan_tcp_min")%>
+
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q4_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q4_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q4_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q4_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q4_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q4_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+							
+							<% if section_name == "5" then %>
+
+								<% local Q5_Enabled_1 = uci:get("qos","app_policy_5","lan_tcp_enable")%>
+								<% local Q5_Enabled_2 = uci:get("qos","app_policy_5","wan_tcp_enable")%>
+								<% local Q5_Min_1 = uci:get("qos","app_policy_5","lan_tcp_min")%>
+								<% local Q5_Min_2 = uci:get("qos","app_policy_5","wan_tcp_min")%>
+								
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q5_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q5_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q5_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q5_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q5_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q5_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+
+							<% if section_name == "6" then %>							
+
+								<% local Q6_Enabled_1 = uci:get("qos","app_policy_6","lan_tcp_enable")%>
+								<% local Q6_Enabled_2 = uci:get("qos","app_policy_6","wan_tcp_enable")%>
+								<% local Q6_Min_1 = uci:get("qos","app_policy_6","lan_tcp_min")%>
+								<% local Q6_Min_2 = uci:get("qos","app_policy_6","wan_tcp_min")%>
+								
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q6_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q6_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q6_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> 80,443 </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q6_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q6_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q6_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> 80,443 </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+							
+							<% if section_name == "7" then %>							
+
+								<% local Q7_Enabled_1 = uci:get("qos","app_policy_7","lan_tcp_enable")%>
+								<% local Q7_Enabled_2 = uci:get("qos","app_policy_7","wan_tcp_enable")%>
+								<% local Q7_Min_1 = uci:get("qos","app_policy_7","lan_tcp_min")%>
+								<% local Q7_Min_2 = uci:get("qos","app_policy_7","wan_tcp_min")%>
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q7_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q7_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q7_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q7_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q7_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q7_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+							
+							<% if section_name == "8" then %>
+
+								<% local Q8_Enabled_1 = uci:get("qos","app_policy_8","lan_tcp_enable")%>
+								<% local Q8_Enabled_2 = uci:get("qos","app_policy_8","wan_tcp_enable")%>
+								<% local Q8_Min_1 = uci:get("qos","app_policy_8","lan_tcp_min")%>
+								<% local Q8_Min_2 = uci:get("qos","app_policy_8","wan_tcp_min")%>								
+								
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q8_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q8_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q8_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q8_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q8_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q8_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+							
+							<% if section_name == "9" then %>
+
+								<% local Q9_Enabled_1 = uci:get("qos","app_policy_9","lan_tcp_enable")%>
+								<% local Q9_Enabled_2 = uci:get("qos","app_policy_9","lan_udp_enable")%>
+								<% local Q9_Enabled_3 = uci:get("qos","app_policy_9","wan_tcp_enable")%>
+								<% local Q9_Enabled_4 = uci:get("qos","app_policy_9","wan_udp_enable")%>
+								<% local Q9_Min_1 = uci:get("qos","app_policy_9","lan_tcp_min")%>
+								<% local Q9_Min_2 = uci:get("qos","app_policy_9","lan_udp_min")%>
+								<% local Q9_Min_3 = uci:get("qos","app_policy_9","wan_tcp_min")%>
+								<% local Q9_Min_4 = uci:get("qos","app_policy_9","wan_udp_min")%>
+
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q9_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q9_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q9_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q9_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q9_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q9_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>3</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable3" id="Bandwidth_enable3" <%if Q9_Enabled_3 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select3" id="Bandwidth_select3" size="1" >
+								<option value="0" <%if Q9_Min_3=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q9_Min_3=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value3" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue3%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+
+
+
+								<tr><td><center><span class=table_left>4</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable4" id="Bandwidth_enable4" <%if Q9_Enabled_4 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select4" id="Bandwidth_select4" size="1" >
+								<option value="0" <%if Q9_Min_4=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q9_Min_4=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+
+								<input name="Bandwidth_value4" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue4%>" >(kbps)
+								</select></span></center></td>
+
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> UDP </span></center></td>
+								</tr>
+
+                            <%end%>
+
+							<% if section_name == "10" then %>							
+
+								<% local Q10_Enabled_1 = uci:get("qos","app_policy_10","lan_tcp_enable")%>
+								<% local Q10_Enabled_2 = uci:get("qos","app_policy_10","wan_tcp_enable")%>
+								<% local Q10_Min_1 = uci:get("qos","app_policy_10","lan_tcp_min")%>
+								<% local Q10_Min_2 = uci:get("qos","app_policy_10","wan_tcp_min")%>								
+								
+								<tr><td><center><span class=table_left>1</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable1" id="Bandwidth_enable1" <%if Q10_Enabled_1 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>LAN/WLAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select1" id="Bandwidth_select1" size="1" >
+								<option value="0" <%if Q10_Min_1=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q10_Min_1=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value1" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue1%>" > (kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_font> 110 </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+								
+
+								
+								<tr><td><center><span class=table_left>2</span></center></td>
+
+								<td><center><span class=table_font><input type=checkbox name="Bandwidth_enable2" id="Bandwidth_enable2" <%if Q10_Enabled_2 == "1" then%> value="1" checked="checked" <%end%> ></span></center></td>
+		
+								<td><center><span class=table_font>WAN</span></center></td>
+
+								<td><center><span class=table_font>	
+								<select name="Bandwidth_select2" id="Bandwidth_select2" size="1" >
+								<option value="0" <%if Q10_Min_2=="0" then%>selected="selected"<%end%> ><%:Maximum_Bandwidth%></option>
+								<option value="1" <%if Q10_Min_2=="1" then%>selected="selected"<%end%> ><%:Minimum_Bandwidth%></option>						
+							
+								<input name="Bandwidth_value2" onkeyup="value=value.replace(/[^\d]/g,'')" size="6" maxlength="6" value="<%=AdvSet_bandwidthvalue2%>" >(kbps)
+								</select></span></center></td>
+							
+								<td><center><span class=table_font> 25 </span></center></td>
+								<td><center><span class=table_font> - </span></center></td>
+								<td><center><span class=table_right> TCP </span></center></td>
+								</tr>
+															
+                            <%end%>
+
+						</table>
+					</td>
+				</tr>
+			  </table>
+			</div>
+        </ul>
+        </div>
+    </li>
+    </ul>
+   </div>
+</form>
+</div>
+</body>
+<script language="JavaScript">
+	<!--showFullPath(' <%:Management%> > <%:Bandwidth_MGMT%> > <%:Advance%>');-->
+</script>
+</html>

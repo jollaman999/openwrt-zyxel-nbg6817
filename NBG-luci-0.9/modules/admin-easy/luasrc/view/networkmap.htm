@@ -1,0 +1,1456 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+
+<%
+require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+local sys_op_mode = uci:get("system","main","system_mode")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev
+
+local filterEnabled = uci:get("firewall","general","filterEnabled")
+local system_mode = uci:get("system","main","system_mode")
+local product_typ_name = uci:get("system","main","product_typ_name")
+local product_name = uci:get("system","main","product_name")
+-%>
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title><%=product_name%></title>
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+
+<link href="<%=media%>/css/lockforeasy.css?<%=fw_ver%>" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" type="text/css" href="<%=media%>/css/page.css?<%=fw_ver%>" media="screen" >
+<link rel="stylesheet" type="text/css" href="<%=media%>/css/page_s.css?<%=fw_ver%>" media="screen and (min-width: 1367px  ) and (max-width: 8800px )" >
+ <link rel="stylesheet" href="<%=media%>/css/netmap.css?<%=fw_ver%>" media="screen" type="text/css" />
+ <link rel="stylesheet" href="<%=media%>/css/easymenu.css?<%=fw_ver%>" media="screen" type="text/css" />
+  <link rel="stylesheet" href="<%=media%>/css/popup.css?<%=fw_ver%>" media="screen" type="text/css" />
+  <link rel="stylesheet" href="<%=media%>/css/device_xy.css?<%=fw_ver%>" media="screen and (min-width: 0px  ) and (max-width: 1366px )" />
+  <link rel="stylesheet" href="<%=media%>/css/device_xy_xl.css?<%=fw_ver%>" media="screen and (min-width: 1367px  ) and (max-width: 8800px )" />
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript">
+
+$(document).ready(function(){
+	if ( "<%=sys_op_mode%>" == "2" ){
+		$("#Device_logo").hide()
+		}
+	$("#idAnchorPC").click(function(e) {
+ 		$("#idIFramePC").css({"visibility":"visible"});
+ 	});
+	$("#idAnchorGW").click(function(e) {
+ 		$("#idIFrameGW").css({"visibility":"visible"});
+ 	});
+ 	$("#idAnchorPN").click(function(e) {
+ 		$("#idIFramePN").css({"visibility":"visible"});
+ 	});
+ 	$("#idAnchorWLAN").click(function(e) {
+ 		$("#idIFrameWLAN").css({"visibility":"visible"});
+ 	});
+});
+
+function skm_unLockScreen(){
+	var load = document.getElementById("load");
+	var lock = document.getElementById("skm_LockPane");
+
+	if (lock) 
+		lock.className = 'LockOff'; 
+		load.className = 'LockOff'; 	
+}
+
+function skm_LockScreen(){ 	
+	var load = document.getElementById("load");
+	var lock = document.getElementById("skm_LockPane");
+	 
+	if (lock) 
+		lock.className = 'LockOn'; 
+		load.className = 'spinner'; 
+}
+
+function MM_jumpMenu(targ,selObj,restore){ //v3.0
+  eval(targ+".location='"+selObj.options[selObj.selectedIndex].value+"'");
+  if (restore) selObj.selectedIndex=0;
+}
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+
+function MM_openBrWindow(theURL,winName,features) { //v2.0
+  window.open(theURL,winName,features);
+}
+
+function ParentalCtrl_on(){
+  var parentalCtrl_on = ""
+  var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+  var loc = submit_url + '?parentalCtrl_status=onOFF';
+  if (document.getElementById("check1").value == 1){
+    parentalCtrl_on = 0;
+  }
+  else{
+    parentalCtrl_on = 1;
+  }
+  loc += '&parentalCtrl_on=' + parentalCtrl_on;
+  var code = 'location="' + loc + '"';
+  skm_LockScreen();
+  eval(code);
+}
+
+function GuestWiFi_on(){
+  var guestwifi_on = ""
+  var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+  var loc = submit_url + '?guestwifi_status=onOFF';
+  if (document.getElementById("check2").value == 1){
+    guestwifi_on = 0;
+  }
+  else{
+    guestwifi_on = 1;
+  }
+  
+  loc += '&guestwifi_on=' + guestwifi_on;
+  var code = 'location="' + loc + '"';
+  skm_LockScreen();
+  eval(code);
+}
+
+function Parental_Notification(){
+  var Parental_Notification = ""
+  var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+  var loc = submit_url + '?Streamboost_status=onOFF';
+  if (document.getElementById("check3").value == 0){
+    Parental_Notification = 1;
+  }
+  else{
+    Parental_Notification = 0;
+  }
+  loc += '&Parental_Notification=' + Parental_Notification;
+  var code = 'location="' + loc + '"';
+  skm_LockScreen();
+  eval(code);
+}
+
+function WiFi_on(){
+  var wifi_on = ""
+  var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+  var loc = submit_url + '?wifi_status=onOFF';
+  if (document.getElementById("check4").value == 1){
+    wifi_on = 0;
+  }
+  else{
+    wifi_on = 1;
+  }
+  loc += '&wifi_on=' + wifi_on;
+  var code = 'location="' + loc + '"';
+  skm_LockScreen();
+  eval(code);
+}
+
+function LED_on(){
+  var led_on = ""
+  var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+  var loc = submit_url + '?led_status=onOFF';
+  if (document.getElementById("check5").value == 1){
+    led_on = 0;
+  }
+  else{
+    led_on = 1;
+  }
+  loc += '&led_on=' + led_on;
+  var code = 'location="' + loc + '"';
+  skm_LockScreen();
+  eval(code);
+}
+
+function DeviceName_parser(item,ConnType,DevName) {
+	var DDevName = "<%=DDevName%>".split(",");
+	var CConnType = "<%=CConnType%>".split(",");
+	var hostType = "<%=HostType%>".split(",");
+	var SignalStrength = "<%=SignalStrength%>".split(",");
+	
+	
+	var i = <%=anum%>;
+	
+	
+	if (item) {
+		DDevName = DevName;
+		CConnType = ConnType;
+		i = item;
+	}
+	
+	if (i>28)
+		i=28;
+	
+  for(var k=1;k <= 28;k++){
+		var DeviceName = document.getElementById('Device_'+(k));
+		var DeviceDiv = document.getElementById('Device'+(k));
+		
+		DeviceDiv.style.visibility = "hidden";
+		DeviceName.style.visibility = "hidden";
+  }
+  for(var k=1;k <= i;k++){
+
+		var signal;
+		var HostType = hostType[k - 1];
+		var DeviceName = document.getElementById('Device_'+(k));
+		var DeviceIcon = document.getElementById("Image" + k);
+		var DeviceDiv = document.getElementById('Device'+(k));
+		
+		DeviceDiv.style.visibility = "visible";
+		DeviceName.style.visibility = "visible";
+		DeviceName.innerHTML=DDevName[k - 1];
+		
+		if (HostType=="1")
+			DeviceIcon.className ="desktop";			
+		else if (HostType=="2")
+				DeviceIcon.className ="Laptop";
+		else if (HostType=="3")
+				DeviceIcon.className ="AP";
+		else if (HostType=="4")
+			DeviceIcon.className ="NAS";
+		else if (HostType=="5")
+			DeviceIcon.className ="Power_Line";
+		else if (HostType=="6")
+			DeviceIcon.className ="Repeater";
+		else if (HostType=="7")
+			DeviceIcon.className ="Smart_Phone";
+		else if (HostType=="8")
+			DeviceIcon.className ="Camera";
+		else if (HostType=="9")	
+			DeviceIcon.className ="Tablet";
+		else if (HostType=="10")	
+		 	DeviceIcon.className ="Router";			
+		 else if (HostType=="11")	
+		 	DeviceIcon.className ="Watch";
+		 else if (HostType=="12")	
+		 	DeviceIcon.className ="Game";	
+		else
+			DeviceIcon.className ="desktop";
+			
+		if((CConnType[k - 1] == "Other") || (CConnType[k - 1] == "PwrLine")){
+		//wird
+		}
+		else{
+			//wireless
+			if(SignalStrength[k - 1] == "0")
+				signal = "signal0"
+			else if(SignalStrength[k - 1] == "1")	
+				signal = "signal1"
+			else if((SignalStrength[k - 1] == "2") || (SignalStrength[k - 1] == "3"))	
+				signal = "signal2"
+			else if((SignalStrength[k - 1] == "4") || (SignalStrength[k - 1] == "5"))	
+				signal = "signal3"			
+				
+			$("#Device"+k).prepend( '<div class='+ signal +'></div>' );
+		}
+		
+	}
+	
+}
+
+ function makeRequest(way,url,dat) {
+        var httpRequest;
+
+        if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+            httpRequest = new XMLHttpRequest();
+            if (httpRequest.overrideMimeType) {
+                httpRequest.overrideMimeType('text/xml');
+            }
+        }
+        else if (window.ActiveXObject) { // IE
+            try {
+                httpRequest = new ActiveXObject("Msxml2.XMLHTTP");
+            }
+            catch (e) {
+                try {
+                    httpRequest = new ActiveXObject("Microsoft.XMLHTTP");
+                }
+                catch (e) {}
+            }
+        }
+
+        if (!httpRequest) {
+            alert('Giving up :( Cannot create an XMLHTTP instance');
+            return false;
+        }
+        httpRequest.onreadystatechange = function() { alertContents(httpRequest); };
+		if (way == 'GET'){
+		
+			httpRequest.open(way, url, true);
+			httpRequest.send('');
+			
+		}
+		else if (way == 'POST'){
+			httpRequest.open(way, url, true);
+			
+			httpRequest.setRequestHeader('Content-Type', 'text/xml');
+			
+			httpRequest.send(dat);
+		}
+ }
+function alertContents(httpRequest) {
+
+        if (httpRequest.readyState == 4) {
+            if (httpRequest.status == 200) {
+                
+				
+				var text = httpRequest.responseText.split(";");
+				
+				
+				if (text[0] == "click"){
+					data(text[1],text[2],text[3]);
+					pageIcon(text[5]);
+					blockList(text[6]);
+				}
+				else if (text[0] == "info"){
+					infoData(text[1],text[2],text[3]);
+				}
+				else if (text[0] == "rename" ){
+					
+				}
+				else if (text[0] == "checkfw" ){
+					checkFw(text[1]);
+					setTimeout("Fw()",384000);
+				}
+				
+            } else {
+                <!-- alert('There was a problem with the request.'); -->
+            }
+        }
+
+}	
+function blockList(item){
+	var blockItem = item.split(",");
+	var blockIcon;
+	for (var i=1;i<=28;i++){
+	
+		blockIcon = $('#Device_' + i).siblings('#Device_lv');
+		
+		if (blockItem[i-1] == "1"){
+			
+			blockIcon.css('visibility','visible');
+		}
+		else{
+			blockIcon.css('visibility','hidden');
+		
+		}
+	}	
+	
+}
+
+ function infoData(mac,ip,ostype){
+	document.getElementById("info_DevIP").innerHTML=ip;
+	document.getElementById("info_DevMAC").innerHTML=mac;
+	document.getElementById("info_OSType").innerHTML=ostype;
+	ip_value=ip;
+ }
+
+function LinkIP(){
+		var linkip = ip_value
+		var url_str="http://"+linkip;
+		window.open(url_str);
+}
+
+function page(num,begain){
+
+	$(".signal0, .signal1, .signal2, .signal3").remove();
+
+	var activeIcon = document.getElementsByClassName("tabs")[0].getElementsByTagName("a");
+    var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+	var loc = submit_url + '?click=1&page=' + num;
+	
+	for(i=0;i<=8;i++){
+	
+	activeIcon[i].className= "";
+	
+	
+	}
+	console.log(num,begain);
+	activeIcon[begain + num].className= "active";
+    makeRequest('GET',loc);
+}
+
+function data(i,ConnType,DevName){
+	
+	var item = i;
+	var DDevName = DevName.split(",");
+	var CConnType = ConnType.split(",");
+	
+	DeviceName_parser(item,CConnType,DDevName);
+	
+}
+
+function pageIcon(allDevice){
+	
+	
+	var Icon = document.getElementsByClassName("tabs")[0].getElementsByTagName("li");
+	allpage = allDevice/28;
+
+	for (i=0;i<9;i++){
+		Icon[i].style.visibility="hidden";
+			
+	}
+	if (allDevice > 28){
+		if (allpage < 2){
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+
+			pageMapping = [1,2,3,4,1,2,7,8,9,3];
+			console.log(pageMapping);
+		}
+		
+		else if (allpage < 3){
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+
+			pageMapping = [1,2,3,1,2,3,7,8,9,2];
+			console.log(pageMapping);
+		}
+		else if (allpage < 4){
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+
+			pageMapping = [1,2,3,1,2,3,4,8,9,2];
+			console.log(pageMapping);
+
+		}
+		else if (allpage < 5){
+			Icon[2].style.visibility="visible";
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+		
+			pageMapping = [1,2,1,2,3,4,5,8,9,1];
+			console.log(pageMapping);
+		}
+		else if (allpage < 6){
+			Icon[2].style.visibility="visible";
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+			Icon[7].style.visibility="visible";
+			
+			pageMapping = [1,2,1,2,3,4,5,6,9,1];
+			console.log(pageMapping);
+		}
+		else if (allpage < 7){
+			Icon[1].style.visibility="visible";
+			Icon[2].style.visibility="visible";
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+			Icon[7].style.visibility="visible";
+			pageMapping = [1,1,2,3,4,5,6,7,9,0];
+			console.log(pageMapping);
+			
+		}	
+		else if (allpage < 8){
+			Icon[1].style.visibility="visible";
+			Icon[2].style.visibility="visible";
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+			Icon[7].style.visibility="visible";
+			Icon[8].style.visibility="visible";
+			pageMapping = [1,1,2,3,4,5,6,7,8,0];
+			console.log(pageMapping);
+			
+		}
+		else if (allpage < 9){
+			Icon[0].style.visibility="visible";
+			Icon[1].style.visibility="visible";
+			Icon[2].style.visibility="visible";
+			Icon[3].style.visibility="visible";
+			Icon[4].style.visibility="visible";
+			Icon[5].style.visibility="visible";
+			Icon[6].style.visibility="visible";
+			Icon[7].style.visibility="visible";
+			Icon[8].style.visibility="visible";
+					
+		}
+	}
+
+}
+
+function checkFw(newFw){
+	
+	var AboutIcon = "";
+	if (newFw == "0"){
+		$("#About").hide();
+	}
+	else{
+		AboutIcon = "fwnotify"
+		
+	}
+	$('#About').attr('class',AboutIcon);
+	
+}
+
+function Fw(){
+	var d = new Date();
+	var timestamp = d.getTime();
+	var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+	var loc = submit_url + '?checkFw=1' + '&timestamp=' + timestamp;
+	makeRequest('GET',loc);
+	
+}
+
+$(document).ready(function(){
+//	<!-- check fw -->
+	Fw();
+	
+//	<!-- check device block -->
+	$('.tabs li:first a').addClass('active');
+	var page = "1";
+	var filterEnabled = <%=filterEnabled%>;
+	var system_mode = <%=system_mode%>
+	var DevType = "<%=DevType%>".split(",");
+	
+	for (k=1;k<=28;k++){
+		var blockIcon = $('#Device_' + k).siblings('#Device_lv');
+		var blockItem = "<%=blocklist%>".split(",");
+		var menuBlock = $('.menu' + k).children('li:contains("<%:Block%>")');
+		var menuUnblock = $('.menu' + k).children('li:contains("<%:Unblock%>")');
+		
+		
+		if ((filterEnabled == "1")&&(DevType[k-1] == "Client")&&(system_mode == "1")){
+			if ((blockItem[k-1] == "1")){
+				blockIcon.css('visibility','visible');
+				menuBlock.hide();
+				menuUnblock.show();
+			}
+			else{
+				menuBlock.show();
+				menuUnblock.hide();
+			}
+		}
+		else{
+			menuBlock.hide();
+			menuUnblock.hide();
+		}
+	}
+	
+		var signal;
+		var Strength;
+		<!-- mouseoverdevice -->
+		$('div[class*="button"]').hover(
+		
+		function(){
+			signal = $(this).children('div[class*=signal]');
+			Strength = signal.attr('class').split('signal');
+			signal.attr("class","signalhover"+Strength[1]) ;
+			
+		},function(){
+			
+			Strength = signal.attr('class').split('signalhover');
+			signal.attr("class","signal"+Strength[1]) ;
+
+		});
+		
+		
+	
+		$('.tabs').unbind('click').click(function(){
+			page = $('a[class="active"]').attr('id').split('page');
+			page = page[1];
+		});
+	
+	  $( 'li:contains("<%:Info%>")' ).unbind('click').click(function(){
+		var DevIcon = $('#info_DevIcon');
+		var DevName = $('#info_DevName');
+		var DevIP = $('#info_DevIP');
+		var DevMAC = $('#info_DevMAC');
+		var ConType = $('#info_ConType');
+		var OSType = $('#info_OSType');
+		var menuItem = $(this).parent("ul").attr('class').split(' ');	
+		var item =	menuItem[0].split('menu');
+		var devName = $( '.tab_container div[id=Device_'+ item[1] +'] ').text();
+		var conType = $( '#Image'+ item[1] ).attr('class').replace('_',' ');
+		var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+		var info = item[1]-1;
+		var loc = submit_url + '?info='+ info +'&page=' + page;
+		var devIcon = $(this).parent().siblings('a').css('background-image');
+		makeRequest('GET',loc);
+		
+		DevName.text(devName);
+		ConType.text(conType);
+		devIcon = devIcon.split("zyxel");
+		devIcon = devIcon[1].split("png");
+		
+		DevIcon.attr('src','<%=media%>' + devIcon[0] + 'png'); 
+		
+	  });
+  
+  
+		$( 'li:contains("<%:Block%>")' ).unbind('click').click(function(){
+			
+			$(this).parent('ul').siblings('#Device_lv').css('visibility','visible');
+			var block = $(this).parent('ul').prev('div').attr('id').split('Device_');
+				block = block[1]-1;	
+			var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+			var loc = submit_url + '?block='+ block +'&page=' + page + '&t=' + (new Date()).getTime();
+			makeRequest('GET',loc);
+			$(this).hide();
+			$(this).siblings('li:contains("<%:Unblock%>")').show();
+		});
+		
+		
+		$( 'li:contains("<%:Unblock%>")' ).unbind('click').click(function(){
+		
+			$(this).parent('ul').siblings('#Device_lv').css('visibility','hidden');
+			var unblock = $(this).parent('ul').prev('div').attr('id').split('Device_');
+				unblock = unblock[1]-1;
+			var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+			var loc = submit_url + '?unblock='+ unblock +'&page=' + page + '&t=' + (new Date()).getTime();
+			makeRequest('GET',loc);
+			$(this).hide();
+			$(this).siblings('li:contains("<%:Block%>")').show();
+		});
+	
+	
+  
+ $( 'li:contains("<%:Rename_Icon%>")' ).unbind('click').click(function(){
+	$('#checkName').hide();
+	$('#wireless').css("opacity",1);
+	var menuItem = $(this).parent().siblings('a').css('background-image');
+	var Item = $(this).parent("ul").attr('class').split(' ');	
+	var item =	Item[0].split('menu');
+	var devName = $( '.tab_container div[id=Device_'+ item[1] +'] ').text();
+	var conType = $( '#Image'+ item[1] ).css('background-image');
+	var newTypeIcon = 'null';
+	var hasbeenClick = 0;
+	var hasbeenChanged = 0;
+	var WType = "";
+	
+	
+	menuItem = menuItem.split("zyxel");
+	menuItem = menuItem[1].split("png");
+	$('#change_DeviceIcon').attr('src','<%=media%>' + menuItem[0] + 'png')
+	$('#change_DevName').val(devName);
+	
+		$('.changeIcon img').unbind('click').click(function(){
+		
+			newType = $(this).parent().parent().text();
+			newTypeIcon = $(this).attr('id');
+			var choiceType = $(this).attr('src');
+			$('#change_DeviceIcon').attr('src',choiceType)
+			hasbeenClick = $(this).parents('div:first').attr('id');
+			
+		});
+		
+		$('#change_DevName').change(function(){
+			hasbeenChanged = 1;
+			
+		});
+	
+		$('#apply_info_rename .apply').unbind('click').click(function(){
+
+			var chName = $('#checkName').css('display');
+			
+			if (chName == "block"){
+				$('#change_DevName').focus();
+				return false;
+			}
+
+			if ((!(hasbeenClick == "0"))||(hasbeenChanged == "1")){
+				
+				var newName = $('#change_DevName').val();
+				var oldClass = $('#Image'+ item[1]).attr('class');
+				var newClass = "";
+				var submit_url = '<%=luci.dispatcher.build_url("easy", "networkmap")%>';
+				var loc = submit_url;
+				var i = item[1]-1;
+				var data = '?rename='+ i ;
+					data += '&page=' + page;
+					data += '&choiceName='+ encodeURIComponent(newName);
+					data += '&choiceIcon='+ newTypeIcon;
+					loc += data;
+				makeRequest('GET',loc);	
+				
+				$( '.tab_container div[id=Device_'+ item[1] +'] ').text(newName);
+
+				if (newTypeIcon == "Client")
+					newClass = "desktop";
+				else if (newTypeIcon == "Laptop")
+					newClass = "Laptop";
+				else if (newTypeIcon == "AP")
+					newClass = "AP";
+				else if (newTypeIcon == "Repeater")
+					newClass = "Repeater";
+				else if (newTypeIcon == "Smart_Phone")
+					newClass = "Smart_Phone";
+				else if (newTypeIcon == "Camera")
+					newClass = "Camera";
+				else if (newTypeIcon == "NAS")
+					newClass = "NAS";
+				else if (newTypeIcon == "Power_Line")
+					newClass = "Power_Line";
+				else if (newTypeIcon == "Tablet")
+					newClass = "Tablet";
+				else if (newTypeIcon == "Game")
+					newClass = "Game";
+				else if (newTypeIcon == "Watch")
+					newClass = "Watch";
+				else if (newTypeIcone == "Router")
+					newClass = "Router";
+				else 
+					newClass = "desktop";
+
+				$('#Image'+ item[1]).removeClass(oldClass).addClass(newClass);
+	
+			}		
+		});
+	
+	
+		
+	});
+	
+	
+	
+	$("input#change_DevName").change(function(){
+		var name = $(this).val();
+		
+		if (nameChecked(name)){
+			$('#checkName').show();
+		}
+		else
+		{
+			$('#checkName').hide();
+		}
+	});
+	
+
+});
+
+function nameChecked(name){
+	
+	if(!(checkInjection(name)))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function checkInjection(str)
+{
+	var len = str.length;      
+	for (var i=0; i<str.length; i++) {
+	
+		if ( str.charAt(i) == '"' || str.charAt(i) == "'" || str.charAt(i) == '`' || str.charAt(i) == '<' || str.charAt(i) == '>' || str.charAt(i) == '^' || str.charAt(i) == '$' || str.charAt(i) == '&'){
+			 	 
+				return false;
+		}else
+	        continue;
+	}
+	return true;	
+} 
+
+function checklogout(){
+	var logout = confirm("<%:logout_confirm%>");
+
+	if (logout)
+		top.window.location.href="<%=controller%>/easy/logout";
+}
+
+var pageMapping = [1,2,3,4,5,6,7,8,9,0];
+
+</script>
+</head>
+
+<body onload="pageIcon(<%=anum%>);DeviceName_parser();skm_unLockScreen();">
+
+<div id="load" class="LockOff">
+  <div class="spinner-container container1">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container2">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container3">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+</div>
+<div id="skm_LockPane" class="LockOff"></div>
+
+<div id="easy_all">
+  <table width="100%" height="100%"  border="0" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="50" rowspan="10">&nbsp;</td>
+      <td height="65"><div id="top">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="125" height="65" align="left"><img src="<%=media%>/images/logo.png" alt="" width="120" height="60" /></td>
+    <td width="150" height="65" align="left"><%=product_typ_name%> </td>
+    <td align="left">&nbsp;</td>
+	<td align="left">&nbsp;</td>
+    <td width="165"><!-- 123 Button -->
+      <table width="165" border="0" align="right" cellpadding="0" cellspacing="0">
+        <tr>
+         <td width="55" align="right" valign="top"><a href="#" id="About" onclick="MM_openBrWindow('<%=controller%>/easy/about','','width=560,height=300')" title="<%:new_event%>"></a></td>
+<% if sys_op_mode == "1" then%>
+		 <td width="55" align="right" valign="top"><a href="<%=controller%>/easy/eaZy123" class="ez123" title="eaZy123"></a></td>
+<% end %>
+		 <td width="55" align="right" valign="top"><a onclick="checklogout();" class="logout" title="<%:logout%>"> </a></td>
+          
+        </tr>
+      </table></td>
+  </tr>
+</table>
+</div></td>
+      <td width="50" rowspan="10"><div id="ex_bt"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="55"><div class="mode" ><a href="<%=controller%>/expert/configuration" target="_top" ><br /><%:net_map_expert%></a></div></td>
+  </tr>
+</table>
+</div></td>
+    </tr>
+    <tr>
+      <td height="28">  <div id="easy_t">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" >
+      <tr>
+        <td valign="top"  ><img src="<%=media%>/images/w.png" width="100%" height="38" /></td>
+        <!-- <td width="38" valign="top" ><a href="<%=controller%>/easy/networkmap_devicetype"><img src="<%=media%>/images/views/a1.png" title="Sort by Device Type" name="Image_a" width="38" height="38" border="0" id="Image_a" onmouseover="MM_swapImage('Image_a','','<%=media%>/images/views/a2.png',1)" onmouseout="MM_swapImgRestore()" /></a></td>
+        <td width="38" valign="top" ><a href="<%=controller%>/easy/networkmap_connectiontype"><img src="<%=media%>/images/views/b1.png" name="Image_b" title="Sort by Connection Type" width="38" height="38" border="0" id="Image_b" onmouseover="MM_swapImage('Image_b','','<%=media%>/images/views/b2.png',1)" onmouseout="MM_swapImgRestore()" /></a></td> -->
+        <td width="38" valign="top" ><a href="<%=controller%>/easy/networkmap"><img src="<%=media%>/images/views/r1.png" name="Image_r" width="38" height="38" border="0" title="<%:Refresh%>" id="Image_r" onmouseover="MM_swapImage('Image_r','','<%=media%>/images/views/r2.png',1)" onmouseout="MM_swapImgRestore()" /></a></td>
+      </tr>
+    </table>
+ 
+</div></td>
+    </tr>
+	<tr>
+      <td height="94" align="center" valign="top" bgcolor="#FFFFFF"></td>
+    </tr>
+    <tr>
+      
+		<% if internet_status == nil then %>
+		<td valign="top" bgcolor="#FFFFFF"><div id="Device_all">
+			<div id="Device_logo"><img src="<%=media%>/images/logo_x.png" alt="" width="100%" height="100%" /></div>		
+		<% else %>
+		<td valign="top" bgcolor="#FFFFFF" height="320px"> <div id="Device_all">
+			<div id="Device_logo"><img src="<%=media%>/images/logo_a.gif" alt="" width="100%" height="100%" /></div>		
+		<% end %>
+		<div id="showdevice">
+		<div class="tab_container">
+			
+		
+
+			<div id="Device3" class='button3'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image3"></a><div id="Device_3">Device3</div>
+			
+			  <ul class='menu3'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+
+		
+			<div id="Device7" class='button7'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image7" ></a> <div id="Device_7">Device7</div>
+			  <ul class='menu7'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device8" class='button8'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image8" ></a> <div id="Device_8">Device8</div>
+			  <ul class='menu8'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device13" class='button13'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image13" ></a> <div id="Device_13">Device13</div>
+			  <ul class='menu13'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+		  
+			<div id="Device14" class='button14'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image14" ></a> <div id="Device_14">Device14</div>
+			  <ul class='menu14'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device19" class='button19'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image19" ></a> <div id="Device_19">Device19</div>  
+			  <ul class='menu19'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device20" class='button20'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image20" ></a> <div id="Device_20">Device20</div>
+			  <ul class='menu20'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device25" class='button25'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image25" ></a> <div id="Device_25">Device25</div>
+			  <ul class='menu25'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device26" class='button26'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image26" ></a> <div id="Device_26">Device26</div>
+			  <ul class='menu26'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+	
+
+
+			<div id="Device1" class='button1'>
+			<div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image1"></a> 
+			<div id="Device_1">Device1</div>
+			  <ul class='menu1'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+	
+
+
+			<div id="Device2" class='button2'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image2" ></a><div id="Device_2">Device2</div>
+			  <ul class='menu2'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+
+		
+			<div id="Device9" class='button9'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image9" ></a><div id="Device_9">Device9</div>
+			  <ul class='menu9'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device10" class='button10'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image10" ></a><div id="Device_10">Device10</div>
+			  <ul class='menu10'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+			 
+			<div id="Device15" class='button15'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image15" ></a><div id="Device_15">Device15</div>
+			  <ul class='menu15'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+	
+			<div id="Device16" class='button16'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image16" ></a><div id="Device_16">Device16</div>     
+			  <ul class='menu16'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device21" class='button21'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image21" ></a><div id="Device_21">Device21</div>  
+			  <ul class='menu21'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device22" class='button22'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image22" ></a><div id="Device_22">Device22</div>  
+			  <ul class='menu22'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device27"  class='button27'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image27" ></a><div id="Device_27">Device27</div>  
+			  <ul class='menu27'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device28" class='button28'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image28" ></a><div id="Device_28">Device28</div>  
+			  <ul class='menu28'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device4" class='button4'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image4" ></a><div id="Device_4">Device4</div>
+			  <ul class='menu4'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+			 
+			<div id="Device5" class='button5'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image5" ></a><div id="Device_5">Device5</div>
+			  <ul class='menu5'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device6" class='button6'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image6" ></a><div id="Device_6">Device6</div>     
+			  <ul class='menu6'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device11" class='button11'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image11" ></a><div id="Device_11">Device11</div>  
+			  <ul class='menu11'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device12" class='button12'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image12" ></a><div id="Device_12">Device12</div>  
+			  <ul class='menu12'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		 
+			<div id="Device17" class='button17'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image17" ></a><div id="Device_17">Device17</div>
+			  <ul class='menu17'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		 
+			<div id="Device18" class='button18'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image18" ></a><div id="Device_18">Device18</div>
+			  <ul class='menu18'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device23" class='button23'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image23" ></a><div id="Device_23">Device23</div>
+			  <ul class='menu23'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			<div id="Device24" class='button24'><div id="Device_lv"><img src="<%=media%>/images/i3_1.png" height="100%" width="100%"></div>
+			<a id="Image24" ></a><div id="Device_24">Device24</div>
+			  <ul class='menu24'>
+				<li><a href='#popup_info'><img src="<%=media%>/images/i1.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Info%> </a></li>
+				<li><a href='#popup_block'><img src="<%=media%>/images/i2.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Block%> </a> </li>
+				<li><a href='#popup_rename'><img src="<%=media%>/images/i4.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Unblock%></a></li>
+				<li><a href='#popup_change'><img src="<%=media%>/images/i5.png" width="12" height="12" hspace="6" vspace="1" border="0" align="top" /><%:Rename_Icon%></a></li>
+			  </ul>
+			</div>
+		
+			 
+		</div>
+		</div>
+		</div>
+		</td>
+	</tr>
+    <tr>
+      <td height="100%" bgcolor="#FFFFFF" style='vertical-align:middle;'>
+	
+	  <div id="tab">
+		<ul class="tabs">
+			
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page1" onclick="page(pageMapping[0],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page2" onclick="page(pageMapping[1],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page3" onclick="page(pageMapping[2],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page4" onclick="page(pageMapping[3],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page5" onclick="page(pageMapping[4],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page6" onclick="page(pageMapping[5],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page7" onclick="page(pageMapping[6],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page8" onclick="page(pageMapping[7],pageMapping[9]);"></a></div></li>
+			<li style="visibility:hidden"><div id="pagebottom" ><a id="page9" onclick="page(pageMapping[8],pageMapping[9]);"></a></div></li>
+			
+		</ul>
+		</div>
+		
+	  </td>
+    </tr>
+    <tr>
+      <td height="80" ><div id="menu_easy">
+<div id="menu_c">
+	<div id="bt4"><a href="#popup_wifi" id="idAnchorWLAN"><%:Wi_Fi%></a>
+	<% local file = io.open("/tmp/wlan_on","r")
+   local on
+	if file ~= nil then 
+		on = file:read("*all")
+		file:close()
+	else
+		on = 0
+	end
+	
+	on = tonumber(on)
+	%>
+	  <div class='checkbox4' id="checkbox4">
+	  <input id='check4' type='checkbox'  <%if on == 1 then%> checked <%else%> <%end%> disabled="disabled">
+		
+			<label class='b4' for='check4'></label>
+		
+			
+		
+
+		<!-- <input id='check4' type='checkbox' value="<%=on%>" onClick="WiFi_on()" <%if on == "1" then%>checked<%end%> > -->
+		
+	  </div>
+	</div>
+<% if sys_op_mode == "2" then%>
+	
+
+	<div id="bt2_gray"><%:Guest_Wi_Fi%>
+		<div class='checkbox1_gray' id="checkbox2">
+			<input id='check2' type='checkbox'  >
+			<label class='b2' for='check2'></label>
+		</div>
+	</div>
+
+	<div id="bt1_gray"><%:parental_control%>
+		<div class='checkbox1_gray' id="checkbox1">
+			<input id='check1' type='checkbox'  >
+			<label class='b1' for='check1'></label>
+		</div>
+	</div>
+
+	<div id="bt3_gray"><%:notification%>
+		<div class='checkbox1_gray' id="checkbox3">
+			<input id='check3' type='checkbox'  >
+			<label class='b3' for='check3'></label>
+		</div>
+	</div>
+
+<%else%>
+	
+	<% local wireless24G_enable = uci:get("wireless","wifi0","disabled") %>
+	<% local GuestWireless_on = uci:get("wireless", "ath3","disabled")%>
+	<div id="bt2"><a href="#popup_gw" id="idAnchorGW"><%:Guest_Wi_Fi%></a> 
+    	<div class='checkbox2' id="checkbox2">
+    		<input id='check2' type='checkbox' value="<%=GuestWireless_on%>" onClick="GuestWiFi_on()" <%if GuestWireless_on == "0" and wireless24G_enable == "0" then%>checked<%end%> <%if wireless24G_enable == "1" then%>disabled<%end%> >
+    		<label class='b2' for='check2'></label>
+    	</div>
+  	</div>
+	
+	<% local parental_control_on = uci:get("parental_ex","general","enable")%>
+	<div id="bt1"><a href="#popup_pc" id="idAnchorPC"><%:parental_control%></a>
+	  <div class='checkbox1' id="checkbox1">
+	   <input id='check1' type='checkbox' value="<%=parental_control_on%>" onClick="ParentalCtrl_on()" <%if parental_control_on == "1" then%>checked<%end%> >
+	   <label class='b1' for='check1'></label>
+	  </div>
+	</div>
+
+  	<% local on = uci:get("parental_monitor","general","enable")%>
+	<div id="bt3"><a href="#popup_pn" id="idAnchorPN"><%:notification%></a>
+		<div class='checkbox3' id="checkbox3">
+			<input id='check3' type='checkbox' value="<%=on%>" onClick="Parental_Notification()" <%if on == "1" then%>checked<%end%> >
+			<label class='b3' for='check3'></label>
+		</div>
+	</div>
+
+<%end%>	
+
+<% if product_name == "NBG6815" then%>
+        <div id="bt5_gray"><a><%:LED%></a>
+		<div class='checkbox1_gray' id="checkbox5"> </div>
+        </div>
+<%else%>
+	<div id="bt5"><a ><%:LED%></a>
+	 <% local on = uci:get("system","led","on")%>
+	 <div class='checkbox5' id="checkbox5">
+	  <input id='check5' type='checkbox' value="<%=on%>" onClick="LED_on()" <%if on == "1" then%>checked<%end%> >
+	  <label class='b5' for='check5'></label>
+	 </div>
+	</div>
+<%end%>
+
+
+</div>
+</div>
+</td>
+    </tr>
+    <tr>
+      <td height="36">&nbsp;</td>
+    </tr>
+  </table>
+</div>
+
+
+
+
+
+	 
+</div>
+
+
+
+	<div id="popup_pc" class="overlay_easy">
+		<div class="popup_easy">
+			 <iframe id="idIFramePC" src="<%=controller%>/easy/ctfilter" height="100%" width="100%" scrolling="no" frameborder="0"></iframe>
+			</div>     
+	</div>
+
+
+	<div id="popup_gw" class="overlay_easy">
+		<div class="popup_easy">
+			 <iframe id="idIFrameGW" src="<%=controller%>/easy/gwlan" height="100%" width="100%" scrolling="no" frameborder="0"></iframe>
+			</div>  
+	</div>
+
+
+	<div id="popup_pn" class="overlay_easy">
+		<div class="popup_easy">
+			 <iframe id="idIFramePN" src="<%=controller%>/easy/ntfilter" height="100%" width="100%" scrolling="no" frameborder="0"></iframe>
+			</div>
+
+	</div>
+
+
+	<div id="popup_wifi" class="overlay_easy">
+		<div class="popup_easy">
+			 <iframe id="idIFrameWLAN" src="<%=controller%>/easy/wlan" height="100%" width="100%" scrolling="no" frameborder="0"></iframe>
+			</div>
+	</div>
+
+
+	<div id="popup_info" class="overlay_easy">
+	<div class="popup_info">
+    <h2><%:Info%></h2>
+	<a class="close" href="#">&times;</a>
+    
+    	<div class="infoContent">
+			  <img id="info_DevIcon" name="info_DevIcon"  width="94" height="98" />
+		</div>
+
+		<div class="infoContent2">
+
+				<table >
+					<tr>
+						<td ><%:Device_Name%> :</td>
+						<td id="info_DevName"><%:Device_Name%></td>
+					</tr>
+					<tr>
+						<td ><%:IP_Address%> :</td>
+						<td ><a id="info_DevIP" href="javascript:LinkIP();"><%:IP_Address%></a></td>
+					</tr>
+					<tr>
+						<td ><%:MAC_Address%> :</td>
+						<td id="info_DevMAC"><%:MAC_Address%></td>
+					</tr>					
+					<tr>
+						<td >Host Type :</td>
+						<td id="info_ConType"><%:Connection_Type%></td>
+					</tr>
+					<tr>
+						<td ><%:OS_Type%> :</td>
+						<td id="info_OSType">Unknown</td>
+					</tr>					
+				</table>
+			</div>
+			
+	</div>
+		
+     </div>
+	 
+
+
+	<div id="popup_change" class="overlay_easy">
+		<div class="popup_info popup_info_rename">
+		<h2 style="float:left;"><%:Rename_Icon%></h2>
+		<a class="close" href="#">&times;</a>
+			<div id="mainIcon">
+				<div class="changeIcon" id="wiredIcon" >
+				
+				  <table >						
+					<tr>
+						<td ><a href="#popup_change"><img id="Client" src="<%=media%>/images/devices_icon/wired/pc_n1.png" width="74" height="78"/></a><br /><%:client%></td>
+						<td ><a href="#popup_change"><img id="Laptop" src="<%=media%>/images/devices_icon/wired/lattop_n1.png" width="74" height="78"/></a><br /><%:laptop%></td>
+						<td ><a href="#popup_change"><img id="AP" src="<%=media%>/images/devices_icon/wired/ap_n1.png" width="74" height="78"/></a><br /><%:ap%></td>
+					</tr>
+					<tr>
+						<td ><a href="#popup_change"><img id="NAS" src="<%=media%>/images/devices_icon/wired/nas_n1.png" width="74" height="78"  /></a><br /><%:nas%></td>
+						<td ><a href="#popup_change"><img id="Power_Line" src="<%=media%>/images/devices_icon/wired/pla_n1.png" width="74" height="78"  /></a><br /><%:power_line%></td>
+						<td ><a href="#popup_change"><img id="Repeater" src="<%=media%>/images/devices_icon/wired/repeater_n1.png" width="74" height="78"  /></a><br /><%:repeater%></td>
+					</tr>
+					<tr>
+						<td ><a href="#popup_change"><img id="Smart_Phone" src="<%=media%>/images/devices_icon/wired/smartphone_n1.png" width="74" height="78"  /></a><br /><%:smart_phone%></td>
+						<td ><a href="#popup_change"><img id="Camera" src="<%=media%>/images/devices_icon/wired/camera_n1.png" width="74" height="78"  /></a><br /><%:camera%></td>
+						<td ><a href="#popup_change"><img id="Tablet" src="<%=media%>/images/devices_icon/wired/tablet_n1.png" width="74" height="78"  /></a><br /><%:tablet%></td>
+					</tr>
+					<tr>
+						<td ><a href="#popup_change"><img id="Router" src="<%=media%>/images/devices_icon/wired/router_n1.png" width="74" height="78"  /></a><br /><%:router%></td>
+						<td ><a href="#popup_change"><img id="Watch" src="<%=media%>/images/devices_icon/wired/watch_n1.png" width="74" height="78"  /></a><br /><%:watch%></td>
+						<td ><a href="#popup_change"><img id="Game" src="<%=media%>/images/devices_icon/wired/game_n1.png" width="74" height="78"  /></a><br /><%:game%></td>
+					</tr>
+				  </table>
+					  
+				</div>
+				
+			</div>	
+				<div class="changeIcon2">
+				  <ul id="rename">
+					<li>
+						<%:icon%> :&nbsp;&nbsp;&nbsp;
+						<img id="change_DeviceIcon" name="change_DeviceIcon" src="<%=media%>/images/devices_icon/wired/repeater_n1.png" width="74" height="78" />
+					</li>
+					<li>
+						<%:Name%> :
+						<input id="change_DevName" name="change_DevName" maxlength="20" type="text" size="15" />
+					</li>
+					<li>
+						<div id="checkName" name="checkName" ><%:Injection_alert%> " ` > < ^ $ ' </div>
+					</li>
+				  </ul>
+				</div>
+		
+		<div id="cancel_info_rename"><a class="cancel " href="#"><%:Cancel%></a></div>
+		<div id="apply_info_rename"><a class="apply" href="#" id="renameApply"><%:Apply%></a></div>
+		</div>
+			
+	</div>
+
+
+
+</body>
+
+ <script src='<%=media%>/js/infomenu.js'></script>
+  <script src="<%=media%>/js/infomenu_b.js"></script>
+</html>

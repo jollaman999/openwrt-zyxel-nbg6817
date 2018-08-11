@@ -1,0 +1,168 @@
+Index: linux-3.4.103/drivers/net/bonding/bond_3ad.c
+===================================================================
+--- linux-3.4.103.orig/drivers/net/bonding/bond_3ad.c
++++ linux-3.4.103/drivers/net/bonding/bond_3ad.c
+@@ -2447,7 +2447,8 @@ int bond_3ad_get_active_agg_info(struct
+ struct net_device *bond_3ad_get_tx_dev(struct sk_buff *skb, uint8_t *src_mac,
+ 				 uint8_t *dst_mac, void *src,
+ 				 void *dst, uint16_t protocol,
+-				 struct net_device *bond_dev)
++				 struct net_device *bond_dev,
++				 __be16 *layer4hdr)
+ {
+ 	struct slave *slave, *start_at;
+ 	struct bonding *bond = netdev_priv(bond_dev);
+@@ -2478,12 +2479,13 @@ struct net_device *bond_3ad_get_tx_dev(s
+ 		uint32_t hash;
+ 
+ 		if (bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER23
++		    && bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER34
+ 		    && bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER2) {
+ 			pr_debug("%s: Error: Unsupported hash policy for 802.3AD fast path\n", bond_dev->name);
+ 			return NULL;
+ 		}
+ 
+-		hash = bond_xmit_hash(src_mac, dst_mac, src, dst, protocol, bond_dev);
++		hash = bond_xmit_hash(src_mac, dst_mac, src, dst, protocol, bond_dev, layer4hdr);
+ 		slave_agg_no = hash % slaves_in_agg;
+ 	}
+ 
+@@ -2526,7 +2528,7 @@ int bond_3ad_xmit_xor(struct sk_buff *sk
+ 	struct net_device *outdev = NULL;
+ 	int res = 1;
+ 
+-	outdev = bond_3ad_get_tx_dev(skb, NULL, NULL, NULL, NULL, 0, dev);
++	outdev = bond_3ad_get_tx_dev(skb, NULL, NULL, NULL, NULL, 0, dev, NULL);
+ 
+ 	if (!outdev) {
+ 		goto out;
+Index: linux-3.4.103/drivers/net/bonding/bond_3ad.h
+===================================================================
+--- linux-3.4.103.orig/drivers/net/bonding/bond_3ad.h
++++ linux-3.4.103/drivers/net/bonding/bond_3ad.h
+@@ -282,6 +282,7 @@ void bond_3ad_update_lacp_rate(struct bo
+ struct net_device *bond_3ad_get_tx_dev(struct sk_buff *skb, uint8_t *src_mac,
+ 					uint8_t *dst_mac, void *src,
+ 					void *dst, uint16_t protocol,
+-					struct net_device *bond_dev);
++					struct net_device *bond_dev,
++					__be16 *layer4hdr);
+ #endif //__BOND_3AD_H__
+ 
+Index: linux-3.4.103/drivers/net/bonding/bond_main.c
+===================================================================
+--- linux-3.4.103.orig/drivers/net/bonding/bond_main.c
++++ linux-3.4.103/drivers/net/bonding/bond_main.c
+@@ -191,7 +191,7 @@ static int arp_ip_count;
+ static int bond_mode	= BOND_MODE_ROUNDROBIN;
+ static int xmit_hashtype = BOND_XMIT_POLICY_LAYER2;
+ static int lacp_fast;
+-static unsigned long bond_id_mask = 0xFFFFFFFE;
++static unsigned long bond_id_mask = 0xFFFFFFF0;
+ 
+ const struct bond_parm_tbl bond_lacp_tbl[] = {
+ {	"slow",		AD_LACP_SLOW},
+@@ -4068,11 +4068,13 @@ static int bond_xmit_activebackup(struct
+  * calculate egress interface.
+  */
+ uint32_t bond_xmit_hash(uint8_t *src_mac, uint8_t *dst_mac, void *psrc,
+-			void *pdst, uint16_t protocol, struct net_device *bond_dev)
++			void *pdst, uint16_t protocol, struct net_device *bond_dev,
++			__be16 *layer4hdr)
+ {
+ 	struct bonding *bond = netdev_priv(bond_dev);
+ 	uint32_t src = *(uint32_t *)psrc;
+ 	uint32_t dst = *(uint32_t *)pdst;
++	int layer4_xor = 0;
+ 
+ 	if (bond->params.xmit_policy == BOND_XMIT_POLICY_LAYER23) {
+ 		if (protocol == htons(ETH_P_IP)) {
+@@ -4081,6 +4083,18 @@ uint32_t bond_xmit_hash(uint8_t *src_mac
+ 		}
+ 	}
+ 
++        /* L4 address is not NULL for UDP and TCP.
++	 * L4 address is NULL for IPv6 and non-ported packets
++	*/
++	if (bond->params.xmit_policy == BOND_XMIT_POLICY_LAYER34) {
++		if (protocol == htons(ETH_P_IP)) {
++			if (layer4hdr) {
++				layer4_xor = ntohs((*layer4hdr ^ *(layer4hdr + 1)));
++			}
++			return layer4_xor ^ (ntohl((uint32_t)src ^ (uint32_t)dst) & 0xffff);
++		}
++	}
++
+ 	/*
+ 	 * Use L2 addresses for non-IPv4 packets and for all other xmit policies
+ 	 */
+@@ -4106,7 +4120,8 @@ uint32_t bond_xmit_hash(uint8_t *src_mac
+ struct net_device *bond_xor_get_tx_dev(struct sk_buff *skb, uint8_t *src_mac,
+ 					uint8_t *dst_mac, void *src,
+ 					void *dst, uint16_t protocol,
+-					struct net_device *bond_dev)
++					struct net_device *bond_dev,
++					__be16 *layer4hdr)
+ {
+ 	struct bonding *bond = netdev_priv(bond_dev);
+ 	struct slave *slave, *start_at;
+@@ -4119,12 +4134,13 @@ struct net_device *bond_xor_get_tx_dev(s
+ 		uint32_t hash;
+ 
+ 		if (bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER23
++		    && bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER34
+ 		    && bond->params.xmit_policy != BOND_XMIT_POLICY_LAYER2) {
+ 			pr_debug("%s: Error: Unsupported hash policy for balance-XOR fast path\n", bond_dev->name);
+ 			return NULL;
+ 		}
+ 
+-		hash = bond_xmit_hash(src_mac, dst_mac, src, dst, protocol, bond_dev);
++		hash = bond_xmit_hash(src_mac, dst_mac, src, dst, protocol, bond_dev, layer4hdr);
+ 		slave_no = hash % bond->slave_cnt;
+ 	}
+ 
+@@ -4165,7 +4181,8 @@ struct net_device *bond_xor_get_tx_dev(s
+ struct net_device *bond_get_tx_dev(struct sk_buff *skb, uint8_t *src_mac,
+ 				 uint8_t *dst_mac, void *src,
+ 				 void *dst, uint16_t protocol,
+-				 struct net_device *bond_dev)
++				 struct net_device *bond_dev,
++				 __be16 *layer4hdr)
+ {
+ 	struct bonding *bond = netdev_priv(bond_dev);
+ 
+@@ -4175,9 +4192,9 @@ struct net_device *bond_get_tx_dev(struc
+ 
+ 	switch (bond->params.mode) {
+ 	case BOND_MODE_XOR:
+-		return bond_xor_get_tx_dev(skb, src_mac, dst_mac, src, dst, protocol, bond_dev);
++		return bond_xor_get_tx_dev(skb, src_mac, dst_mac, src, dst, protocol, bond_dev, layer4hdr);
+ 	case BOND_MODE_8023AD:
+-		return bond_3ad_get_tx_dev(skb, src_mac, dst_mac, src, dst, protocol, bond_dev);
++		return bond_3ad_get_tx_dev(skb, src_mac, dst_mac, src, dst, protocol, bond_dev, layer4hdr);
+ 	default:
+ 		return NULL;
+ 	}
+@@ -4195,7 +4212,7 @@ static int bond_xmit_xor(struct sk_buff
+ 	int res = 1;
+ 
+ 	struct net_device *outdev = NULL;
+-	outdev = bond_xor_get_tx_dev(skb, NULL, NULL, NULL, NULL, 0, bond_dev);
++	outdev = bond_xor_get_tx_dev(skb, NULL, NULL, NULL, NULL, 0, bond_dev, NULL);
+ 
+ 	if (!outdev) {
+ 		goto out;
+Index: linux-3.4.103/drivers/net/bonding/bonding.h
+===================================================================
+--- linux-3.4.103.orig/drivers/net/bonding/bonding.h
++++ linux-3.4.103/drivers/net/bonding/bonding.h
+@@ -420,7 +420,8 @@ void bond_debug_unregister(struct bondin
+ void bond_debug_reregister(struct bonding *bond);
+ const char *bond_mode_name(int mode);
+ uint32_t bond_xmit_hash(uint8_t *src_mac, uint8_t *dst_mac, void *psrc,
+-			void *pdst, uint16_t protocol, struct net_device *bond_dev);
++			void *pdst, uint16_t protocol, struct net_device *bond_dev,
++			__be16 *layer4hdr);
+ 
+ struct bond_net {
+ 	struct net *		net;	/* Associated network namespace */

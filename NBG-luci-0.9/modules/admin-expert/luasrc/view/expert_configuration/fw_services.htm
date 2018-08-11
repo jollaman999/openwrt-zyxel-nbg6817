@@ -1,0 +1,642 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script language="JavaScript" type="text/javascript">
+function checkInjection(str)
+{
+	var len = str.length;      
+	for (var i=0; i<str.length; i++) {
+		if ( str.charAt(i) == '`' || str.charAt(i) == '-' || str.charAt(i) == '<' || str.charAt(i) == '>' || str.charAt(i) == "'" || str.charAt(i) == '"' || str.charAt(i) == '$' || str.charAt(i) == '^' || str.charAt(i) == '&'){
+				return false;
+		}else
+	        continue;
+	}
+	return true;	
+}
+
+function checkIPFormat( value )
+{
+  return /^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$/.test( value );
+}
+
+function atoi(str, num)
+{
+	i = 1;
+	if (num != 1) {
+		while (i != num && str.length != 0) {
+			if (str.charAt(0) == '.') {
+				i++;
+			}
+			str = str.substring(1);
+		}
+		if (i != num)
+			return -1;
+	}
+	for (i=0; i<str.length; i++) {
+		if (str.charAt(i) == '.') {
+			str = str.substring(0, i);
+			break;
+		}
+	}
+	if (str.length == 0)
+		return -1;
+	return parseInt(str, 10);
+}
+function isAllNum(str)
+{
+	for (var i=0; i<str.length; i++) {
+		if ((str.charAt(i) >= '0' && str.charAt(i) <= '9') || (str.charAt(i) == '.' ))
+			continue;
+		return 0;
+	}
+	return 1;
+}    
+function formCheck(){
+
+	var rowCount = $('#show tr').length;
+	if(rowCount >= 67){
+		alert("<%:Firewall_Error_0%>");
+		return false;
+	}
+	
+	if( document.FiewallServiceEnable.sip_address.value == "" && 
+		document.FiewallServiceEnable.dip_address.value == "" &&
+		document.FiewallServiceEnable.sFromPort.value == "" &&
+		document.FiewallServiceEnable.dFromPort.value == "" &&
+		document.FiewallServiceEnable.mac_address.value == ""){
+		alert("<%:Firewall_Error_1%>");
+		return false;
+	}
+	if(document.FiewallServiceEnable.srvName.value == ""){
+		alert("<%:Firewall_Error_8%>");
+		return false;
+	}
+	if(document.FiewallServiceEnable.sFromPort.value != ""){
+		d1 = atoi(document.FiewallServiceEnable.sFromPort.value, 1);
+		if(isAllNum( document.FiewallServiceEnable.sFromPort.value ) == 0){
+			alert("<%:Firewall_Error_2%>");
+			document.FiewallServiceEnable.sFromPort.focus();
+			return false;
+		}
+		if(d1 > 65535 || d1 < 1){
+			alert("<%:Firewall_Error_2%>");
+			document.FiewallServiceEnable.sFromPort.focus();
+			return false;
+		}		
+		if(document.FiewallServiceEnable.sToPort.value != ""){
+			if(isAllNum( document.FiewallServiceEnable.sToPort.value ) == 0){
+				alert("<%:Firewall_Error_2%>");
+				return false;
+			}		
+			d2 = atoi(document.FiewallServiceEnable.sToPort.value, 1);
+			if(d2 > 65535 || d2 < 1){
+				alert("<%:Firewall_Error_2%>");
+				return false;
+			}
+			if(d1 > d2){
+			alert("<%:Firewall_Error_3%>");
+			return false;
+			}
+		}
+	}
+	if(document.FiewallServiceEnable.dFromPort.value != ""){
+		d1 = atoi(document.FiewallServiceEnable.dFromPort.value, 1);
+		if(isAllNum( document.FiewallServiceEnable.dFromPort.value ) == 0){
+			alert("<%:Firewall_Error_4%>");
+			return false;
+		}
+		if(d1 > 65535 || d1 < 1){
+			alert("<%:Firewall_Error_4%>");
+			return false;
+		}		
+		if(document.FiewallServiceEnable.dToPort.value != ""){
+			if(isAllNum( document.FiewallServiceEnable.dToPort.value ) == 0){
+				alert("<%:Firewall_Error_4%>");
+				return false;
+			}		
+			d2 = atoi(document.FiewallServiceEnable.dToPort.value, 1);
+			if(d2 > 65535 || d2 < 1){
+				alert("<%:Firewall_Error_4%>");
+				return false;
+			}
+			if(d1 > d2){
+			alert("<%:Firewall_Error_5%>");
+			return false;
+			}
+		}
+	}
+	// check mac address format
+	var re = /[A-Fa-f0-9][ACEace02468]:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}/;
+	if(document.FiewallServiceEnable.mac_address.value != ""){
+		if (!re.test(document.FiewallServiceEnable.mac_address.value)) 
+		{
+			alert("<%:WAN_Error_19%>");
+			return false;	
+		}
+	}
+	// check ip address format
+	if(document.FiewallServiceEnable.sip_address.value != ""){
+		if ( !checkIPFormat(document.FiewallServiceEnable.sip_address.value) )
+		{
+			alert( "<%:LAN_Error_1%>" );
+			return false;
+		}
+	}
+	if(document.FiewallServiceEnable.dip_address.value != ""){
+		if ( !checkIPFormat(document.FiewallServiceEnable.dip_address.value) )
+		{
+			alert( "<%:LAN_Error_1%>" );
+			return false;
+		}
+	}
+	// check service name
+	if(document.FiewallServiceEnable.srvName.value != ""){
+		if(!(checkInjection(document.FiewallServiceEnable.srvName.value)))
+		{
+			alert("<%:Injection_alert%>"+" ' ` - > < ^ $ &"+' " ');
+			return false;
+		}
+		if(document.FiewallServiceEnable.srvName.value == "app_service")
+		{
+			alert("<%:Firewall_Error_name%>");
+			return false;
+		}
+	}
+	// check port first char is 0
+	if(document.FiewallServiceEnable.dFromPort.value.charAt(0) == "0" || document.FiewallServiceEnable.dToPort.value.charAt(0) == "0" || document.FiewallServiceEnable.sFromPort.value.charAt(0) == "0" ||document.FiewallServiceEnable.sToPort.value.charAt(0) == "0" )
+	{
+		alert("<%:Firewall_Error_2%>")
+		return false;
+	}
+
+	<% rule_num = uci:get("firewall","general","rules_count") %>
+	<%	for i=1,rule_num do
+			mac = uci:get("firewall","rule"..i,"mac_address");
+			dst = uci:get("firewall","rule"..i,"dst_ip");
+			src = uci:get("firewall","rule"..i,"src_ip");
+			protocol = uci:get("firewall","rule"..i,"protocol");
+			dFromPort = uci:get("firewall","rule"..i,"dFromPort");
+			dToPort = uci:get("firewall","rule"..i,"dToPort");
+			sFromPort = uci:get("firewall","rule"..i,"sFromPort");
+			sToPort = uci:get("firewall","rule"..i,"sToPort"); %>
+
+			mac_address_val="<%=mac%>";
+			dst_ip_val="<%=dst%>";
+			src_ip_val="<%=src%>";
+			protocol_val="<%=protocol%>";
+			dF_val="<%=dFromPort%>";
+			dT_val="<%=dToPort%>";
+			if(dF_val !="" && dT_val ==""){
+				dT_val=dF_val;
+			}
+			sF_val="<%=sFromPort%>";
+			sT_val="<%=sToPort%>";
+			if(sF_val !="" && sT_val ==""){
+				sT_val=sF_val;
+			}
+			if(document.FiewallServiceEnable.mac_address.value == ""){
+				mac_val='00:00:00:00:00:00';
+			}
+			else {
+				mac_val=document.FiewallServiceEnable.mac_address.value;
+			}
+			if (document.FiewallServiceEnable.dip_address.value == ""){
+				dip_addr='0.0.0.0';
+			}
+			else{
+				dip_addr=document.FiewallServiceEnable.dip_address.value;
+			}
+			if (document.FiewallServiceEnable.sip_address.value == ""){
+				sip_addr='0.0.0.0';
+			}
+			else{
+				sip_addr=document.FiewallServiceEnable.sip_address.value;
+			}
+			var proto_val=document.FiewallServiceEnable.protocol.value;
+			if(document.FiewallServiceEnable.dFromPort.value == "" && document.FiewallServiceEnable.dToPort.value != ""){
+				alert("<%:Firewall_Error_10%>");
+				return false;
+			}
+			else if(document.FiewallServiceEnable.dFromPort.value != "" && document.FiewallServiceEnable.dToPort.value == ""){
+					dFromPort_val=document.FiewallServiceEnable.dFromPort.value;
+					dToPort_val=document.FiewallServiceEnable.dFromPort.value;
+			}
+			else{
+				dFromPort_val=document.FiewallServiceEnable.dFromPort.value;
+				dToPort_val=document.FiewallServiceEnable.dToPort.value;
+			}
+			if(document.FiewallServiceEnable.sFromPort.value == "" && document.FiewallServiceEnable.sToPort.value != ""){
+				alert("<%:Firewall_Error_9%>");
+				return false;
+			}
+			else if(document.FiewallServiceEnable.sFromPort.value != "" && document.FiewallServiceEnable.sToPort.value == ""){
+				sFromPort_val=document.FiewallServiceEnable.sFromPort.value;
+				sToPort_val=document.FiewallServiceEnable.sFromPort.value;
+			}
+			else{
+				sFromPort_val=document.FiewallServiceEnable.sFromPort.value;
+				sToPort_val=document.FiewallServiceEnable.sToPort.value;
+			
+			}
+			
+			if (mac_val.toLocaleUpperCase() == mac_address_val.toLocaleUpperCase() &&
+				dip_addr == dst_ip_val &&
+				sip_addr == src_ip_val &&
+				proto_val == protocol_val &&
+				dFromPort_val == dF_val &&
+				dToPort_val == dT_val && 
+				sFromPort_val == sF_val &&
+				sToPort_val == sT_val ){
+				alert("<%:Firewall_Error_7%>");
+				return false;
+			}
+			
+	<% end %>
+			<!--  showWebMessage( 0 , '<%:Message%>' , '<%:Ready%>' );		 -->
+   	
+	document.FiewallServiceEnable.action = "<%=controller%>/expert/configuration/security/firewall/fwsrv?add_rule"; 
+	skm_LockScreen();
+	return true;
+}
+function EnableClick(){
+	document.FiewallServiceEnable.portFilterEnabled.value = document.FiewallServiceEnable.portFilterEnabled.checked ? "1": "0";
+	document.FiewallServiceEnable.DoSEnabled.value = document.FiewallServiceEnable.DoSEnabled.checked ? "1": "0";
+	
+	<!-- document.FiewallServiceEnable.Service_rtnFlag.value = "0";		 -->
+	<!-- showWebMessage( 0 , '<%:Message%>' , '<%:Ready%>' );	 -->
+	return true;
+}
+function doFindCurrentRule(CurrentIndex){
+	document.FiewallServiceEnable.Service_rtnIndex.value = CurrentIndex;	
+}
+function doDeleteRule(){
+	document.FiewallServiceEnable.Service_rtnFlag.value = "2";
+	<!-- showWebMessage( 0 , '<%:Message%>' , '<%:Ready%>' ); -->
+}
+function updateState(){	
+	protocolChange();	
+	if (document.FiewallServiceEnable.portFilterEnabled.value == "1")
+		document.FiewallServiceEnable.portFilterEnabled.checked = true;		
+	var wpf = "0";		
+	if(wpf == "1")
+		document.FiewallServiceEnable.pingFrmWANFilterEnabled.options.selectedIndex = 1;
+	else
+		document.FiewallServiceEnable.pingFrmWANFilterEnabled.options.selectedIndex = 0;		
+}
+function protocolChange(){
+	if( document.FiewallServiceEnable.protocol.selectedIndex == 0 ||
+		document.FiewallServiceEnable.protocol.selectedIndex == 1){
+		document.FiewallServiceEnable.dFromPort.disabled = false;
+		document.FiewallServiceEnable.dToPort.disabled = false;
+		document.FiewallServiceEnable.sFromPort.disabled = false;
+		document.FiewallServiceEnable.sToPort.disabled = false;
+	}else{
+		document.FiewallServiceEnable.dFromPort.disabled = true;
+		document.FiewallServiceEnable.dToPort.disabled = true;
+		document.FiewallServiceEnable.sFromPort.disabled = true;
+		document.FiewallServiceEnable.sToPort.disabled = true;
+		document.FiewallServiceEnable.dFromPort.value = ""; 
+		document.FiewallServiceEnable.dToPort.value = "";
+		document.FiewallServiceEnable.sFromPort.value =  "";
+		document.FiewallServiceEnable.sToPort.value = "";
+	}
+}
+function reloadPage(){
+	self.location.href = '<%=controller%>/expert/configuration/security/firewall/fwsrv';
+}   
+
+function skm_unLockScreen(){
+		var load = document.getElementById("load");
+        var lock = document.getElementById("skm_LockPane");
+		var lock_left = window.parent.menu.document.getElementById("skm_LockPane");
+		var lock_right = window.parent.easy.document.getElementById("skm_LockPane");
+		var lock_top = window.parent.parent.topFrame.document.getElementById("skm_LockPane");
+		var lock_bottom = window.parent.parent.bottom.document.getElementById("skm_LockPane");
+		document.getElementsByTagName("body")[0].style.overflow = "auto";
+		 
+        if (lock) 
+			lock.className = 'LockOff'; 
+			load.className = 'LockOff'; 
+			
+		if (lock_left) 
+			lock_left.className = 'LockOff'; 
+			
+		if (lock_right) 
+			lock_right.className = 'LockOff'; 		
+		
+		if (lock_top) 
+			lock_top.className = 'LockOff'; 	
+			
+		if (lock_bottom) 
+			lock_bottom.className = 'LockOff'; 	
+
+}
+
+function skm_LockScreen(){ 
+
+		var load = document.getElementById("load");
+		var lock = document.getElementById("skm_LockPane");
+		var lock_left = window.parent.menu.document.getElementById("skm_LockPane");
+		var lock_right = window.parent.easy.document.getElementById("skm_LockPane");
+		var lock_top = window.parent.parent.topFrame.document.getElementById("skm_LockPane");
+		var lock_bottom = window.parent.parent.bottom.document.getElementById("skm_LockPane");
+		document.getElementsByTagName("body")[0].style.overflow = "hidden";
+		 
+		if (lock) 
+			lock.className = 'LockOn'; 
+			load.className = 'spinner'; 
+					
+		if (lock_right) 
+			lock_right.className = 'LockOn'; 		
+		
+		if (lock_top) 
+			lock_top.className = 'LockOn'; 	
+			
+		if (lock_bottom) 
+			lock_bottom.className = 'LockOn'; 	
+
+		if (lock_left)
+			lock_left.className = 'LockOn'; 
+	
+}
+</script>
+</head>
+<body onload="MM_preloadImages('<%=media%>/admin/images/i_edit_on.gif','<%=media%>/admin/images/i_delete_on.gif');skm_unLockScreen();" >
+
+<div id="load" class="LockOff">
+  <div class="spinner-container container1">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container2">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container3">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+</div>
+<div id="skm_LockPane" class="LockOff"></div>
+
+
+<form method="post" name="FiewallServiceEnable" action="<%=controller%>/expert/configuration/security/firewall/fwsrv?enable_apply&firwall_apply&icmp_apply">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:IPv4_firewall%></div></td>
+    <td>&nbsp;</td>	
+      <td width="100" valign="top"><div class="apply"  ><input type="submit" value="<%:Apply%>" id="natApply" name="apply" onClick="skm_LockScreen();EnableClick()"></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input type="reset" name="Cancel" value="<%:cancel%>" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+<!-- <li class="title" ><%:Firewall_Setup%></li> -->
+ 
+<% local pingEnable = uci:get("firewall","general","pingEnabled")%>
+<li class="w_text">
+	<ul>
+		<li class="title" ><%:ICMP%></li>         
+		<li class="left_table"><%:Respond_to_Ping_on%>:</li>
+		<li class="right_table">
+			<select style="width:30%" onchange="" size="1" name="pingFrmWANFilterEnabled">                  
+				<option value="disable" id="portFilterPingFrmWANFilterDisable" <%if pingEnable=="disabled" then%> selected <%end%> ><%:Disable%></option>
+				<option value="lan" id="portFilterPingFrmWANFilterLAN" <%if pingEnable=="lan" then%> selected <%end%> ><%:LAN%></option>
+				<option value="wan" id="portFilterPingFrmWANFilterWAN" <%if pingEnable=="wan" then%> selected <%end%> ><%:WAN%></option>
+				<option value="both" id="portFilterPingFrmWANFilterLANandWAN" <%if pingEnable=="both" then%> selected <%end%> ><%:LAN_WAN%></option>
+			</select>
+		</li>
+	</ul>
+</li>
+
+<li class="space"></li>
+<% local enabled = uci:get("firewall","general","dos_enable")%>
+
+<li class="w_text">
+	<ul>
+		<li class="title" ><%:Firewall_Setup%></li>         
+		<li class="left_table"><%:Enable_Firewall%></li>
+		<li class="right_table">
+			<input name="DoSEnabled" type="checkbox"  <%if enabled == "1" then%>value="1" checked="checked" <%end%> />
+		</li>
+	</ul>
+</li>
+<li class="space"></li>
+
+         
+                 
+                   
+<% local fEnabled = uci:get("firewall","general","filterEnabled")%>
+<li class="w_text">
+	<ul><li class="title" ><%:Enable_Firewall_Rule%></li>         
+		<li class="left_table"><%:Enable_Firewall_Rule%></li>
+		<li class="right_table">
+			<input name="portFilterEnabled" type="checkbox" <%if fEnabled == "1" then%> value="1"  checked="checked"<%end%>  >
+		</li>
+		<li class="left_table"><%:Firewall_Filter_table_type%></li>
+		<li class="right_table">
+			<% 
+				local action_x = uci:get("firewall","general","target")
+				if not action_x then
+						action_x = "DROP"
+				end
+			%>
+			<input name="action" type="radio" value="DROP" <%if action_x=="DROP" then%> checked="CHECKED" <%end%>>DROP
+
+			<input name="action" type="radio" value="ACCEPT" <%if action_x=="ACCEPT" then%> checked="CHECKED" <%end%>>ACCEPT
+		</li>
+	</ul>
+</li>
+
+<li class="space"></li>
+<li class="w_text">
+	<ul><li class="title" id="portFilterAddFirewallRule"><%:Add_Firewall_Rule%> </li> 
+		<li class="left_table"><%:Service_Name%> : </li>
+		<li class="right_table">
+			<input style="width:30%" name="srvName" size="16" maxlength="32" value=""  type="text">
+		</li>
+		<li class="left_table"><%:MAC_Address%> : </li>
+		<li class="right_table">
+			<input style="width:30%" name="mac_address" size="18"  value="" type="text" />
+		</li>
+		<li class="left_table"><%:Dest_IP_Address%> : </li>
+		<li class="right_table">
+			<input style="width:30%" name="dip_address" size="16" value=""  type="text" />
+		</li>
+		<li class="left_table"><%:Source_IP_Address%> : </li>
+		<li class="right_table">
+			<input style="width:30%" name="sip_address" size="16" value="" type="text" />
+		</li>
+		<li class="left_table"><%:Protocol%> :</li>
+		<li class="right_table">
+			<select style="width:31%" name="protocol" onChange="protocolChange()" id="procotol">
+
+				<!-- <option value="None">None </option> -->
+
+				<option value="TCP"><%:TCP%> </option>
+				<option value="UDP"><%:UDP%> </option>
+				<option value="ICMP"><%:ICMP%> </option>             
+			</select>
+		</li>
+		<li class="left_table"><%:DestPortRange%> :</li>
+		<li class="right_table">
+			<input style="width:14%" name="dFromPort" size="5" value="" type="text" />-
+			<input style="width:14%" name="dToPort" size="5"  value="" type="text" />
+		</li>
+	
+		<li class="left_table"><%:SourcePortRange%> : </li>
+		<li class="right_table">
+			<input style="width:14%" name="sFromPort" size="5"  value=""  type="text" >-
+			<input style="width:14%" name="sToPort" size="5"  value=""  type="text" >
+		</li>
+		<li class="left_table"></li>
+		<li class="right_table">
+			<input style="width:31%" type="submit" value="<%:Add_Rule%>" id="portFilterAddRule" name="add_rule" onClick="return formCheck();"> 
+		</li>
+	</ul>
+</li>
+
+
+<li class="space"></li>
+<!--
+<li class="title" id="portFilterFirewallRule"><%:Firewall_Rule%> </li>
+-->
+<li class="w_text" style="width:100%;">
+<!--
+<div class="tableframe">
+-->
+<div width="100%">
+<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+<tr><td>
+<table id="show" width="100%" cellpadding="0" cellspacing="0" >
+<tr><td height="26" colspan="10">
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td background="<%=media%>/admin/images/table_top_center.gif" height="26" class="table_title" id="portFilterFirewallRule2"> 
+	<%:Firewall_Rule%> (<%:Firewall_Error_0%>)
+</td>
+</tr>
+</table>
+</td></tr>
+<tr class="top_font" align="center">
+<td width="5%"><center><span class="top_left">#</span></center></td>
+<td width="5%"   align="center" nowrap><font class="top_font"><span id="portFilterTableServiceNmae"><%:ServiceName%></span></font></td>
+<td width="10%"   align="center" nowrap><font class="top_font"><span id="portFilterTableMACaddress"><%:MAC_Address%></span></font></td>
+<td width="10%"   align="center" nowrap><font class="top_font"><span id="portFilterTableDestIP"><%:DestIP%></span></font></td>
+<td width="10%"   align="center" nowrap><font class="top_font"><span id="portFilterTableSourceIP"><%:SourceIP%></span></font></td>
+<td width="10%"   align="center" nowrap><font class="top_font"><span id="portFilterTableProtocol"><%:Protocol%></span></font></td>
+<td width="20%"   align="center" nowrap><font class="top_font"><span id="portFilterTableDestPortRange"><%:DestPortRange%></span></font></td>
+<td width="20%"   align="center" nowrap><font class="top_font"><span id="portFilterTableSourcePortRange"><%:SourcePortRange%></span></font></td>
+<!--
+<td width="5%"   align="center" nowrap><font class="top_font"><span id="portFilterTableAction"><%:Action%></span></font></td>
+-->
+<td width="10%"   align="center" nowrap><font class="top_font"><span id="portFilterTableDelete"></span></font></td>
+</tr>
+<!--
+<tr class="top_font" align="center">
+	<td></td>
+	<td>
+		<input name="srvName" size="16" maxlength="32" value=""  type="text">
+	</td>
+	<td>
+		<input name="mac_address" size="18"  value="" type="text" />
+	</td>
+	<td>
+		<input name="dip_address" size="16" value=""  type="text" />
+	</td>
+	<td>
+		<input name="sip_address" size="16" value="" type="text" />
+	</td>
+	<td>
+		<select name="protocol" onChange="protocolChange()" id="procotol">
+			<option value="TCP"><%:TCP%> </option>
+			<option value="UDP"><%:UDP%> </option>
+			<option value="ICMP"><%:ICMP%> </option>             
+		</select>
+	</td>
+	<td>
+		<input style="width:35%" name="dFromPort" size="5" value="" type="text" />-
+		<input style="width:35%" name="dToPort" size="5"  value="" type="text" />
+	</td>
+	<td>
+		<input style="width:35%" name="sFromPort" size="5"  value=""  type="text" >-
+		<input style="width:35%" name="sToPort" size="5"  value=""  type="text" >
+	</td>
+	<td>
+		<input type="submit" value="+" id="portFilterAddRule" name="add_rule" onClick="return formCheck();">
+	</td>
+</tr>
+-->
+
+<% luci.sys.net.fw_service(function(rt) %>
+<tr class="table_font" align="center">
+<td><center><%=rt.index%></center></td>
+<td><center><%=rt.name%></center></td>
+<td><center><%=rt.mac_address%></center></td>
+<td><center><%=rt.dst_ip%></center></td>
+<td><center><%=rt.src_ip%></center></td>
+<td><center><%=rt.protocol%></center></td>
+<td><center><%=rt.dFromPort%>-<%=rt.dToPort%></center></td>
+<td><center><%=rt.sFromPort%>-<%=rt.sToPort%></center></td>
+<!--
+<td><center><%=rt.target%></center></td>
+-->
+<td><center><a href="<%=controller%>/expert/configuration/security/firewall/fwsrv?remove=<%=rt.CurPos%>" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image19','','images/i_edit_on.gif',1)" ><img src="<%=media%>/images/delete-01.png" onMouseOver="this.src='<%=media%>/images/delete_hover-01.png'" onMouseOut="this.src='<%=media%>/images/delete-01.png'" onMouseDown="this.src='<%=media%>/images/delete_active-01.png'" onMouseUp="this.src='<%=media%>/images/delete-01.png'" onclick="skm_LockScreen();" type="image" title="<%:Delete%>"></center></td>
+</tr>
+<% end) %>
+</table></td>
+</tr>
+</table>
+</div>
+<div class="spaceair"> </div>
+</li>  			
+
+</div>
+</form>
+            
+             
+</body>
+      
+</html>     
+            
+            
+            

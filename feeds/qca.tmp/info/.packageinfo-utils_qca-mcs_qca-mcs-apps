@@ -1,0 +1,45 @@
+Source-Makefile: feeds/qca/utils/qca-mcs/qca-mcs-apps/Makefile
+Package: qca-mcs-apps
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread @PACKAGE_kmod-qca-wifi-10.4-akronite-perf||PACKAGE_kmod-qca-wifi-10.4-dakota-perf||PACKAGE_kmod-qca-wifi-perf||PACKAGE_kmod-qca-wifi-akronite-perf +kmod-qca-mcs +libhyficommon +libpthread @PACKAGE_kmod-qca-ssdk-nohnat||PACKAGE_kmod-qca-ssdk-hnat +kmod-qca-ssdk-nohnat
+Menu-Depends: 
+Provides: 
+Build-Depends: PACKAGE_kmod-qca-wifi-10.4-akronite-perf:qca-wifi-10.4 PACKAGE_kmod-qca-wifi-perf:qca-wifi PACKAGE_kmod-qca-wifi-akronite-perf:qca-wifi PACKAGE_kmod-qca-wifi-10.4-dakota-perf:qca-wifi-10.4 PACKAGE_kmod-qca-ssdk-nohnat:qca-ssdk-nohnat PACKAGE_kmod-qca-ssdk-hnat:qca-ssdk-hnat
+Section: QCA
+Category: QCA Proprietary software
+Title: IGMP/MLD snooping daemon and tools
+Maintainer: Qualcomm Atheros
+Source: qca-mcs-apps.tar.bz2
+Type: ipkg
+Description:   This package installs the IGMP/MLD snooping daemon and tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "overwrite package version"
+		depends on PACKAGE_qca-mcs-apps
+	config qca-mcs-apps_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-mcs-apps
+		bool "Use custom package version"
+		default n
+
+	config qca-mcs-apps_CUSTOM_VERSION
+		depends on qca-mcs-apps_USE_CUSTOM_VERSION
+		string "qca-mcs-apps version as string (default version: )"
+		default ""
+
+	endmenu
+  	menu "custom source directory"
+		depends on PACKAGE_qca-mcs-apps
+	config qca-mcs-apps_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-mcs-apps
+		bool "Use custom source directory"
+		default n
+	config qca-mcs-apps_CUSTOM_SOURCE_DIR
+		depends on qca-mcs-apps_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+

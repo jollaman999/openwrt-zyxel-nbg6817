@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2008-2010 OpenWrt.org
+START=97
+
+start() {
+	time_daemon start
+}
+
+stop() {
+	time_daemon stop
+}
+
+restart() {
+	time_daemon restart
+}
+
+reload() {
+	time_daemon reload
+}

@@ -1,0 +1,24 @@
+diff --git a/frontends/nss/ecm_nss_ipv4.c b/frontends/nss/ecm_nss_ipv4.c
+index 531c1e6..ad0106f 100644
+--- a/frontends/nss/ecm_nss_ipv4.c
++++ b/frontends/nss/ecm_nss_ipv4.c
+@@ -972,6 +972,19 @@ static unsigned int ecm_nss_ipv4_ip_process(struct net_device *out_dev, struct n
+ 		ecm_dir = ECM_DB_DIRECTION_BRIDGED;
+ 	}
+ 
++	/*
++	 * Are is_routed and ecm_dir consistent?
++	 * In SNAT scenario, the packets which come through the bridge post routing hook
++	 * have the WAN interface IP address as the SNAT address, then the above ecm_dir calculation
++	 * it is calculated as ECM_DB_DIRECTION_EGRESS_NAT. So, we shouldn't accelerate the flow this time
++	 * and wait for the packet to pass through the post routing hook.
++	 *
++	 */
++	if (!is_routed && (ecm_dir != ECM_DB_DIRECTION_BRIDGED)) {
++		DEBUG_TRACE("Packet comes from bridge post routing hook but ecm_dir is not bridge\n");
++		return NF_ACCEPT;
++	}
++
+ 	DEBUG_TRACE("IP Packet ORIGINAL src: %pI4 ORIGINAL dst: %pI4 protocol: %u, sender: %d ecm_dir: %d\n", &orig_tuple.src.u3.ip, &orig_tuple.dst.u3.ip, orig_tuple.dst.protonum, sender, ecm_dir);
+ 
+ 	/*

@@ -1,0 +1,245 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local sys = require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev
+
+ local release_year = uci:get("system","main","release_year")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="<%=media%>/css/easy123_base.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_skeleton.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_layout.css" />
+
+<title><%:easy123_title_4%></title>
+<script language="javascript">
+function gotoApply(){
+  loc = '<%=luci.dispatcher.build_url("easy","eaZy123","genie4")%>';
+  code = 'location="' + loc + '"';
+  eval(code);	
+
+}
+</script>
+<style>
+#circularG{
+position:relative;
+width:85px;
+height:85px}
+
+.circularG{
+position:absolute;
+background-color:#0075C9;
+width:19px;
+height:19px;
+-moz-border-radius:13px;
+-moz-animation-name:bounce_circularG;
+-moz-animation-duration:1.04s;
+-moz-animation-iteration-count:infinite;
+-moz-animation-direction:normal;
+-webkit-border-radius:13px;
+-webkit-animation-name:bounce_circularG;
+-webkit-animation-duration:1.04s;
+-webkit-animation-iteration-count:infinite;
+-webkit-animation-direction:normal;
+-ms-border-radius:13px;
+-ms-animation-name:bounce_circularG;
+-ms-animation-duration:1.04s;
+-ms-animation-iteration-count:infinite;
+-ms-animation-direction:normal;
+-o-border-radius:13px;
+-o-animation-name:bounce_circularG;
+-o-animation-duration:1.04s;
+-o-animation-iteration-count:infinite;
+-o-animation-direction:normal;
+border-radius:13px;
+animation-name:bounce_circularG;
+animation-duration:1.04s;
+animation-iteration-count:infinite;
+animation-direction:normal;
+}
+
+#circularG_1{
+left:0;
+top:33px;
+-moz-animation-delay:0.39s;
+-webkit-animation-delay:0.39s;
+-ms-animation-delay:0.39s;
+-o-animation-delay:0.39s;
+animation-delay:0.39s;
+}
+
+#circularG_2{
+left:9px;
+top:9px;
+-moz-animation-delay:0.52s;
+-webkit-animation-delay:0.52s;
+-ms-animation-delay:0.52s;
+-o-animation-delay:0.52s;
+animation-delay:0.52s;
+}
+
+#circularG_3{
+top:0;
+left:33px;
+-moz-animation-delay:0.65s;
+-webkit-animation-delay:0.65s;
+-ms-animation-delay:0.65s;
+-o-animation-delay:0.65s;
+animation-delay:0.65s;
+}
+
+#circularG_4{
+right:9px;
+top:9px;
+-moz-animation-delay:0.78s;
+-webkit-animation-delay:0.78s;
+-ms-animation-delay:0.78s;
+-o-animation-delay:0.78s;
+animation-delay:0.78s;
+}
+
+#circularG_5{
+right:0;
+top:33px;
+-moz-animation-delay:0.91s;
+-webkit-animation-delay:0.91s;
+-ms-animation-delay:0.91s;
+-o-animation-delay:0.91s;
+animation-delay:0.91s;
+}
+
+#circularG_6{
+right:9px;
+bottom:9px;
+-moz-animation-delay:1.04s;
+-webkit-animation-delay:1.04s;
+-ms-animation-delay:1.04s;
+-o-animation-delay:1.04s;
+animation-delay:1.04s;
+}
+
+#circularG_7{
+left:33px;
+bottom:0;
+-moz-animation-delay:1.17s;
+-webkit-animation-delay:1.17s;
+-ms-animation-delay:1.17s;
+-o-animation-delay:1.17s;
+animation-delay:1.17s;
+}
+
+#circularG_8{
+left:9px;
+bottom:9px;
+-moz-animation-delay:1.3s;
+-webkit-animation-delay:1.3s;
+-ms-animation-delay:1.3s;
+-o-animation-delay:1.3s;
+animation-delay:1.3s;
+}
+
+@-moz-keyframes bounce_circularG{
+0%{
+-moz-transform:scale(1)}
+
+100%{
+-moz-transform:scale(.3)}
+
+}
+
+@-webkit-keyframes bounce_circularG{
+0%{
+-webkit-transform:scale(1)}
+
+100%{
+-webkit-transform:scale(.3)}
+
+}
+
+@-ms-keyframes bounce_circularG{
+0%{
+-ms-transform:scale(1)}
+
+100%{
+-ms-transform:scale(.3)}
+
+}
+
+@-o-keyframes bounce_circularG{
+0%{
+-o-transform:scale(1)}
+
+100%{
+-o-transform:scale(.3)}
+
+}
+
+@keyframes bounce_circularG{
+0%{
+transform:scale(1)}
+
+100%{
+transform:scale(.3)}
+
+}
+
+</style>
+</head>
+<body onload="gotoApply()">
+  <div class="logo">
+    <div class="red2"><h5t><img width="100" height="40" src="<%=media%>/images/easy123_logo.png"></img><%:easy123_title_1%></h5t></div>
+  </div>
+  <div class="container">
+    <div class="sixteen columns">
+      <div align="center"><h2><%:easy123_title_3%></h2><hr></div>
+    </div>
+
+    <div align="center">
+      <h4><%:easy123_setup_g3%></h4>
+      <br>
+      <div id="circularG">
+        <div id="circularG_1" class="circularG"></div>
+        <div id="circularG_2" class="circularG"></div>
+        <div id="circularG_3" class="circularG"></div>
+        <div id="circularG_4" class="circularG"></div>
+        <div id="circularG_5" class="circularG"></div>
+        <div id="circularG_6" class="circularG"></div>
+        <div id="circularG_7" class="circularG"></div>
+        <div id="circularG_8" class="circularG"></div>
+      </div>
+      <br>
+      <p><%:easy123_detecting_2%></p>
+    </div>
+
+    <div class="sixteen columns">
+      <hr>
+      <div align="center"><p class="footer"><%:easy123_zyxel%><%=release_year%></p></div>
+    </div>
+  </div>
+</body>
+</html>

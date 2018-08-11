@@ -1,0 +1,290 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+# ################## Power on, WiFi init flow ########################################
+# S11gpio-button-hotplug	-->	Create WiFi HW button flag, need time 15~20(s), 
+# 							run in background.
+
+# S41Wireless				--> Check WiFi HW button, because gpio-button-hotplug 
+# 							create WiFi HW button flag, need time 15~20(s), so
+# 							check "/sys/kernel/debug/gpio" value.
+
+# 							##cat /sys/kernel/debug/gpio
+# 							WLAN_DISABLE  lo  --> wifi up
+# 							WLAN_DISABLE  hi  --> wifi down
+
+# S97wifi_scheduling		-->	Check WiFi HW button,
+# 							/tmp/wlan_on	1			 --> set wifi scheduling
+# 							/tmp/wlan_on	No file or 0 --> wifi down 24G
+
+
+# S97wifi_scheduling5G	-->	1. Check WiFi HW button,
+# 							/tmp/wlan_on	1			 --> set wifi scheduling5G
+# 							/tmp/wlan_on	No file or 0 --> wifi down 5G
+
+# 							2. Create hotplug wifi button flag
+
+# ------------------------------------------------------------------------------------
+
+# ---------
+# |  S11  |							----> Run in background,need time 15~20(s).
+# ---------
+# 	|
+# ---------
+# |  S41  |
+# ---------
+# 	| Check "/sys/kernel/debug/gpio" value
+# 	------------------
+# 	|(lo)			 |(hi)
+# ---------		-----------
+# |wifi up|		|wifi down|
+# ---------		-----------
+# 	|				 |
+# 	------------------
+# 	|
+# ---------
+# |  S97  |							---->S97wifi_scheduling
+# ---------
+# 	| Check "/tmp/wlan_on" value
+# 	---------------------------
+# 	|(0)					  |(1)
+# ---------------		---------------------
+# |wifi down 24G|		|set wifi scheduling|
+# ---------------		---------------------
+# 	|						  |
+# 	---------------------------
+# 	|
+# ---------
+# |  S97  |							---->S97wifi_scheduling5G
+# ---------
+# 	| Check "/tmp/wlan_on" value
+# 	---------------------------
+# 	|(0)					  |(1)
+# ---------------		-----------------------
+# |wifi down 5G |		|set wifi scheduling5G|
+# ---------------		-----------------------
+# 	|						  |
+# 	---------------------------
+# 	|
+# ---------
+# | flage |								---->Create hotplug wifi button flag
+# ---------
+# 	|
+# ---------------------------
+# | S97wireless5G_macfilter |
+# ---------------------------
+
+# #####################################################################################
+START=41
+STOP=41
+
+. /etc/functions.sh
+include /lib/config
+
+start() {
+	## work around to avoid kernel panic
+	#/bin/dmesg -n 8
+
+	## to prevent the wireless config ruined after wireless crash
+	chk_wirelessconfig=$(uci show wireless | grep ath13 | wc -l)
+	chk_wps5G=$(uci show wps5G | wc -l)
+	[ -f "/etc/bakconfig/wireless" ] && {
+		[ "$chk_wirelessconfig" -gt 30 ] || cp /etc/bakconfig/wireless /etc/config/
+		[ "$chk_wps5G" -gt 3 ] || cp /rom/etc/config/wps5G /etc/config/
+		sleep 1
+		## double check again
+		double_chk=$(uci show wireless | grep ath13 | wc -l)
+		[ "$double_chk" -gt 30 ] || cp /rom/etc/config/wireless /etc/config/
+	}
+
+	WiFi_init QCA_INSMOD
+
+	# atfEnable24G=$(uci get atf.atf.enable)
+	# atfEnable5G=$(uci get atf.atf5G.enable)
+	# [ "$atfEnable24G" == "1" -o "$atfEnable5G" == "1" ] && atf_mode=1 || atf_mode=0
+
+	# ##For WiFi SPF3.0 - NBG6617
+	# insmod mem_manager
+	
+	# insmod asf
+	# insmod adf
+	# insmod ath_hal
+	# insmod ath_rate_atheros
+	# insmod ath_dfs
+	# insmod ath_spectral
+	# insmod hst_tx99
+	# insmod ath_dev
+	# insmod umac atf_mode=$atf_mode
+	# insmod ath_pktlog
+	# insmod smart_antenna
+	
+#	echo $(uci get wireless.HW.enabled) > /tmp/wlan_on
+	## get the wlan HW button status to know boot on wireless or not
+	wifi_disable=$(uci get wireless.wifi0.disabled)
+	wifi5G_disable=$(uci get wireless.wifi1.disabled)
+
+	# wifi24GVap1_disable=$(uci get wireless.ath1.disabled)
+	# wifi24GVap2_disable=$(uci get wireless.ath2.disabled)
+	# wifi24GVap3_disable=$(uci get wireless.ath3.disabled)
+	# if [ "$wifi24GVap1_disable" == "0" ] || [ "$wifi24GVap2_disable" == "0" ] || [ "$wifi24GVap3_disable" == "0" ]; then
+	# 	sleep 15
+	# fi
+
+	product_name=$(uci get system.main.product_name)
+
+	if [ "$product_name" == "NBG6617" ];then
+		wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+	else
+		wlan_btn=$(cat /sys/kernel/debug/gpio |grep WLAN_DISABLE |grep lo)
+		if [ "$wlan_btn" ];then
+			wlan_btn="1"
+		fi
+	fi
+
+
+	if [ "$product_name" == "NBG6815" ];then
+		##24G
+		if [ "$wlan_btn" == "1" ];then
+			if [ "$wifi_disable" == "0" ]; then
+				/sbin/wifi up wifi0
+			fi
+		fi
+
+		##5G
+		QTN_WiFi5Ginit
+	else
+		if [ "$wlan_btn" == "1" ];then
+			if [ "$wifi_disable" == "0" ] || [ "$wifi5G_disable" == "0" ]; then
+				/sbin/wifi up
+			else
+				wifi5G_chk
+			fi
+		else
+			wifi5G_chk
+		fi
+	fi
+
+	##For NBG6817 NBG6617 WiFi
+	/sbin/WiFi_HW_threshold
+
+#	if [ "$wlan_btn" != "1" ]; then
+#		wifi5G_chk
+#	fi
+
+	echo "0" > /tmp/wps_btn
+	echo "0" > /tmp/wps5G_btn
+	/sbin/zyxel_led_ctrl all
+
+	#for zy1905 AP-autoconfig
+	sh /etc/zy1905/genhostapd.sh ath0
+	sh /etc/zy1905/genhostapd.sh ath10
+
+	###Add hotplug wifi button flag
+#	echo "1" > /tmp/wireless_init
+	
+}
+
+restart() {
+	## for link_monitor flag, its for fixing 5G Radio can't emit beacon after rebooting DUT
+	rm /tmp/chkflag
+
+	##To off LED asap after disabled WiFi
+	/sbin/zyxel_led_ctrl all
+	device=$(cat /tmp/WirelessDev)
+
+	sh /etc/app-agent/wifi_setting_flag.sh &
+	#for zy1905 AP-autoconfig
+	DeviceMode=`uci get system.main.system_mode`
+	if [ "$DeviceMode" = "1" ] ; then
+		#for zy1905 AP-autoconfig
+		if [ "$device" == "wifi0" ] ; then
+			sh /etc/zy1905/genhostapd.sh ath0
+			echo "wifi0" > /tmp/wifi_reloaded
+		fi
+		if [ "$device" == "wifi1" ] ; then
+			sh /etc/zy1905/genhostapd.sh ath10
+			echo "wifi1" > /tmp/wifi_reloaded
+		fi
+		if [ "$device" == "" ] ; then
+			sh /etc/zy1905/genhostapd.sh ath0
+			sh /etc/zy1905/genhostapd.sh ath10
+			echo "wifi0" > /tmp/wifi_reloaded
+			echo "wifi1" >> /tmp/wifi_reloaded
+		fi
+		sleep 5
+	else
+		if [ "$device" == "wifi0" ] ; then
+			echo "wifi0" > /tmp/wifi_reloaded
+		fi
+		if [ "$device" == "wifi1" ] ; then
+			echo "wifi1" > /tmp/wifi_reloaded
+		fi
+		if [ "$device" == "" ] ; then
+			echo "wifi0" > /tmp/wifi_reloaded
+			echo "wifi1" >> /tmp/wifi_reloaded
+		fi
+	fi
+	
+	wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+	wifiON=$(uci get wireless.wifi.on)
+
+	if [ "$wlan_btn" == "1" ] && [ "$wifiON" == "1" ];then
+		if [ "$device" == "wifi0" ] || [ "$device" == "wifi1" ]; then
+			##check Guest wireless can be work when wireless enabled.
+			wifi_disable=$(uci get wireless.$device.disabled)
+			if [ "$wifi_disable" == "0" ]; then
+				/sbin/wifi up $device
+			else
+				rm /tmp/wifi24G_Apply /tmp/wifi5G_Apply
+				/bin/guestWifiTimer.sh rm_at_rule $device
+				/sbin/wifi down $device
+			fi
+		else
+			/sbin/wifi up
+		fi
+	fi
+	rm /tmp/WirelessDev
+
+	##For NBG6817 NBG6617 WiFi
+	/sbin/WiFi_HW_threshold
+	
+	##to prevent the wireless config ruined after wireless crash
+	cp /etc/config/wireless /etc/bakconfig/
+
+	if [ "$wlan_btn" != "1" ]; then
+		##For NBG6816 NBG6815 QTN WiFi
+		wifi5G_chk
+	fi
+
+#	/sbin/zyxel_led_ctrl all
+
+}
+
+stop() {
+	/sbin/wifi down
+
+	## for fixing 5G radio can't emit beacon after rebooting DUT.
+	sleep 1
+	rmmod smart_antenna
+	rmmod ath_pktlog
+	rmmod umac
+	rmmod ath_dev
+	rmmod hst_tx99
+	rmmod ath_spectral
+	rmmod ath_dfs
+	rmmod ath_rate_atheros
+	rmmod ath_hal
+	rmmod adf
+	rmmod asf
+	rmmod mem_manager
+}
+
+wifi5G_chk(){
+	echo "****chk wifi5G off*****"
+	ifconfig host0 up
+	brctl addif br-lan host0 > /dev/null
+	sleep 2
+
+	qcsapi_sockrpc --host 223.254.253.252 rfenable 0
+}
+

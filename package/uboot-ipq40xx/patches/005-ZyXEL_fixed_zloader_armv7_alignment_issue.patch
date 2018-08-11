@@ -1,0 +1,13 @@
+Index: u-boot-2012.07/arch/arm/cpu/armv7/config.mk
+===================================================================
+--- u-boot-2012.07.orig/arch/arm/cpu/armv7/config.mk	2012-07-31 02:24:37.000000000 +0800
++++ u-boot-2012.07/arch/arm/cpu/armv7/config.mk	2016-12-16 20:54:23.313899281 +0800
+@@ -20,7 +20,7 @@
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ # MA 02111-1307 USA
+ #
+-PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float
++PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float -mno-unaligned-access
+ 
+ # If armv7-a is not supported by GCC fall-back to armv5, which is
+ # supported by more tool-chains

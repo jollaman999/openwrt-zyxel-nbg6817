@@ -1,0 +1,462 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=03
+
+product_name=$(uci get system.main.product_name)
+if [ "$product_name" != "NBG6617" ]; then
+	USB0_ENABLED_GPIO_NO=16
+fi
+
+ck_ChangeDefaultCg(){
+        ckNowChangeDefaultCg=$(uci get system.main.changeDefaultCg)
+
+        ##For changeDefaultCg=1
+        [ -z "$ckNowChangeDefaultCg" ] && {
+			echo "config interface 'vpn' " >> /etc/config/network
+			sync_wan_proto=$(uci get network.wan.proto)
+			uci set network.wan.v6_proto=$sync_wan_proto
+			uci set network.vpn.pptp_Nailedup=1
+			uci set network.vpn.pptp_Encryption='Auto'
+			uci commit network
+
+			# This command is for emmc and ext4 filesystem
+			/bin/sync
+
+			uci set wireless.ath0.AP_autoconfig=1
+			uci set wireless.ath1.PreAuth=0
+			uci set wireless.ath1.PMKCachePeriod=10
+			uci set wireless.ath2.PreAuth=0
+			uci set wireless.ath2.PMKCachePeriod=10
+			uci set wireless.ath3.PreAuth=0
+			uci set wireless.ath3.PMKCachePeriod=10
+			uci set wireless.ath10.AP_autoconfig=1
+			uci set wireless.ath11.PreAuth=0
+			uci set wireless.ath11.PMKCachePeriod=10
+			uci set wireless.ath12.PreAuth=0
+			uci set wireless.ath12.PMKCachePeriod=10
+			uci set wireless.ath13.PreAuth=0
+			uci set wireless.ath13.PMKCachePeriod=10
+			uci commit wireless
+
+			# This command is for emmc and ext4 filesystem
+			/bin/sync
+
+			uci set firewall.general.target='DROP'
+			uci commit firewall
+
+			# This command is for emmc and ext4 filesystem
+			 /bin/sync
+
+			uci set firewall6.general.target='DROP'
+			uci commit firewall6
+
+			# This command is for emmc and ext4 filesystem
+			/bin/sync
+
+			product_typ_name=$(uci get system.main.product_typ_name)
+			[ -z "$product_typ_name" ] && {
+				product_name=$(uci get system.main.product_name)
+				check_product_name=$( /bin/atsh | grep "Product Model" | awk '{print $4}' )
+
+				if [ "$check_product_name" != "$product_name" ];then
+					uci set system.main.product_name="$check_product_name"
+					product_name="$check_product_name"
+				fi
+
+				if [ "$product_name" == "NBG6816" ];then
+					uci set system.main.product_typ_name="ARMOR Z1"
+				fi
+			}
+
+			merge_Porttrigger
+
+			uci set syslogd.setting.logSysErrs=0
+			uci commit syslogd
+
+			# If user has set DST and use auto time zone, that will be clean to default as disable in DST.
+			tzIndex_status=$(uci get time.main.tzIndex)
+			if [ "$tzIndex_status" == "63" ]; then
+				DST_status=$(uci get time.DST.enable)
+				if [ "$DST_status" == "1" ]; then
+					uci set time.main.auto_timezone_enable="1"
+					uci set time.DST.enable="0"
+					uci commit time
+				fi
+			fi
+
+			uci set system.main.changeDefaultCg=5
+			uci commit system
+
+			# This command is for emmc and ext4 filesystem
+			/bin/sync
+			cp /rom/etc/config/ucitrack /etc/config/ucitrack
+
+			ckNowChangeDefaultCg=$(uci get system.main.changeDefaultCg)
+			ckNowChangeDefaultCgs=$(($ckNowChangeDefaultCg+0))
+			cp /rom/etc/config/parental_ex /etc/config/parental_ex
+        } || {
+			ckNowChangeDefaultCgs=$(($ckNowChangeDefaultCg+0))
+			if [ $ckNowChangeDefaultCgs -le 1 ];then
+				pptp_Nailedup=$(uci get network.vpn.pptp_Nailedup)
+				[ -z "$pptp_Nailedup" ] && {
+					echo "config interface 'vpn' " >> /etc/config/network
+					uci set network.vpn.pptp_Nailedup=1
+				}
+				sync_wan_proto=$(uci get network.wan.proto)
+				uci set network.wan.v6_proto=$sync_wan_proto
+
+				pptp_Nailedup=$(uci get network.vpn.pptp_Nailedup)
+				[ -z "$pptp_Nailedup" ] && {
+					uci set network.vpn.pptp_Nailedup=1
+				}
+
+				uci set network.vpn.pptp_Encryption='Auto'
+				uci commit network
+
+				# This command is for emmc and ext4 filesystem
+				/bin/sync
+
+				AP_autoconfig_ath0=$(uci get wireless.ath0.AP_autoconfig)
+				[ -z "$AP_autoconfig_ath0" ] && {
+					uci set wireless.ath0.AP_autoconfig=1
+				}
+				AP_autoconfig_ath10=$(uci get wireless.ath10.AP_autoconfig)
+				[ -z "$AP_autoconfig_ath10" ] && {
+					uci set wireless.ath10.AP_autoconfig=1
+				}
+
+				uci set wireless.ath1.PreAuth=0
+				uci set wireless.ath1.PMKCachePeriod=10
+				uci set wireless.ath2.PreAuth=0
+				uci set wireless.ath2.PMKCachePeriod=10
+				uci set wireless.ath3.PreAuth=0
+				uci set wireless.ath3.PMKCachePeriod=10
+				uci set wireless.ath11.PreAuth=0
+				uci set wireless.ath11.PMKCachePeriod=10
+				uci set wireless.ath12.PreAuth=0
+				uci set wireless.ath12.PMKCachePeriod=10
+				uci set wireless.ath13.PreAuth=0
+				uci set wireless.ath13.PMKCachePeriod=10
+				uci commit wireless
+
+				# This command is for emmc and ext4 filesystem
+				/bin/sync
+
+				uci set firewall.general.target='DROP'
+				uci commit firewall
+
+				# This command is for emmc and ext4 filesystem
+				/bin/sync
+
+				uci set firewall6.general.target='DROP'
+				uci commit firewall6
+
+				# This command is for emmc and ext4 filesystem
+				/bin/sync
+
+				product_typ_name=$(uci get system.main.product_typ_name)
+				[ -z "$product_typ_name" ] && {
+					product_name=$(uci get system.main.product_name)
+					check_product_name=$( /bin/atsh | grep "Product Model" | awk '{print $4}' )
+
+					if [ "$check_product_name" != "$product_name" ];then
+						uci set system.main.product_name="$check_product_name"
+						product_name="$check_product_name"
+					fi
+
+					if [ "$product_name" == "NBG6816" ];then
+						uci set system.main.product_typ_name="ARMOR Z1"
+					fi
+				}
+
+				merge_Porttrigger
+
+				# If user has set DST and use auto time zone, that will be clean to default as disable in DST
+				tzIndex_status=$(uci get time.main.tzIndex)
+				if [ "$tzIndex_status" == "63" ]; then
+					DST_status=$(uci get time.DST.enable)
+					if [ "$DST_status" == "1" ]; then
+						uci set time.main.auto_timezone_enable="1"
+						uci set time.DST.enable="0"
+						uci commit time
+					fi
+				fi
+
+				uci set system.main.changeDefaultCg=5
+				uci commit system
+
+				# This command is for emmc and ext4 filesystem
+				/bin/sync
+			fi
+        }
+
+	if [ $ckNowChangeDefaultCgs -le 1 ];then
+		cp /rom/etc/config/parental_ex /etc/config/parental_ex
+	fi
+	
+	if [ $ckNowChangeDefaultCgs -le 4 ];then
+		uci set syslogd.setting.logSysErrs=0
+		uci commit syslogd
+		# This command is for emmc and ext4 filesystem
+		/bin/sync
+
+		product_typ_name=$(uci get system.main.product_typ_name)
+		[ -z "$product_typ_name" ] && {
+			product_name=$(uci get system.main.product_name)
+			check_product_name=$( /bin/atsh | grep "Product Model" | awk '{print $4}' )
+
+			if [ "$check_product_name" != "$product_name" ];then
+				uci set system.main.product_name="$check_product_name"
+				product_name="$check_product_name"
+			fi
+
+			if [ "$product_name" == "NBG6816" ];then
+				uci set system.main.product_typ_name="ARMOR Z1"
+			fi
+		}
+
+		merge_Porttrigger
+
+		# If user has set DST and use auto time zone, that will be clean to default as disable in DST
+		tzIndex_status=$(uci get time.main.tzIndex)
+		if [ "$tzIndex_status" == "63" ]; then
+			DST_status=$(uci get time.DST.enable)
+			if [ "$DST_status" == "1" ]; then
+				uci set time.main.auto_timezone_enable="1"
+				uci set time.DST.enable="0"
+				uci commit time
+			fi
+		fi
+
+		cp /rom/etc/config/ucitrack /etc/config/ucitrack
+
+		uci set system.main.changeDefaultCg=5
+		uci commit system
+		# This command is for emmc and ext4 filesystem
+		/bin/sync
+	fi
+
+	[ -f /bin/vlan_default ] || {
+		system_mode=$(uci get system.main.system_mode)
+		if [ "$system_mode" == "1" ];then
+			##fix NAT loop back
+			uci set network.lan.hairpin=1
+		else
+			## AP mode does not support NAT loop back
+			uci set network.lan.hairpin=0
+		fi
+		uci commit network
+
+		# This command is for emmc and ext4 filesystem
+		/bin/sync
+	}
+
+	ck_ssh_remote=$(uci get firewall.remote_ssh.port)
+	[ -z "$ck_ssh_remote" ] && {
+		sed "s:config dropbear:config dropbear setting:g" -i /etc/config/dropbear
+		uci set dropbear.setting.enable=0
+		uci commit dropbear
+
+		echo "config firewall remote_ssh" >> /etc/config/firewall
+		uci set firewall.remote_ssh.interface=0
+		uci set firewall.remote_ssh.client_check=0
+		uci set firewall.remote_ssh.port=22
+		uci commit firewall
+
+		sed "s:s == \"general\" or s == \"remote_www\" or s == \"remote_telnet\" or s == \"qcanssecm\" or s == \"remote_https\": s == \"general\" or s == \"remote_www\" or s == \"remote_telnet\" or s == \"qcanssecm\" or s == \"remote_https\" or s == \"remote_ssh\":g" -i /usr/lib/lua/luci/sys.lua
+
+		# This command is for emmc and ext4 filesystem
+		/bin/sync
+	}
+
+	local fw_upgrade_time=$(uci get system.main.fw_upgrade_time)
+	local gui_restart_time=$(uci get system.main.gui_restart_time)
+
+	[ -z "$fw_upgrade_time" ] && {
+		local product_name=$(uci get system.main.product_name)
+
+		if [ "$product_name" == "NBG6617" ];then
+			uci set system.main.fw_upgrade_time=420
+			uci set system.main.gui_restart_time=140
+		fi
+
+		if [ "$product_name" == "NBG6815" ];then
+			uci set system.main.fw_upgrade_time=250
+			uci set system.main.gui_restart_time=220
+		fi
+
+		if [ "$product_name" == "NBG6816" ];then
+			uci set system.main.fw_upgrade_time=260
+			uci set system.main.gui_restart_time=150
+		fi
+
+		if [ "$product_name" == "NBG6817" ];then
+			uci set system.main.fw_upgrade_time=200
+			uci set system.main.gui_restart_time=140
+		fi
+
+		uci commit system
+
+		# This command is for emmc and ext4 filesystem
+		/bin/sync
+	}
+
+	## For set ipv6 flag when no value
+        ipv6enable=$(uci get network.wan.ipv6)
+        if [ "$ipv6enable" == "" ]; then
+                uci set network.wan.ipv6="0"
+        fi
+
+	##For SSL Certificate Chain Contains RSA Keys Less Than 2048 bits
+        bits=$(uci get uhttpd.px5g.bits)
+        if [ "$bits" == "1024" ]; then
+                uci set uhttpd.px5g.bits="2048"
+        fi
+	uci commit uhttpd
+	# This command is for emmc and ext4 filesystem
+	/bin/sync
+
+	cp /rom/etc/config/ucitrack /etc/config/ucitrack
+}
+
+ck_NATPassthrough()
+{
+	ckftpCg=$(uci get nat.general.ftp)
+	[ -z "$ckftpCg" ] && {
+		uci set nat.general.ftp=enable
+	}
+	ckh323Cg=$(uci get nat.general.h323)
+	[ -z "$ckh323Cg" ] && {
+		uci set nat.general.h323=enable
+	}
+	cksipCg=$(uci get nat.general.sip)
+	[ -z "$cksipCg" ] && {
+		uci set nat.general.sip=enable
+	}
+	cksnmpCg=$(uci get nat.general.snmp)
+	[ -z "$cksnmpCg" ] && {
+		uci set nat.general.snmp=enable
+	}
+	ckrtspCg=$(uci get nat.general.rtsp)
+	[ -z "$ckrtspCg" ] && {
+		uci set nat.general.rtsp=enable
+	}
+	ckircCg=$(uci get nat.general.irc)
+	[ -z "$ckircCg" ] && {
+		uci set nat.general.irc=enable
+	}
+
+	ckpptpCg=$(uci get nat.general.pptp)
+	[ -z "$ckpptpCg" ] && {
+		uci set nat.general.pptp=enable
+	}
+	ckl2tpCg=$(uci get nat.general.l2tp)
+	[ -z "$ckl2tpCg" ] && {
+		uci set nat.general.l2tp=enable
+	}
+	ckipsecCg=$(uci get nat.general.ipsec)
+	[ -z "$ckipsecCg" ] && {
+		uci set nat.general.ipsec=enable
+	}
+	uci commit nat
+
+	# This command is for emmc and ext4 filesystem
+	/bin/sync
+}
+
+merge_samba(){
+	local chk_samba=$(uci get samba.general.easymode)
+	if [ -z "$chk_samba" ];then
+		/sbin/mergeSamba.sh init
+	fi
+}
+
+merge_wifi_schedule(){
+	/sbin/mergeWifiSchedule.sh init 24G
+	/sbin/mergeWifiSchedule.sh init 5G
+}
+
+chk_domain_name(){
+	#Change default Domain name "zyxel.com" to "local"
+	DomainName=$(uci get system.main.domain_name)
+	if [ "$DomainName" == "zyxel.com" ];then
+		uci set system.main.domain_name="local"
+	fi
+}
+
+merge_Porttrigger(){
+        #merge old configuration, because of changing GUI struction
+        local ckeck_porttrigger=$(cat /etc/config/portTrigger | grep "general")
+
+        if [ -z "$check_porttrigger"];then
+                list=$(cat /etc/config/portTrigger | grep "config trigger" | awk -F" " '{ print $3 }' | sed "s/'//g" | tr "\n" " ")
+                uci set portTrigger.general="trigger"
+                uci set portTrigger.general.rule_list="$list"
+                uci commit portTrigger
+		/bin/sync  # This command is for emmc and ext4 filesystem
+        fi
+
+	local count="0"
+	local list=$(cat /etc/config/portTrigger | grep "rule_list" | awk -F"'" '{ print $2 }' | sed "s/ /\n/g")
+	local list2=$(cat /etc/config/portTrigger | grep "rule_list" | awk -F"'" '{ print $2 }' )
+	local check_rule=$(cat /etc/config/portTrigger | grep "rules_count")
+
+	if [ -z $check_rule]; then
+	  for i in $list
+	  do
+		let count=count+1
+		local inComing_port_start=$(uci get portTrigger.$i.inComing_port_start)
+		local inComing_port_end=$(uci get portTrigger.$i.inComing_port_end)
+		local trigger_port_start=$(uci get portTrigger.$i.trigger_port_start)
+		local trigger_port_end=$(uci get portTrigger.$i.trigger_port_end)
+		echo -e "config trigger 'rule$count'" >> /tmp/newPorttrigger
+		echo -e "\toption rules_name '$i'" >> /tmp/newPorttrigger
+		echo -e "\toption inComing_port_start '$inComing_port_start'" >> /tmp/newPorttrigger
+		echo -e "\toption inComing_port_end '$inComing_port_end'" >> /tmp/newPorttrigger
+		echo -e "\toption trigger_port_start '$trigger_port_start'" >> /tmp/newPorttrigger
+		echo -e "\toption trigger_port_end '$trigger_port_end'\n" >> /tmp/newPorttrigger
+	  done
+	  echo -e "config trigger 'general'" >> /tmp/newPorttrigger
+	  echo -e "\toption rules_count '$count'" >> /tmp/newPorttrigger
+	  echo -e "\toption rule_list '$list2'" >> /tmp/newPorttrigger
+	fi
+
+	cp /tmp/newPorttrigger /etc/config/portTrigger
+	rm /tmp/newPorttrigger
+}
+
+
+boot(){
+	# record initial process
+	echo 1 > /tmp/initial_process
+
+	local product_name0=$(uci get system.main.product_name)
+
+	if [ "$product_name0" != "NBG6617" ]; then	
+		# Export USB0_ENABLE gpio pin
+		echo $USB0_ENABLED_GPIO_NO > /sys/class/gpio/export
+		echo out >/sys/class/gpio/gpio${USB0_ENABLED_GPIO_NO}/direction
+		echo 1 >/sys/class/gpio/gpio${USB0_ENABLED_GPIO_NO}/value
+		# 
+
+		cat <<EOF >/var/platform.definition
+#!/bin/sh
+GPIO_CTRL_PATH=/sys/class/gpio
+USB0_ENABLED_GPIO_NO=$USB0_ENABLED_GPIO_NO
+EOF
+
+	fi
+
+	##Check ChangeDefaultCg
+	ck_ChangeDefaultCg
+
+	if [ "$product_name0" != "NBG6617" ]; then	
+		ck_NATPassthrough
+		merge_samba
+		merge_wifi_schedule
+		#Change default Domain name
+		chk_domain_name
+	fi
+
+}

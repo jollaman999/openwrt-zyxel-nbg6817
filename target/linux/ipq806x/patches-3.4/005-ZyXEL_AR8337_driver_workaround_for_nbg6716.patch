@@ -1,0 +1,195 @@
+From 3a7146c99bbc134df6c08fd436f256de7a16cfee Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Fri, 4 Sep 2015 17:04:43 +0800
+Subject: [PATCH 5/8] ZyXEL_AR8337_driver_workaround_for_nbg6716
+
+---
+ drivers/net/phy/ar8216.c | 158 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 158 insertions(+)
+
+diff --git a/drivers/net/phy/ar8216.c b/drivers/net/phy/ar8216.c
+index b3a3b4a..77b6e26 100755
+--- a/drivers/net/phy/ar8216.c
++++ b/drivers/net/phy/ar8216.c
+@@ -204,6 +204,157 @@ static const struct ar8xxx_mib_desc ar8236_mibs[] = {
+ 	MIB_DESC(1, AR8236_STATS_TXLATECOL, "TxLateCol"),
+ };
+ 
++#define SWITCH_PROC_ENTRY_DIR		"driver/ar8216"
++#define SWITCH_PROC_ENTRY_INFO		"info"
++#define SWITCH_PROC_ENTRY_REGISTER_ADDR	"regAddr"
++#define SWITCH_PROC_ENTRY_REGISTER_VAL	"regVal"
++
++static struct ar8216_priv *ar8216_priv_backup=NULL;
++static u32 switch_proc_reg=0;
++static struct proc_dir_entry *switch_proc=NULL;
++
++static int switch_reg_show(char *page, char **start, off_t off,
++		int count, int *eof, void *data)
++{
++	int len;
++	len = sprintf(page, "0x%04X\n", switch_proc_reg);
++	*eof = 1;
++	return len;
++}
++
++static int switch_reg_store(struct file *file, const char __user *buf,
++			unsigned long count, void *data)
++{
++	char num[11];
++
++	if (!count) return 0; /* no data be written */
++	if (count > sizeof(num)) {
++		printk("Out of buffer size!\n");
++		return -EINVAL;
++	}
++
++	memset(num, 0, sizeof(num));
++	if (copy_from_user(num, buf, count)) {
++		printk("copy from user failed\n");
++		return -EFAULT;
++	}
++	switch_proc_reg = simple_strtoul(num, NULL, 0);
++	return count;
++}
++
++static int switch_reg_val_show(char *page, char **start, off_t off,
++		int count, int *eof, void *data)
++{
++	u32 value;
++	int len;
++
++	if (ar8216_priv_backup==NULL) {
++		len = sprintf(page,"N/A\n");
++	} else {
++		lockdep_assert_held(&ar8216_priv_backup->reg_mutex);
++		value = ar8216_priv_backup->read(ar8216_priv_backup, switch_proc_reg);
++		len = sprintf(page, "0x%08X\n", value);
++		//printk("value=0x%08X, read from register 0x%04X\n", value, switch_proc_reg);
++	}
++	*eof = 1;
++	return len;
++}
++
++static int switch_reg_val_store(struct file *file, const char __user *buf,
++			unsigned long count, void *data)
++{
++	int ret = -EACCES;
++	u32 value;
++	char num[11];
++
++	if (ar8216_priv_backup!=NULL) {
++		if (!count) return 0; /* no data be written */
++		if (count > sizeof(num)) {
++			printk("Out of buffer size!\n");
++			return -EINVAL;
++		}
++
++		memset(num, 0, sizeof(num));
++		if (copy_from_user(num, buf, count)) {
++			printk("copy from user failed\n");
++			return -EFAULT;
++		}
++		//printk("count=%d, buf[%d]=0x%02X\n", count, count-1, num[count-1]);
++		value = simple_strtoul(num, NULL, 0);
++		lockdep_assert_held(&ar8216_priv_backup->reg_mutex);
++		ar8216_priv_backup->write(ar8216_priv_backup, switch_proc_reg, value);
++		//printk("value=0x%08X, write to register 0x%04X\n", value, switch_proc_reg);
++		ret = count;
++	}
++	return ret;
++}
++
++static int switch_info_read_proc(char *page, char **start, off_t off,
++		int count, int *eof, void *data)
++{
++	*eof = 1;
++	return sprintf(page, "%s\n", (char *)data);;
++}
++
++static void ar8216_switch_proc_remove(void)
++{
++	if (switch_proc) {
++		remove_proc_entry(SWITCH_PROC_ENTRY_INFO, switch_proc);
++		remove_proc_entry(SWITCH_PROC_ENTRY_REGISTER_ADDR, switch_proc);
++		remove_proc_entry(SWITCH_PROC_ENTRY_REGISTER_VAL, switch_proc);
++		remove_proc_entry(SWITCH_PROC_ENTRY_DIR, NULL);
++		switch_proc=NULL;
++	}
++}
++
++static int ar8216_switch_proc_create(const char *chipName)
++{
++	struct proc_dir_entry *ent;
++
++	switch_proc = proc_mkdir(SWITCH_PROC_ENTRY_DIR, NULL);
++	//switch_proc = proc_mkdir(SWITCH_PROC_ENTRY_DIR, init_net.proc_net);
++	if (!switch_proc) {
++		printk("%s: Fail to create proc dir!\n", __func__);
++		return -EACCES;
++	}
++	if (!create_proc_read_entry(SWITCH_PROC_ENTRY_INFO, 0, switch_proc, 
++		switch_info_read_proc, chipName)) {
++		printk("%s: Fail to create proc file '%s'!\n", __func__, SWITCH_PROC_ENTRY_INFO);
++		goto ar8216_switch_proc_create_failed1;
++	}
++	ent = create_proc_entry(SWITCH_PROC_ENTRY_REGISTER_ADDR, 
++			S_IFREG|S_IRUSR|S_IWUSR, switch_proc);
++	if (!ent) { 
++		printk("%s: Fail to create proc file '%s'!\n", __func__, 
++			SWITCH_PROC_ENTRY_REGISTER_ADDR);
++		goto ar8216_switch_proc_create_failed2;
++	} else {
++		ent->read_proc = switch_reg_show;
++		ent->write_proc = switch_reg_store;
++	}
++	ent = create_proc_entry(SWITCH_PROC_ENTRY_REGISTER_VAL, 
++			S_IFREG|S_IRUSR|S_IWUSR, switch_proc);
++	if (!ent) { 
++		printk("%s: Fail to create proc file '%s'!\n", __func__, 
++			SWITCH_PROC_ENTRY_REGISTER_VAL);
++		goto ar8216_switch_proc_create_failed3;
++	} else {
++		ent->read_proc = switch_reg_val_show;
++		ent->write_proc = switch_reg_val_store;
++	}
++	return 0;
++
++ar8216_switch_proc_create_failed3:
++	remove_proc_entry(SWITCH_PROC_ENTRY_REGISTER_ADDR, switch_proc);
++ar8216_switch_proc_create_failed2:
++	remove_proc_entry(SWITCH_PROC_ENTRY_INFO, switch_proc);
++ar8216_switch_proc_create_failed1:
++	remove_proc_entry(SWITCH_PROC_ENTRY_DIR, NULL);
++	switch_proc = NULL;
++	return -EACCES;
++}
++
++
+ #define to_ar8216(_dev) container_of(_dev, struct ar8216_priv, dev)
+ 
+ static inline bool ar8xxx_has_gige(struct ar8216_priv *priv)
+@@ -2185,6 +2336,10 @@ ar8216_config_init(struct phy_device *pdev)
+ 	if (ret)
+ 		goto err_cleanup_mib;
+ 
++	ar8216_priv_backup = priv;
++	if ( ar8216_switch_proc_create(swdev->name+8) )
++		goto err_cleanup_mib;
++
+ 	dev->phy_ptr = priv;
+ 
+ 	/* VID fixup only needed on ar8216 */
+@@ -2337,6 +2492,9 @@ ar8216_remove(struct phy_device *pdev)
+ 	if (!priv)
+ 		return;
+ 
++	ar8216_switch_proc_remove();
++	ar8216_priv_backup = NULL;
++
+ 	dev->priv_flags &= ~IFF_NO_IP_ALIGN;
+ 	dev->eth_mangle_rx = NULL;
+ 	dev->eth_mangle_tx = NULL;
+-- 
+1.9.1
+

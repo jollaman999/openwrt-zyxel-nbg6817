@@ -1,0 +1,32 @@
+#!/bin/sh
+RATE24G_PATH="/tmp/WiFi24Grate"
+RATE5G_PATH="/tmp/WiFi5Grate"
+
+##WiFi24G Rate set######################
+	## channel width:40    mode:11bgn,11gn,11n
+	wifi24G_rate1="800"
+	## channel width:20    mode:11bgn,11gn,11n
+	wifi24G_rate2="400"
+	## mode:11bg,11g
+	wifi24G_rate3="54"
+	## mode:11b
+	wifi24G_rate4="11"
+
+	##WiFi5G Rate set######################
+	## channel width:80    mode:11ac
+	wifi5G_rate1="1733"
+	## channel width:40    mode:11ac
+	wifi5G_rate2="866"
+	## channel width:20    mode:11ac
+	wifi5G_rate3="347"
+	## mode:11a
+	wifi5G_rate4="54"
+	## channel width:40    mode:11an
+	wifi5G_rate5="600"
+	## channel width:20    mode:11an
+	wifi5G_rate6="300"
+	## channel width:160    mode:11ac
+	wifi5G_rate7="1733"
+
+	echo -n "$wifi24G_rate1,$wifi24G_rate2,$wifi24G_rate3,$wifi24G_rate4" > $RATE24G_PATH
+	echo -n "$wifi5G_rate1,$wifi5G_rate2,$wifi5G_rate3,$wifi5G_rate4,$wifi5G_rate5,$wifi5G_rate6,$wifi5G_rate7" > $RATE5G_PATH

@@ -1,0 +1,16 @@
+Index: uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_qca8075.c
+===================================================================
+--- uboot-1.0-2012.07.orig/drivers/net/ipq40xx/ipq40xx_qca8075.c
++++ uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_qca8075.c
+@@ -716,6 +716,11 @@ void clear_self_test_config(void)
+ 		qca8075_phy_mmd_write(0, phy, 7, 0x8028, 0x001f);
+ 	}
+ 
++#ifdef CONFIG_SUPPORT_DISABLE_WAN_PORT
++	/* WAN PORT on PHY 0x4 */
++	value = qca8075_phy_reg_read(0x0, 0x4, QCA8075_PHY_CONTROL);
++	qca8075_phy_reg_write(0x0, 0x4, QCA8075_PHY_CONTROL, value | QCA8075_CTRL_POWER_DOWN);
++#endif
+ }
+ 
+ int ipq40xx_qca8075_phy_init(struct ipq40xx_eth_dev *info)

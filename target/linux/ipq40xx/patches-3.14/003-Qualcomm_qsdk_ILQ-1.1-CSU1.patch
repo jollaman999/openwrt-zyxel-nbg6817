@@ -1,0 +1,492 @@
+diff -Naur -x .git linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq40xx.dtsi linux-3.14.43/arch/arm/boot/dts/qcom-ipq40xx.dtsi
+--- linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq40xx.dtsi	2016-02-02 11:43:18.268598287 +0800
++++ linux-3.14.43/arch/arm/boot/dts/qcom-ipq40xx.dtsi	2016-03-02 14:33:34.145729557 +0800
+@@ -718,7 +718,7 @@
+ 
+ 		cpu_freq_ipq40xx {
+ 			compatible = "qca,ipq40xx_freq";
+-			clock-latency = <0x100>;
++			clock-latency = <100000>;
+ 			qcom,cpufreq-table =
+ 			< 48000 >,
+ 			< 200000 >,
+diff -Naur -x .git linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064-ap160_2xx.dtsi linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064-ap160_2xx.dtsi
+--- linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064-ap160_2xx.dtsi	2016-02-02 11:43:18.268598287 +0800
++++ linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064-ap160_2xx.dtsi	2016-03-02 14:33:34.145729557 +0800
+@@ -48,7 +48,7 @@
+ 
+ 	soc {
+ 		pinmux@800000 {
+-			pinctrl-0 = <&mdio0_pins_default &mdio1_pins_default &rgmii2_pins_default>;
++			pinctrl-0 = <&mdio0_pins_default &mdio1_pins_default &rgmii2_pins_default &pcie_2g_pwrdwn_default &pcie_5g_pwrdwn_default>;
+ 			pinctrl-names = "default";
+ 
+ 			rpm_i2c_pinmux: rpm_i2c_pinmux {
+@@ -76,6 +76,32 @@
+ 				};
+ 			};
+ 
++			pcie3_pins: pcie3_pinmux {
++				mux {
++					pins = "gpio63";
++					drive-strength = <2>;
++					bias-disable;
++				};
++			};
++
++			pcie_2g_pwrdwn_default: pcie_2g_pwrdwn_default {
++				mux {
++					pins = "gpio9";
++					drive-strength = <12>;
++					bias-pull-up;
++					output-high;
++				};
++			};
++
++			pcie_5g_pwrdwn_default: pcie_5g_pwrdwn_default {
++				mux {
++					pins = "gpio26";
++					drive-strength = <12>;
++					bias-pull-up;
++					output-high;
++				};
++			};
++
+ 			spi_pins: spi_pins {
+ 				mux {
+ 					pins = "gpio18", "gpio19", "gpio21";
+@@ -203,6 +229,18 @@
+ 
+ 		};
+ 
++		pci@1b900000 {
++			status = "ok";
++			reset-gpio = <&qcom_pinmux 63 0>;
++			pinctrl-0 = <&pcie3_pins>;
++			pinctrl-names = "default";
++
++			ranges = <0x00000000 0 0x00000000 0x35f00000 0 0x00100000   /* configuration space */
++				  0x81000000 0 0          0x35e00000 0 0x00100000   /* downstream I/O */
++				  0x82000000 0 0x00000000 0x32000000 0 0x03e00000>; /* non-prefetchable memory */
++
++		};
++
+ 		sata@29000000 {
+ 			status = "ok";
+ 		};
+diff -Naur -x .git linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064.dtsi linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064.dtsi
+--- linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064.dtsi	2016-02-02 11:43:18.272598247 +0800
++++ linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064.dtsi	2016-03-02 14:33:34.145729557 +0800
+@@ -178,6 +178,11 @@
+ 			reg = <0x44000000 0x600000>;
+ 			no-map;
+ 		};
++
++		wigig_dump@44400000 {
++			reg = <0x44400000 0x200000>;
++			no-map;
++		};
+ 	};
+ 
+ 	clocks {
+diff -Naur -x .git linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064-v3.0.dtsi linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064-v3.0.dtsi
+--- linux-3.14.43.org/arch/arm/boot/dts/qcom-ipq8064-v3.0.dtsi	2016-02-02 11:43:18.268598287 +0800
++++ linux-3.14.43/arch/arm/boot/dts/qcom-ipq8064-v3.0.dtsi	2016-03-02 14:33:34.145729557 +0800
+@@ -21,38 +21,65 @@
+ 			operating-points-0-0 = <
+ 				/* kHz      uV */
+ 				1725000 1262500
+-				1400000 1200000
+-				1000000 1150000
+-				 800000 1100000
+-				 600000 1050000
+-				 384000 1000000
++				1400000 1175000
++				1000000 1100000
++				 800000 1050000
++				 600000 1000000
++				 384000  975000
+ 			>;
+ 			operating-points-0-1 = <
+ 				/* kHz      uV */
+-				1725000 1175000
+-				1400000 1125000
++				1725000 1225000
++				1400000 1150000
+ 				1000000 1075000
+ 				 800000 1025000
+ 				 600000  975000
+-				 384000  925000
++				 384000  950000
+ 			>;
+ 			operating-points-0-2 = <
+ 				/* kHz      uV */
+-				1725000 1125000
+-				1400000 1075000
++				1725000 1200000
++				1400000 1125000
++				1000000 1050000
++				 800000 1000000
++				 600000  950000
++				 384000  925000
++			>;
++			operating-points-0-3 = <
++				/* kHz      uV */
++				1725000 1175000
++				1400000 1100000
+ 				1000000 1025000
+ 				 800000  975000
+ 				 600000  925000
++				 384000  900000
++			>;
++			operating-points-0-4 = <
++				/* kHz      uV */
++				1725000 1150000
++				1400000 1075000
++				1000000 1000000
++				 800000  950000
++				 600000  900000
+ 				 384000  875000
+ 			>;
+-			operating-points-0-3 = <
++			operating-points-0-5 = <
+ 				/* kHz      uV */
+-				1725000 1050000
+-				1400000 1000000
++				1725000 1100000
++				1400000 1025000
+ 				1000000  950000
+ 				 800000  900000
+ 				 600000  850000
+-				 384000  800000
++				 384000  825000
++			>;
++			operating-points-0-6 = <
++				/* kHz      uV */
++				1725000 1050000
++				1400000  975000
++				1000000  900000
++				 800000  850000
++				 600000  800000
++				 384000  775000
+ 			>;
+ 		 };
+ 
+@@ -60,38 +87,65 @@
+ 		    	operating-points-0-0 = <
+ 				/* kHz      uV */
+ 				1725000 1262500
+-				1400000 1200000
+-				1000000 1150000
+-				 800000 1100000
+-				 600000 1050000
+-				 384000 1000000
++				1400000 1175000
++				1000000 1100000
++				 800000 1050000
++				 600000 1000000
++				 384000  975000
+ 			>;
+ 			operating-points-0-1 = <
+ 				/* kHz      uV */
+-				1725000 1175000
+-				1400000 1125000
++				1725000 1225000
++				1400000 1150000
+ 				1000000 1075000
+ 				 800000 1025000
+ 				 600000  975000
+-				 384000  925000
++				 384000  950000
+ 			>;
+ 			operating-points-0-2 = <
+ 				/* kHz      uV */
+-				1725000 1125000
+-				1400000 1075000
++				1725000 1200000
++				1400000 1125000
++				1000000 1050000
++				 800000 1000000
++				 600000  950000
++				 384000  925000
++			>;
++			operating-points-0-3 = <
++				/* kHz      uV */
++				1725000 1175000
++				1400000 1100000
+ 				1000000 1025000
+ 				 800000  975000
+ 				 600000  925000
++				 384000  900000
++			>;
++			operating-points-0-4 = <
++				/* kHz      uV */
++				1725000 1150000
++				1400000 1075000
++				1000000 1000000
++				 800000  950000
++				 600000  900000
+ 				 384000  875000
+ 			>;
+-			operating-points-0-3 = <
++			operating-points-0-5 = <
+ 				/* kHz      uV */
+-				1725000 1050000
+-				1400000 1000000
++				1725000 1100000
++				1400000 1025000
+ 				1000000  950000
+ 				 800000  900000
+ 				 600000  850000
+-				 384000  800000
++				 384000  825000
++			>;
++			operating-points-0-6 = <
++				/* kHz      uV */
++				1725000 1050000
++				1400000  975000
++				1000000  900000
++				 800000  850000
++				 600000  800000
++				 384000  775000
+ 			>;
+ 		};
+ 	};
+diff -Naur -x .git linux-3.14.43.org/drivers/i2c/busses/i2c-msm-v2.c linux-3.14.43/drivers/i2c/busses/i2c-msm-v2.c
+--- linux-3.14.43.org/drivers/i2c/busses/i2c-msm-v2.c	2016-02-02 11:43:19.628584514 +0800
++++ linux-3.14.43/drivers/i2c/busses/i2c-msm-v2.c	2016-03-02 14:33:35.329756025 +0800
+@@ -1,4 +1,4 @@
+-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
++/* Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 and
+@@ -852,13 +852,13 @@
+  */
+ static const struct i2c_msm_tag tag_lookup_table[2][2][2][2] = {
+ 	{{{{QUP_TAG2_DATA_WRITE                                   , 2},
+-	   {QUP_TAG2_DATA_READ_N_STOP                             , 2} },
++	   {QUP_TAG2_DATA_READ                                    , 2} },
+ 	/* last buffer */
+ 	  {{QUP_TAG2_DATA_WRITE_N_STOP                            , 2},
+ 	   {QUP_TAG2_DATA_READ_N_STOP                             , 2} } },
+ 	/* new addr */
+ 	 {{{QUP_TAG2_START | (QUP_TAG2_DATA_WRITE           << 16), 4},
+-	   {QUP_TAG2_START | (QUP_TAG2_DATA_READ_N_STOP     << 16), 4} },
++	   {QUP_TAG2_START | (QUP_TAG2_DATA_READ            << 16), 4} },
+ 	/* last buffer + new addr */
+ 	  {{QUP_TAG2_START | (QUP_TAG2_DATA_WRITE_N_STOP    << 16), 4},
+ 	   {QUP_TAG2_START | (QUP_TAG2_DATA_READ_N_STOP     << 16), 4} } } },
+@@ -3247,14 +3247,8 @@
+ 		cur_buf->len    = min_t(size_t, bc_rem, ctrl->ver.max_buf_size);
+ 		cur_buf->prcsed_bc += cur_buf->len;
+ 
+-		/*
+-		 * workaround! due to HW issue, a stop is issued after every
+-		 * read. Once we here we know that this is not the first
+-		 * buffer of the current message. And if the current message
+-		 * is Rx then the previous buffers was Rx as well, we already
+-		 * issued a stop, and we need to issue a start.
+-		 */
+-		i2c_msm_xfer_create_cur_tag(ctrl, cur_buf->is_rx);
++		/* No start is required if it is not a first buffer in msg */
++		i2c_msm_xfer_create_cur_tag(ctrl, false);
+ 	} else {
+ 		/* first buffer in a new message */
+ 		if (cur_buf->is_init) {
+diff -Naur -x .git linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma_axi.c linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma_axi.c
+--- linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma_axi.c	2016-02-02 11:43:20.264578084 +0800
++++ linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma_axi.c	2016-03-02 14:33:35.829767193 +0800
+@@ -70,6 +70,49 @@
+ 	*reg_value = readl((void __iomem *)(edma_hw_addr + reg_addr));
+ }
+ 
++/*
++ * edma_change_tx_coalesce()
++ *	change tx interrupt moderation timer
++ */
++void edma_change_tx_coalesce(int usecs)
++{
++	u32 reg_value;
++
++	/* Here, we right shift the value from the user by 1, this is
++	 * done because IMT resolution timer is 2usecs. 1 count
++	 * of this register corresponds to 2 usecs.
++	 */
++	edma_read_reg(EDMA_REG_IRQ_MODRT_TIMER_INIT, &reg_value);
++	reg_value = ((reg_value & 0xffff) | ((usecs >> 1) << 16));
++	edma_write_reg(EDMA_REG_IRQ_MODRT_TIMER_INIT, reg_value);
++}
++
++/*
++ * edma_change_rx_coalesce()
++ *	change rx interrupt moderation timer
++ */
++void edma_change_rx_coalesce(int usecs)
++{
++	u32 reg_value;
++
++	/* Here, we right shift the value from the user by 1, this is
++	 * done because IMT resolution timer is 2usecs. 1 count
++	 * of this register corresponds to 2 usecs.
++	 */
++	edma_read_reg(EDMA_REG_IRQ_MODRT_TIMER_INIT, &reg_value);
++	reg_value = ((reg_value & 0xffff0000) | (usecs >> 1));
++	edma_write_reg(EDMA_REG_IRQ_MODRT_TIMER_INIT, reg_value);
++}
++
++/*
++ * edma_get_tx_rx_coalesce()
++ *	Get tx/rx interupt moderation value
++ */
++void edma_get_tx_rx_coalesce(u32 *reg_val)
++{
++	edma_read_reg(EDMA_REG_IRQ_MODRT_TIMER_INIT, reg_val);
++}
++
+ void edma_read_append_stats(struct edma_common_info *edma_cinfo)
+ {
+ 	uint8_t *p = (uint8_t *)&(edma_cinfo->edma_ethstats);
+diff -Naur -x .git linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma_ethtool.c linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma_ethtool.c
+--- linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma_ethtool.c	2016-02-02 11:43:20.264578084 +0800
++++ linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma_ethtool.c	2016-03-02 14:33:35.829767193 +0800
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015, The Linux Foundation. All rights reserved.
++ * Copyright (c) 2015 - 2016, The Linux Foundation. All rights reserved.
+  *
+  * Permission to use, copy, modify, and/or distribute this software for
+  * any purpose with or without fee is hereby granted, provided that the
+@@ -289,6 +289,40 @@
+ }
+ 
+ /*
++ * edma_get_coalesce
++ *	get interrupt mitigation
++ */
++static int edma_get_coalesce(struct net_device *netdev,
++	struct ethtool_coalesce *ec)
++{
++	u32 reg_val;
++
++	edma_get_tx_rx_coalesce(&reg_val);
++
++	/* We read the Interrupt Moderation Timer(IMT) register value,
++	 * use lower 16 bit for rx and higher 16 bit for Tx. We do a
++	 * left shift by 1, because IMT resolution timer is 2usecs.
++	 * Hence the value given by the register is multiplied by 2 to
++	 * get the actual time in usecs.
++	 */
++	ec->tx_coalesce_usecs = (((reg_val >> 16) & 0xFFFF) << 1);
++	ec->rx_coalesce_usecs = ((reg_val & 0xFFFF) << 1);
++}
++
++/*
++ * edma_set_coalesce
++ *	set interrupt mitigation
++ */
++static int edma_set_coalesce(struct net_device *netdev,
++	struct ethtool_coalesce *ec)
++{
++	if (ec->tx_coalesce_usecs)
++		edma_change_tx_coalesce(ec->tx_coalesce_usecs);
++	if (ec->rx_coalesce_usecs)
++		edma_change_rx_coalesce(ec->rx_coalesce_usecs);
++}
++
++/*
+  * edma_set_priv_flags()
+  *	Set EDMA private flags
+  */
+@@ -306,7 +340,21 @@
+ 	return 0;
+ }
+ 
+-/**
++/*
++ * edma_get_ringparam()
++ *	get ring size
++ */
++static int edma_get_ringparam(struct net_device *netdev,
++		struct ethtool_ringparam *ring)
++{
++	struct edma_adapter *adapter = netdev_priv(netdev);
++	struct edma_common_info *edma_cinfo = adapter->edma_cinfo;
++
++	ring->tx_max_pending = edma_cinfo->tx_ring_count;
++	ring->rx_max_pending = edma_cinfo->rx_ring_count;
++}
++
++/*
+  * Ethtool operations
+  */
+ struct ethtool_ops edma_ethtool_ops = {
+@@ -320,8 +368,11 @@
+ 	.get_strings = &edma_get_strings,
+ 	.get_sset_count = &edma_get_strset_count,
+ 	.get_ethtool_stats = &edma_get_ethtool_stats,
++	.get_coalesce = &edma_get_coalesce,
++	.set_coalesce = &edma_set_coalesce,
+ 	.get_priv_flags = edma_get_priv_flags,
+ 	.set_priv_flags = edma_set_priv_flags,
++	.get_ringparam = edma_get_ringparam,
+ };
+ 
+ /*
+diff -Naur -x .git linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma.h linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma.h
+--- linux-3.14.43.org/drivers/net/ethernet/qcom/essedma/edma.h	2016-02-02 11:43:20.264578084 +0800
++++ linux-3.14.43/drivers/net/ethernet/qcom/essedma/edma.h	2016-03-02 14:33:35.829767193 +0800
+@@ -428,4 +428,7 @@
+ u16 edma_select_xps_queue(struct net_device *dev, struct sk_buff *skb,
+ 	void *accel_priv, select_queue_fallback_t fallback);
+ void edma_read_append_stats(edma_cinfo);
++void edma_change_tx_coalesce(int usecs);
++void edma_change_rx_coalesce(int usecs);
++void edma_get_tx_rx_coalesce(u32 *reg_val);
+ #endif /* _EDMA_H_ */
+diff -Naur -x .git linux-3.14.43.org/net/bridge/br_device.c linux-3.14.43/net/bridge/br_device.c
+--- linux-3.14.43.org/net/bridge/br_device.c	2016-02-02 11:43:21.952561058 +0800
++++ linux-3.14.43/net/bridge/br_device.c	2016-03-02 14:33:37.165797000 +0800
+@@ -34,6 +34,8 @@
+ 	struct net_bridge_mdb_entry *mdst;
+ 	struct pcpu_sw_netstats *brstats = this_cpu_ptr(br->stats);
+ 	u16 vid = 0;
++	struct net_bridge_port *pdst;
++	br_get_dst_hook_t *get_dst_hook;
+ 
+ 	rcu_read_lock();
+ #ifdef CONFIG_BRIDGE_NETFILTER
+@@ -57,6 +59,8 @@
+ 	if (!br_allowed_ingress(br, br_get_vlan_info(br), skb, &vid))
+ 		goto out;
+ 
++	get_dst_hook = rcu_dereference(br_get_dst_hook);
++
+ 	if (is_broadcast_ether_addr(dest))
+ 		br_flood_deliver(br, skb, false);
+ 	else if (is_multicast_ether_addr(dest)) {
+@@ -80,10 +84,20 @@
+ 			br_multicast_deliver(mdst, skb);
+ 		else
+ 			br_flood_deliver(br, skb, false);
+-	} else if ((dst = __br_fdb_get(br, dest, vid)) != NULL)
+-		br_deliver(dst->dst, skb);
+-	else
+-		br_flood_deliver(br, skb, true);
++	} else {
++		pdst = __br_get(get_dst_hook, NULL, NULL, &skb);
++		if (pdst) {
++			if (!skb)
++				goto out;
++			br_deliver(pdst, skb);
++		} else {
++			dst = __br_fdb_get(br, dest, vid);
++			if (dst)
++				br_deliver(dst->dst, skb);
++			else
++				br_flood_deliver(br, skb, true);
++		}
++	}
+ 
+ out:
+ 	rcu_read_unlock();

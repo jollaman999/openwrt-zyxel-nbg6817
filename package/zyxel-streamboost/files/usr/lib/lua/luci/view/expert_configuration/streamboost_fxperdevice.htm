@@ -1,0 +1,1234 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local enable_streamboost = uci:get("appflow","tccontroller","enable_streamboost")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv='content-type' content='text/html;charset=utf-8;IE=9'>
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+<!--<link href="<%=media%>/css/inside.css" rel="stylesheet" type="text/css" />-->
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script language="JavaScript" type="text/javascript"></script>
+<style type="text/css"></style>
+
+    <!-- include the prerequisite libraries for the flux kit-->
+    <script src="/js/excanvas.min.js" type="text/javascript"></script>   
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery.contextMenu.js" type="text/javascript"></script>
+    <link href="/css/jquery.contextMenu.css" rel="stylesheet" type="text/css" /> 
+
+    <!-- include flux itself-->
+    <script language="javascript" type="text/javascript" src="/js/fxEnvironment.js"></script>
+    <script language="javascript" type="text/javascript" src="/js/fxPageMenu.js"></script>
+
+    <!-- custom local styles-->
+    <!-- Load all of our header files-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
+    <script type="text/javascript" src="/js/fxCharts.js"></script>
+    <script type="text/javascript" src="/js/fxEnvironment.js"></script>
+    <script type="text/javascript" src="/js/fxTranslate.js"></script>
+    <script type="text/javascript" src="/js/utility.js"></script>
+    
+    <!--<link rel="stylesheet" href="/css/nh2.css" type="text/css" media="screen">-->
+    <link type="text/css" href="/css/custom-theme/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+
+    <!-- custom local styles-->
+    <style type="text/css">
+        .select_line {
+            stroke: rgba(0,00,0,1.0);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        .unselect_line {
+            stroke: rgba(0, 0, 0, 0.3);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+
+        /* Start by setting display:none to make this hidden.
+           Then we position it in relation to the viewport window
+           with position:fixed. Width, height, top and left speak
+           speak for themselves. Background we set to 80% white with
+           our animation centered, and no-repeating */
+        .modal {
+            display:    none;
+            position:   fixed;
+            z-index:    1000;
+            top:        0;
+            left:       0;
+            height:     100%;
+            width:      100%;
+            background: rgba( 64, 64, 64, .7 ) 
+                        url('/images/loading.gif') 
+                        50% 50% 
+                        no-repeat;
+        }
+
+        /* When the body has the loading class, we turn
+           the scrollbar off with overflow:hidden */
+        body.loading {
+            overflow: hidden;   
+        }
+
+        /* Anytime the body has the loading class, our
+           modal element will be visible */
+        body.loading .modal {
+            display: block;
+        }           
+
+        .debug {
+            display:none;   
+            color:      white;   
+            position:   fixed;
+            z-index:    1000;
+            top:        0;
+            right:      0;
+            height:     20%;
+            width:      30%;
+            background: rgba( 128, 0, 0, .7 ) 
+                        no-repeat;
+        }           
+    </style>
+    
+    <!-- this files custom javascript -->
+    <script type="text/javascript">
+
+        //min height of the chart on this page
+        var g_nMinChartHeight = 810;
+
+        // this is the update interval
+        // current set to 30 seconds
+        // note: currently checks whether it has reached MinUpdateInterval,
+        // if yes -> do update, else ignore this udpate.
+        var g_nUpdateTime = 30*1000;
+        var g_nMinUpdateInterval = 5*60*1000;
+        var g_nLastUpdateTime = new Date().getTime();
+
+        //global variable for large data chunks
+        var rtPolicy = null;    //policy data /api/policy
+        var rtDevices = null;   //device data /api/nodes
+        var rawData = null;     //raw events getEvents
+        var rtData = null;      //processed events getDeviceData()
+        var lsFilterEvent = []; //unused?
+        var isDrawingChart = 0;
+
+        //global chart stuff
+        var options = null; //options for the chart
+        var chart = null;   //the google chart object
+        var data = null;    //data table for the chart
+
+        //start and stop time ranges
+        var g_nStart = 0;
+        var g_nEnd = new Date().getTime();
+        var g_nRemainingEventFlows = 0;
+        var g_nNumOfEventFlowFirstFetch = 500;
+        var g_nNumOfEventFlowRemainingFetch  = 3000;
+        var g_nNumOfEventFlowPerFetch   = 0;
+
+
+        function drawChartWithAjaxLoading()
+        {
+            $("body").addClass("loading");  
+
+            $("#divModal").show( 200, function() { 
+                setTimeout(function() {
+                    drawChart(); 
+                }, 100);
+            }); 
+        }
+
+        /*
+            Function: drawChart
+
+            draw the google pie chart for devices
+
+            Parameters:
+            bFetchData - should this fetch data? undefined = true
+            nSelect    - which pie wedge is selected?
+
+            returns:
+            nothing
+        */
+        function drawChart(bFetchData,nSelect)
+        {
+
+            if(typeof bFetchData == 'undefined' || bFetchData != false)
+            {
+                //get the device list
+                // console.log( 'getDevices start' ); 
+                rtDevices   = getDevices();
+                // console.log( 'getDevices end' ); 
+
+                //get the policy names
+                // console.log( 'getPolicy start' ); 
+                rtPolicy    = getPolicy();
+                // console.log( 'getPolicy end' ); 
+
+                if( isNaN(g_nStart) || isNaN(g_nEnd))
+                {
+                    g_nStart = 0;
+                    g_nEnd = new Date().getTime();
+                }
+
+                // console.log( 'g_nStart:' + g_nStart + ', g_nEnd:' + g_nEnd ); 
+
+                //get the raw event if we dont have any
+                if(rawData == null)
+                {
+                    // console.log( 'getEvents sync start' ); 
+                    rawData = getEvents(g_nStart/1000,g_nEnd/1000);
+                    // console.log( 'getEvents sync end' ); 
+
+                    initBillTab();
+                }
+
+                //culled data
+                cullData = [];
+                var nStartMS = g_nStart/1000;
+                var nEndMS = g_nEnd/1000;
+
+                //cull the raw data to g_nStart/g_nEnd
+                for(var x in rawData)
+                {
+                    var myTime = parseInt(rawData[x].time);
+
+                    if(myTime >= nStartMS && myTime <= nEndMS)
+                    {            
+                        cullData.push(rawData[x]);
+                    }
+                }
+
+                // console.log( 'cullData.length:' + cullData.length ); 
+
+                //get the current events
+                // console.log( 'getDeviceData start' ); 
+                rtData  = getDeviceData(cullData);
+                // console.log( 'getDeviceData end' );                 
+                //option for the pie
+                options = {
+                    legend: {
+                        position: 'none'
+                    },
+                    backgroundColor: {
+                        fill: 'transparent',
+                        stroke: "transparent",
+                        strokeWidth: 0
+                    },
+                    colors: colorrange,
+                    pieSliceTextStyle: {
+                        'color': '#FFFFFF'
+                    },
+                    chartArea: {
+                        left: 100,
+                        top: 100
+                    }
+                };
+
+            }
+            //create our base table
+            devicetable   = [
+                                ['Device', 'Download Percent']
+                            ];
+
+            //number of rows
+            var nCount = 1;
+
+            //append live data to table
+            for(var x in rtData.devices)
+            {
+                devicetable.push([x,parseInt(rtData.devices[x].rx_percent)]);
+
+                nCount++;
+            }
+
+            //calc div height
+            var nDivHeight = $(window).height() - $("#mydiv").offset().top;
+
+            //make sure its tall enough to draw
+            if(nDivHeight < g_nMinChartHeight)
+                nDivHeight = g_nMinChartHeight;
+
+            //if we are less than the height of all the graph pucks
+            //choose that instead
+            if(nDivHeight < nCount*80)
+            {
+                nDivHeight = nCount*80;
+            }
+
+            //set initial height
+            $("#mydiv").css({height: nDivHeight});
+
+            //corvert tabel to google chart format
+            data = google.visualization.arrayToDataTable(devicetable);
+
+            //creat the chart object
+            chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+            //draw the pie
+            chart.draw(data, options);
+
+            //set selection to nothing
+            chart.setSelection([{
+                row: null
+            }]);
+
+            var nY = 8;
+            //var nInc = 128;
+            var nHeight = 72;
+            var nInc = (($(window).height() * .75) / 10);
+
+            var nTotalSlicesExpected = 0;
+            // getting nSlice on the first round            
+            for(var x in devicetable)
+            {
+                if(devicetable[x][0] == "Device" &&  devicetable[x][1] =="Download Percent")
+                    continue;
+                if(devicetable[x][1] >= 1)
+                {
+                    ++nTotalSlicesExpected;
+                }
+            }
+
+            // get current piechart height
+            var heightOfPieChart = $("#piechart").height();
+
+            // console.log("nTotalSlicesExpected:"+nTotalSlicesExpected);
+
+            nInc = heightOfPieChart / nTotalSlicesExpected;
+            if (nInc > 77)
+            {
+                nInc = 77;
+            }
+
+            nHeight = nInc - 5;
+
+            var nSlice=0;
+
+            //walk the devicetable
+            for(var x in devicetable)
+            {
+                //if this is the header for the table skip a step
+                if(devicetable[x][0] == "Device" &&  devicetable[x][1] =="Download Percent")
+                    continue;
+
+                //if this is a legit device wedge with data ie != 0
+                if(devicetable[x][1] >= 1)
+                {
+                    //defalut select state to false
+                    var bSelected = false;
+
+                    //if this is the select param index
+                    if(nSlice == nSelect)
+                    {
+                        bSelected = true;
+                    }
+
+                    //add a pie key
+                    // console.log('image: '+ nodeIcon(mac2type(devicetable[x][0])));
+                    addPieKey(  nodeIcon(mac2type(devicetable[x][0])),
+                                mac2name(devicetable[x][0]),
+                                devicetable[x][0],
+                                10, nY,
+                                nSlice,
+                                chart,
+                                '#48566C',
+                                (function(mac)
+                                {
+                                    return function()
+                                    {
+                                        //send the browser to the detail page
+                                        //append the id of the clicked on node
+                                        /*window.location = 'fxDeviceDetail.html?nodeid='+mac;*/
+                                        var pathname = window.location.pathname;
+
+                                        var n=pathname.indexOf("perdevice");
+
+                                        if(n==-1)
+                                        {
+                                            pathname = pathname + "/devicedetail";
+                                        }
+                                        else
+                                        {
+                                            pathname = pathname.replace(/perdevice/g,"devicedetail")
+                                        }
+
+                                        //send the browser to the node page
+                                        //append the id of the clicked on node
+                                        window.location = pathname+'?nodeid='+mac;
+                                    }
+                                })(devicetable[x][0]),
+                                bSelected,
+                                nHeight);
+
+                    //increment the pies y position
+                    nY += nInc;
+                }
+
+                //go to next pie index
+                nSlice++;
+            }
+
+            //is this used?
+            var pie_text = $('#piechart g text');
+
+            //set the z-order of our tabs to always work
+            $("#tabs").css("z-index",85000);
+
+            isDrawingChart = 0;
+            // console.log( 'drawChart end, hide modal' ); 
+            $("body").removeClass("loading");
+            $("#divModal").hide();  
+
+        }
+
+        //set up google charts on page load
+        google.load("visualization", "1", {
+            packages: ["corechart"]
+        });
+
+        //default fister to billing cycle
+        var g_nFilter = 0;
+
+        /*
+            Function: initialize
+
+            set up the page on first drawing/load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initialize()
+        {
+
+            // disable items
+            $("#datestart").attr('disabled','disabled');
+            $("#dateend").attr('disabled','disabled');
+            $("#quarter").attr('disabled','disabled');
+
+            //redraw chart on resize
+            $(window).resize(function() {
+                drawChartWithAjaxLoading();
+            });
+
+            //create tab filter dialog
+            $("#tabs").tabs();
+
+            //setup tabs
+            initBillTab();
+            initCustomTab();
+            initLastQuarterTab();
+
+            //hook tabs up to click
+            $('#tabs').bind('tabsshow', function(event, ui) {
+              //initFilter on tab change
+              initFilter(ui.index);
+
+            });
+
+            //set up refresh / filter buttons
+            initButtons();
+
+            //this is a hack to allow our dialog to work
+            //when you move to the right side of the screen
+            //over the dialog we change the z-index
+            //so we can click on it
+            $(document).mousemove(function(event){
+
+                //get the x position of the cursor
+                var x = event.pageX;
+
+                //get the whole page width
+                var dw = $(document).width();
+
+                //get the tab dialog width
+                var tw = $("#tabs").width();
+
+                //create our z-index threshold to be
+                //over our dialog on the right side of the
+                //screen
+                var threshold = dw - tw - 128;
+
+                //if you are over the dialog
+                if( x >= threshold)
+                {
+                    //move chart to  back
+                    $("#piechart").css("z-index",-1);
+                }
+                else //if you are over the chart
+                {
+                    //bring chart to front
+                    $("#piechart").css("z-index",1);
+                }
+            });
+
+            //this is the update interval
+            setInterval(function()
+            {
+                // console.log( 'isDrawingChart:' + isDrawingChart );
+
+                // stop update if interval is too short.
+                if (new Date().getTime() - g_nLastUpdateTime < g_nMinUpdateInterval)
+                {
+                    return;
+                }
+                
+                if (isDrawingChart)
+                {
+                    // console.log( 'still drawing chart, ignore this update' );
+                    $("#divDebugMesg").show().html("still drawing chart, ignore this update.<br/>"+$("#divDebugMesg").html());
+                    return;
+                }
+
+                // console.log( 'interval reget data & drawChart, asyncGettingData' );
+                $("body").addClass("loading");  
+                $("#divModal").show();
+                isDrawingChart = 1;
+
+                var retRetireOzker = retireOzker();            
+                console.log( 'retRetireOzker result:' + retRetireOzker); 
+
+                g_nRemainingEventFlows = getNumberOfFlowEvents();   
+                console.log( 'g_nRemainingEventFlows:' + g_nRemainingEventFlows); 
+
+                rawData = [];
+                g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+
+                asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback); 
+            },
+            g_nUpdateTime);
+
+            $("#mydiv").show();
+
+        }
+
+        /*
+            Function: initButtons
+
+            set up the buttons on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initButtons()
+        {
+            //init the refresh button
+            $( "#btRefresh" ).button({
+                  icons: {
+                    primary: "ui-icon-refresh"
+                  }
+            });
+
+            //pop the z-index in front of the chart
+            $("#btRefresh").css("z-index","500000");
+
+            //when refresh is selected
+            $("#btRefresh").click(function()
+            {
+                drawChart();
+            });
+        }
+
+        /*
+            Function: initFilter
+
+            redraw the chart on tab changes
+
+            Parameters:
+            nTab - tab number of the filter
+
+            returns:
+            nothing
+        */
+        function initFilter(nTab)
+        {
+            switch(nTab)
+            {
+                case 0: // billing cycle
+                {
+                    //get selected info
+                    var nID =$('#billcycle option:selected').val();
+                    var strDate =$('#billcycle option:selected').text();
+
+
+                    //split the date string
+                    var splitted = strDate.split(" to ");
+
+                    var strStart    = splitted[0];
+                    var strEnd      = splitted[1];
+
+                    //init the range
+                    g_nStart    = new Date(strStart).getTime();
+                    g_nEnd      = new Date(strEnd).getTime();
+
+                    drawChart();
+                }
+                break;
+                case 1: //custom period
+                {
+                    var startDate = $("#datestart").val();
+                    var endDate = $("#dateend").val();
+
+                    startDate = startDate.replace(/\//g, '-');
+                    endDate = endDate.replace(/\//g, '-');
+
+                    //get numbers
+                    var dtNow = new Date();
+                    var nDay    = dtNow.getDate();
+                    var nMonth  = dtNow.getMonth()+1; //January is 0!
+                    var nYear   = dtNow.getFullYear();
+
+                    //get our start and end date in objects
+                    var start = new Date(startDate);
+                    var end   = new Date(endDate);
+
+                    //now adjust the time to beginning of 1st day
+                    //and end of last day
+                    start.setHours(0,0,0);
+                    end.setHours(23,59,59);
+
+                    //init the range
+                    g_nStart    = start.getTime();
+                    g_nEnd      = end.getTime();
+
+                    drawChart();
+
+                    //make min and max date objects
+                    var min = new Date();
+                    var max = new Date();
+
+                    //now adjust the time to set our 90 day min max
+                    min.setMonth(min.getMonth()-3);
+                    min.setHours(0,0,0);
+
+                    max.setHours(23,59,59);
+
+                    //set min max values of each control
+                    $("#dateend").datepicker( "option", "minDate", start);
+                    $("#dateend").datepicker( "option", "maxDate", max);
+                    $("#datestart").datepicker( "option", "minDate", min);
+                    $("#datestart").datepicker( "option", "maxDate", end);
+                }
+                break;
+                case 2: // quarterly
+                {
+                    var nID =$('#quarter option:selected').val();
+                    var start = "";
+                    var end = "";
+
+                    if(nID == 1)
+                    {
+                        start = q1.strStart;
+                        end = q1.strEnd;
+                    }
+                    else if(nID == 2)
+                    {
+                        start = q2.strStart;
+                        end = q2.strEnd;
+                    }
+                    else if(nID == 3)
+                    {
+                        start = q3.strStart;
+                        end = q3.strEnd;
+                    }
+                    else //if(nID == 4)
+                    {
+                        start = q4.strStart;
+                        end = q4.strEnd;
+                    }
+
+                    //init the range
+                    var startTime = new Date(start);
+                    var endTime = new Date(end);
+                    startTime.setHours(0,0,0);
+                    endTime.setHours(23,59,59);
+                    g_nStart    = startTime.getTime();
+                    g_nEnd      = endTime.getTime();
+
+                    drawChart();
+                }
+                break;
+            }
+        }
+
+        /*
+            Function: initBillTab
+
+            set up the billing cycle tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initBillTab()
+        {
+            //get numbers
+            var dtNow = new Date();
+            var nDay    = dtNow.getDate();
+            var nMonth  = dtNow.getMonth()+1; //January is 0!
+            var nYear   = dtNow.getFullYear();
+
+            //set start date to beginning of epoch time
+            var nStartMonth = 0;//g_dateStart.getMonth()+1;
+            var nStartYear  = 0;//g_dateStart.getFullYear();
+
+            //init the range
+            g_nStart    = new Date(nMonth+"-01-"+nYear).getTime();
+            g_nEnd      = new Date(nMonth+"-31-"+nYear).getTime();
+
+            $("#mnth1").remove();
+            $("#mnth2").remove();
+            $("#mnth3").remove();
+            $("#mnth4").remove();
+
+            $("#billcycle").append("<option id=\"mnth1\" value=\"1\">04/01/2014 to 04/31/2014</option>");
+
+            var month1 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            $("#mnth1").text(month1);
+            $("#mnth1").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+
+            var month2 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth2").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth2\" value=\"2\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth2").text(month2);
+            $("#mnth2").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month3 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth3").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth3\" value=\"3\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth3").text(month3);
+            $("#mnth3").val(nMonth);
+
+            nMonth -= 1;
+
+            if(nMonth<1)
+            {
+                nMonth = 12;
+                nYear -= 1;
+            }
+
+            var month4 = nMonth+"/1/"+nYear+" to "+nMonth+"/" + lastDay(nYear, nMonth -1) + "/"+nYear;
+
+            if(nMonth < nStartMonth || nYear < nStartYear)
+            {
+                $("#mnth4").remove();
+            }
+            else
+            {
+                $("#billcycle").append("<option id=\"mnth4\" value=\"4\">04/01/2014 to 04/31/2014</option>");
+            }
+
+            $("#mnth4").text(month4);
+            $("#mnth4").val(nMonth);
+
+            $("#billcycle").change(function(e)
+            {
+                //draw changes for billing filter
+                initFilter(0);
+            })
+        }
+
+        /*
+            Function: initCustomTab
+
+            set up the custom range tab on 1st load
+
+            Parameters:
+            none.
+
+            returns:
+            nothing
+        */
+        function initCustomTab()
+        {
+            //start date button picker
+            $("#datestart").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //end date button picker
+            $("#dateend").datepicker({
+                showOn: "button",
+                buttonText: "Choose",
+                onSelect: function(dateText) {
+                    //draw changes for custom
+                    initFilter(1);
+                  }
+            });
+
+            //make min and max date objects
+            var min = new Date();
+            var max = new Date();
+
+            //now adjust the time to set our 90 day min max
+            min.setMonth(min.getMonth()-3);
+            min.setHours(0,0,0);
+
+            max.setHours(23,59,59);
+
+            //set min max values of each control
+            $("#dateend").datepicker( "option", "minDate", min);
+            $("#dateend").datepicker( "option", "maxDate", max);
+            $("#datestart").datepicker( "option", "minDate", min);
+            $("#datestart").datepicker( "option", "maxDate", max);
+
+            //set the start and end times
+            $("#datestart").datepicker( "setDate", min);
+            $("#dateend").datepicker( "setDate", max);
+
+        }
+
+//SB058 start
+		
+//$        //make default quarters
+//$        var q1 = quarterRange(1, 15);
+//$        var q2 = quarterRange(2, 15);
+//$        var q3 = quarterRange(3, 15);
+//$        var q4 = quarterRange(4, 15);
+
+//$        /*
+//$            Function: initQuarterTab
+
+//$            set up the per quarter tab on 1st load
+
+//$            Parameters:
+//$            none.
+
+//$            returns:
+//$            nothing
+//$        */
+//$        function initQuarterTab()
+//$        {
+//$            //get today
+//$            var dtNow = new Date();
+//$            var nCurrentMonth = dtNow.getMonth()+1;
+//$            var nCurrentYear = dtNow.getFullYear();
+
+//$            //set our start to beginning of epoch time
+//$            g_nStart = 0;
+
+//$            //current quarter
+//$            var nCurrentQuarter = getQuarter(nCurrentMonth);
+
+//$            var nQt = nCurrentQuarter;
+//$            var nYr = nCurrentYear;
+
+//$            //make current quarter
+//$            q1 = quarterRange(nQt,nYr);
+
+//$            nQt -= 1;
+
+//$            if(nQt == 0)
+//$            {
+//$                nQt = 4;
+//$                nYr -= 1;
+//$            }
+
+//$            //prev quarter 1
+//$            q2 = quarterRange(nQt,nYr);
+
+//$            //get our start and end date in objects
+//$            var start = new Date(q2.strStart);
+//$            var end   = new Date(q2.strEnd);
+
+//$            //now adjust the time to beginning of 1st day
+//$            //and end of last day
+//$            start.setHours(0,0,0);
+//$            end.setHours(23,59,59);
+
+//$            //init the range
+//$            nStart    = start.getTime();
+//$            nEnd      = end.getTime();
+
+//$            $("#quarter1").remove();
+//$            $("#quarter2").remove();
+//$            $("#quarter3").remove();
+//$            $("#quarter4").remove();
+
+//$            $("#quarter").append("<option id=\"quarter1\" value=\"1\">01/01/2014 to 03/31/2014</option>");
+
+//$            //is this quarter in our data range?
+//$            if( nStart > g_nEnd ||
+//$                nEnd < g_nStart )
+//$            {
+//$                $("#quarter2").remove();
+//$            }
+//$            else
+//$            {
+//$                $("#quarter").append("<option id=\"quarter2\" value=\"2\">01/01/2014 to 03/31/2014</option>");
+//$            }
+
+//$            nQt -= 1;
+
+//$            if(nQt == 0)
+//$            {
+//$                nQt = 4;
+//$                nYr -= 1;
+//$            }
+
+//$            //prev quarter 2
+//$            q3 = quarterRange(nQt,nYr);
+
+//$            //get our start and end date in objects
+//$            start = new Date(q3.strStart);
+//$            end   = new Date(q3.strEnd);
+
+//$            //now adjust the time to beginning of 1st day
+//$            //and end of last day
+//$            start.setHours(0,0,0);
+//$            end.setHours(23,59,59);
+
+//$            //init the range
+//$            nStart    = start.getTime();
+//$            nEnd      = end.getTime();
+
+//$            //is this quarter in our data range?
+//$            if( nStart > g_nEnd ||
+//$                nEnd < g_nStart )
+//$            {
+//$                $("#quarter3").remove();
+//$            }
+//$            else
+//$            {
+//$                $("#quarter").append("<option id=\"quarter3\" value=\"3\">01/01/2014 to 03/31/2014</option>");
+//$            }
+
+//$            nQt -= 1;
+
+//$            if(nQt == 0)
+//$            {
+//$                nQt = 4;
+//$                nYr -= 1;
+//$            }
+
+//$            //prev quarter 3
+//$            q4 = quarterRange(nQt,nYr);
+//$             //get our start and end date in objects
+//$            start = new Date(q4.strStart);
+//$            end   = new Date(q4.strEnd);
+
+//$            //now adjust the time to beginning of 1st day
+//$            //and end of last day
+//$            start.setHours(0,0,0);
+//$            end.setHours(23,59,59);
+
+//$            //init the range
+//$            nStart    = start.getTime();
+//$            nEnd      = end.getTime();
+
+//$            //is this quarter in our data range?
+//$            if( nStart > g_nEnd ||
+//$                nEnd < g_nStart )
+//$            {
+//$                $("#quarter4").remove();
+//$            }
+//$            else
+//$            {
+//$                $("#quarter").append("<option id=\"quarter4\" value=\"4\">01/01/2014 to 03/31/2014</option>");
+//$            }
+
+//$            $("#quarter1").text(q1.strStart + " to " +  q1.strEnd);
+//$            $("#quarter2").text(q2.strStart + " to " +  q2.strEnd);
+//$            $("#quarter3").text(q3.strStart + " to " +  q3.strEnd);
+//$            $("#quarter4").text(q4.strStart + " to " +  q4.strEnd);
+
+
+//$            //figure out what quarter today is in
+//$            $("#quarter").change(function(e)
+//$            {
+//$                //draw changes for quarter
+//$                initFilter(2);
+//$            });
+//$        }
+
+//SB058 end
+
+        //make default quarters
+        var q1 = quarterRange(1, 15);
+
+        function initLastQuarterTab()
+        {
+            //get today
+            var dtNow = new Date();
+
+            //make current monthly
+            q1 = lastQuarterRange(dtNow,  -2);
+
+            $("#quarter1").text(q1.strStart + " to " +  q1.strEnd);
+
+
+            //figure out what quarter today is in
+            $("#quarter").change(function(e)
+            {
+                //draw changes for quarter
+                initFilter(2);
+            });
+        }
+
+        var callback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // rawData = data;
+            // console.log('callback, status:' + status); 
+            // console.log('data.length: '+ data.length);
+            // console.log('rawData.length: '+ rawData.length);
+            // console.log( data ); 
+            // console.log( rawData ); 
+            // console.log( rawData ); 
+            if (status == 0)
+            {
+                $.merge(rawData, data);
+                // rawData = data;
+                //draw the chart now that we are ready
+                // drawChart();                     
+                        
+               // console.log( 'isDrawingChart:' + isDrawingChart );
+
+               //  if (isDrawingChart)
+               //  {
+               //      console.log( 'still drawing chart, ignore this update' );
+               //      $("#divDebugMesg").show().html("still drawing chart, ignore this update.<br/>"+$("#divDebugMesg").html());
+               //      return;
+               //  }
+
+                // console.log( 'drawChart, async got data' );
+                $("body").addClass("loading");  
+                $("#divModal").show();                            
+                drawChart();
+
+                g_nRemainingEventFlows -= g_nNumOfEventFlowPerFetch;
+
+                if (g_nNumOfEventFlowPerFetch == g_nNumOfEventFlowFirstFetch)
+                {
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowRemainingFetch;
+                }
+
+                if (g_nRemainingEventFlows >= 0)
+                {
+                    $("#divModal").show();                                                            
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);                              
+                } 
+                else
+                {
+                    isDrawingChart = 0;
+                }
+
+            }         
+            else
+            {
+                isDrawingChart = 0;
+                $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());                             
+                // console.log( 'failed, remove modal' ); 
+                $("body").removeClass("loading");
+                $("#divModal").hide();                         
+            }
+
+        } // callback        
+
+        //called when page 1st loads
+        $(document).ready(function() {
+
+            var retRetireOzker = retireOzker();            
+            console.log( 'retRetireOzker result:' + retRetireOzker); 
+
+            g_nRemainingEventFlows = getNumberOfFlowEvents();   
+            // g_nRemainingEventFlows = 7300; 
+            console.log( 'g_nRemainingEventFlows:' + g_nRemainingEventFlows); 
+
+            //load the flow table
+            flowTable(function()
+            {
+                //load the device table
+                loadDeviceTable(function()
+                {
+                    //init start to ridiculously early date
+                    g_nStart = 0;
+                    g_nEnd = new Date().getTime();
+
+                    //do a 1st fetch of all data before setting a filter
+                    $("body").addClass("loading");  
+                    $("#divModal").show();
+
+                    //draw the page
+                    initialize();  
+
+                    rawData = [];
+                    isDrawingChart = 1;
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, 
+                        g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);
+                });
+            });
+        });
+        
+        function menu(){
+            
+            window.parent.menu.location.href = "<%=controller%>/expert/configuration/security/menu_app";
+            
+        }
+
+    </script>
+    
+</head>
+
+<script>
+    //set the global streamboost flag
+    var g_bIsStreamboost = true;
+</script>
+
+<body>
+
+  <div id="title_c" >
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td width="300"><div id="title_n" ><%:Consumption_Per_Device%></div></td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div id="all_w">
+    <% if enable_streamboost == "1" then%>
+      <li class="table_content">
+        <div id="data" >
+            <h1 style="color: rgb(0, 116, 176);font-size:24px;text-align:center;margin-left: -128px;"><%:Consumption_Per_Device%></h1>
+            <div id="mydiv" style="display:none;">
+                <div style="float: right;margin-right:64px;font-size: 10px;">
+                    <div id="tabs">
+                        <ul>
+                            <li><a href="#tabs-1"><%:Billing_Period%></a>
+                            </li>
+                            <li><a href="#tabs-2"><%:Custom_Period%></a>
+                            </li>
+                            <li><a href="#tabs-3"><%:Quarterly%></a>
+                            </li>
+                        </ul>
+                        <div id="tabs-1">
+                            <div>
+                                <div><%:Period%>:</div>
+                                <select id="billcycle" class="dateRangeFilter">
+                                    <option id="mnth1" value="1">04/01/2014 to 04/31/2014</option>
+                                    <option id="mnth2" value="2">03/01/2014 to 03/31/2014</option>
+                                    <option id="mnth3" value="3">02/01/2014 to 02/31/2014</option>
+                                    <option id="mnth4" value="4">01/01/2014 to 01/31/2014</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="tabs-2">
+                            <div>
+                                <div><%:Start%>:</div>
+                                <input type="text" id="datestart" value="01/01/2014" style="position: relative; z-index: 500000;">
+                            </div>
+                            <div>
+                                <div><%:End%>: </div>
+                                <input type="text" id="dateend" value="01/31/2014" style="position: relative; z-index: 500000;">
+                            </div>
+                        </div>
+                        <div id="tabs-3">
+                            <div>
+                                <div><%:Quarter%>:</div>
+                                <select id="quarter" class="dateRangeFilter">
+                                    <option id="quarter1" value="1">01/01/2014 to 03/31/2014</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="btRefresh" style="float:right;margin-top:8px;"><%:Refresh%></button>
+                </div>
+                <div id="piechart" style="top:100px;width: 100%; height: 100%;"></div>
+            </div>
+        </div>        
+      </li>
+      <div class="spaceair"></div>
+    <%else%>        
+      <div class="data" >
+        <div class="w_text">
+
+            	<%:Streamboost_on_warning%>
+		<a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxbandwidth" onclick="menu();" ><%:Streamboost_on_warning3%> </a> <%:Streamboost_on_warning4%> 
+
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+    <%local enable_streamboostDebug = uci:get("appflow","tccontroller","enable_streamboostDebug")%>
+    <%if enable_streamboostDebug == "1" then%>
+    <div class="debug" id="divDebugMesg"></div>
+    <%end%>
+    <div class="modal" id="divModal"><!-- Place at bottom of page --></div>
+
+</body>
+
+</html>

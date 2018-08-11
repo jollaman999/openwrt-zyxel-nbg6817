@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+
+  <title>tree menu</title>
+
+
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<link href="<%=media%>/css/menu.css" rel="stylesheet" type="text/css">
+
+
+
+</head>
+
+<body>
+<div id="menu_bg">
+  <div id="menu_t"><%:WAN%></div>
+  
+   <ul class=mtree>
+    <li><a href="<%=controller%>/expert/configuration/network/internet_connection" target="data"><%:Broadband%> </a></li>
+    <li><a href="#"><%:NAT%> </a>
+    <ul>
+	
+	<li><a href="<%=controller%>/expert/configuration/network/nat/portfw" target="data"><%:General%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/network/nat/nat_advance" target="data"><%:Port_Trigger%></a></li>
+  <li><a href="<%=controller%>/expert/configuration/network/nat/passthrough" target="data"><%:Passthrough%></a></li>
+    </ul>
+   </li>
+  <li><a href="<%=controller%>/expert/configuration/network/ddns" target="data"><%:Dynamic_DNS%> </a></li>
+</ul>
+</div>
+<div id="skm_LockPane" class="LockOff"></div> 
+
+</body>
+
+
+
+
+<script src="<%=media%>/js/lmenu_1.js"></script>
+<script src="<%=media%>/js/lmenu_2.js"></script>
+<script src="<%=media%>/js/lmenu_3.js"></script>
+</html>

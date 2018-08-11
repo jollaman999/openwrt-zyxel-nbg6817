@@ -1,0 +1,1178 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local enable_streamboost = uci:get("appflow","tccontroller","enable_streamboost")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv='content-type' content='text/html;charset=utf-8;IE=9'>
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+<!--<link href="<%=media%>/css/inside.css" rel="stylesheet" type="text/css" />-->
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script language="JavaScript" type="text/javascript"></script>
+<style type="text/css"></style>
+
+    <!-- include the prerequisite libraries for the flux kit-->
+	<script src="/js/excanvas.min.js" type="text/javascript"></script>	 
+	<script src="/js/jquery.min.js" type="text/javascript"></script>
+	<script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+	<script src="/js/jquery.contextMenu.js" type="text/javascript"></script>
+	<link href="/css/jquery.contextMenu.css" rel="stylesheet" type="text/css" /> 
+
+	<!-- include flux itself-->
+	<script language="javascript" type="text/javascript" src="/js/fxEnvironment.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/fxPageMenu.js"></script>
+    
+	<!-- custom local styles-->
+    <!-- Load all of our header files-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
+    <script type="text/javascript" src="/js/fxCharts.js"></script>
+    <script type="text/javascript" src="/js/fxEnvironment.js"></script>
+    <script type="text/javascript" src="/js/fxTranslate.js"></script>
+    <script type="text/javascript" src="/js/utility.js"></script>
+	
+	<!--<link rel="stylesheet" href="/css/nh2.css" type="text/css" media="screen">-->
+    <link type="text/css" href="/css/custom-theme/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+
+    <!-- custom local styles-->
+    <style type="text/css">
+        .select_line {
+            stroke: rgba(0,00,0,1.0);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        .unselect_line {
+            stroke: rgba(0, 0, 0, 0.3);
+            shape-rendering: crispEdges;
+            stroke-width: 1;
+        }
+        /* Start by setting display:none to make this hidden.
+           Then we position it in relation to the viewport window
+           with position:fixed. Width, height, top and left speak
+           speak for themselves. Background we set to 80% white with
+           our animation centered, and no-repeating */
+        .modal {
+            display:    none;
+            position:   fixed;
+            z-index:    1000;
+            top:        0;
+            left:       0;
+            height:     100%;
+            width:      100%;
+            background: rgba( 64, 64, 64, .7 ) 
+                        url('/images/loading.gif') 
+                        50% 50% 
+                        no-repeat;
+        }
+
+        /* When the body has the loading class, we turn
+           the scrollbar off with overflow:hidden */
+        body.loading {
+            overflow: hidden;   
+        }
+
+        /* Anytime the body has the loading class, our
+           modal element will be visible */
+        body.loading .modal {
+            display: block;
+        }           
+
+        .debug {
+            display:none;   
+            color:      white;   
+            position:   fixed;
+            z-index:    1000;
+            top:        0;
+            right:      0;
+            height:     20%;
+            width:      30%;
+            background: rgba( 128, 0, 0, .7 ) 
+                        no-repeat;
+        }          
+    </style>
+	
+    <!-- this files custom javascript -->
+    <script type="text/javascript">
+
+        //min height of the chart on this page
+        var g_nMinChartHeight = 810;
+
+        // this is the update interval
+        // current set to 30 seconds
+        // note: currently checks whether it has reached MinUpdateInterval,
+        // if yes -> do update, else ignore this udpate.
+        var g_nUpdateTime = 30*1000;
+        var g_nMinUpdateInterval = 5*60*1000;
+        var g_nLastUpdateTime = new Date().getTime();
+
+        //make all dates available in this data
+        var g_nStart = 0;
+        var g_nEnd = new Date().getTime();
+        var g_nRemainingEventFlows = 0;
+        var g_nNumOfEventFlowFirstFetch = 500;
+        var g_nNumOfEventFlowRemainingFetch  = 3000;
+        var g_nNumOfEventFlowPerFetch   = 0;
+
+        //init google charts when the page loads
+        google.load("visualization", "1", {
+            packages: ["corechart"]
+        });
+
+        //the array to go from 0 based month index to readable name
+        var indexMnths = ["January","Febuary","March","April","May","June","July","August","September","October","November","December"];
+
+        /*
+            Function: getMonthTable
+
+            take the monthly data and turn it into a table suitable for google charts
+
+            Parameters:
+            monthly - data returned from getMonthData()
+
+            returns:
+            table data for google chart
+        */
+        function getMonthTable(monthly)
+        {
+            var nTotalDown = 0;
+             //get numbers
+            var dtNow = new Date();
+            var nDay    = dtNow.getDate();
+            var nMonth  = dtNow.getMonth(); //January is 0!
+            var nYear   = dtNow.getFullYear();
+
+            /*
+            //This is the format of the lsMonths array
+            var lsTest=   [
+                    ['Month', 'Netflix', 'Warcraft', 'Youtube', 'Hulu', 'Facebook', 'Pogo'],
+                    ['July', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                    ['August', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                    ['September', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                    ['October', 1600652, 4604684, 940478, 1167979, 6190532, 18542843]
+                ];
+            */
+
+            var lsMonths =  [];
+
+            //month index
+            var mnth = nMonth;
+
+            var lsFlowNames = [];
+
+
+            //create the top list of month and per flow columns
+            for(var n = 0;n<=3;n++)
+            {
+                //add all the flows in this to our flow list
+                for(var i in monthly[mnth].flows)
+                {
+                    var name = flowname(i);
+
+                    if(typeof lsFlowNames[name] == 'undefined')
+                    {
+                        if(monthly[mnth].flows[i].rx_percent >= 1)
+                        {
+                            lsFlowNames[name] = name;
+                        }
+                    }
+                }
+
+                //accumlate the total of all four months download
+                nTotalDown += monthly[mnth].rx_total;
+
+                //decrement month
+                mnth-= 1;
+
+                if(mnth < 0)
+                {
+                    mnth = 12;
+                }
+            }
+
+            var toprow = [];
+
+            toprow.push("Month")
+
+            //make top row
+            for(var n in lsFlowNames)
+            {
+                toprow.push(n);
+            }
+
+            //get the top row index
+            //for placing flow in our other rows
+            //in the correct column
+            function topindex(name)
+            {
+                var nIndex=-1;
+
+                for(var n in toprow)
+                {
+                    if(toprow[n] == name)
+                    {
+                        nIndex = n;
+                        break;
+                    }
+                }
+
+                return nIndex;
+            }
+            mnth = nMonth;
+
+            //stuff last four months into the array table
+            for(var n = 0;n<=3;n++)
+            {
+                var lsRow = [];
+
+                //prepop row with 0's
+                for(var e in toprow)
+                {
+                    lsRow.push(0);
+                }
+
+                //set the month as the 1st index
+                lsRow[0]=indexMnths[mnth];
+
+                //add the next column
+                for(var f in monthly[mnth].flows)
+                {
+                    //get the name for the flow from the policy
+                    var fname = flowname(f);
+
+                    //get the index for the flow type by looking at the top index
+                    var ndex = topindex(fname);
+
+                    //add percent of total for each flow type
+                    lsRow[ndex] = parseInt((monthly[mnth].flows[f].rx_bytes/nTotalDown)*100);
+                }
+
+                //put the row at the head of the months
+                lsMonths.unshift(lsRow);
+
+                mnth-= 1;
+
+                if(mnth < 0)
+                {
+                    mnth = 12;
+                }
+            }
+
+            //add the header /month/flowsnames to months
+            lsMonths.unshift(toprow);
+
+            return lsMonths;
+        }
+
+        /*
+            Function: getDaysTable
+
+            take the days data and turn it into a table suitable for google charts
+
+            Parameters:
+            monthly - data returned from getDayData()
+
+            returns:
+            table data for google chart
+        */
+        function getDaysTable(rawdays, nMonth)
+        {
+            var lsDays = [];
+
+            var nTotalDown = 0;
+
+            /*
+            //This is the format of the lsDays array
+            var lsTest= [
+                ['1', 'Netflix', 'Warcraft', 'Youtube', 'Hulu', 'Facebook', 'Pogo'],
+                ['2', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['3', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                ['4', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['5', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['6', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['7', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['8', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['9', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['10', 1901067, 6792087, 1037327, 1284795, 6240921, 19830493],
+                ['12', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['13', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                ['14', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['15', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['16', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['17', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['18', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['19', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['20', 1901067, 6792087, 1037327, 1284795, 6240921, 19830493],
+                ['22', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['23', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                ['24', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['25', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['26', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['27', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['28', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['29', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['30', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['31', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053]
+            ]
+            */
+
+            var lsFlowNames = [];
+            var nTotalDown = 0;
+
+            var nLastDayOfMonth = lastDayOfMonth(nMonth);
+
+            // console.log('nLastDayOfMonth: ' + nLastDayOfMonth);
+
+            //create the top list of month and per flow columns
+            for(var x in rawdays)
+            {
+                //add all the flows in this to our flow list
+                for(var n in rawdays[x].flows)
+                {
+                    var name = flowname(n);
+
+                    if(typeof lsFlowNames[name] == 'undefined')
+                    {
+                        lsFlowNames[name] = name;
+                    }
+                }
+
+                //accumlate the total of all days download
+                nTotalDown += rawdays[x].rx_total;
+            }
+
+            var toprow = [];
+
+            toprow.push("Day")
+
+            //make top row
+            for(var n in lsFlowNames)
+            {
+                toprow.push(n);
+            }
+
+            if(toprow.length == 1)
+            {
+                toprow.push("Nothing");
+            }
+
+            //get the top row index
+            //for placing flow in our other rows
+            //in the correct column
+            function topindex(name)
+            {
+                var nIndex=-1;
+
+                for(var n in toprow)
+                {
+                    if(toprow[n] == name)
+                    {
+                        nIndex = n;
+                        break;
+                    }
+                }
+
+                return nIndex;
+            }
+
+            var lsDays = [];
+
+            //walk the raw and makea a table
+            for(var x in rawdays)
+            {
+
+                // ignore 0 day && redundant days
+                if (x == 0 || x > nLastDayOfMonth)
+                    continue;
+
+                var lsRow = [];
+
+                //prepop row with 0's
+                for(var e in toprow)
+                {
+                    lsRow.push(0);
+                }
+                lsRow[0] = String(x);
+
+                for(var f in rawdays[x].flows)
+                {
+                    //get the name for the flow from the policy
+                    var fname = flowname(f);
+
+                    //get the index for the flow type by looking at the top index
+                    var ndex = topindex(fname);
+
+                    //add percent of total for each flow type
+                    lsRow[ndex] = parseInt((rawdays[x].flows[f].rx_bytes/nTotalDown)*100);
+                }
+
+                //put the row at the head of the months
+                lsDays.push(lsRow);
+
+            }
+
+            //put the row at the head of the months
+            lsDays.unshift(toprow);
+
+            return lsDays;
+        }
+
+        /*
+            Function: getHoursTable
+
+            take the Hours data and turn it into a table suitable for google charts
+
+            Parameters:
+            monthly - data returned from getHoursData()
+
+            returns:
+            table data for google chart
+        */
+        function getHoursTable( rawhours)
+        {
+            var nTotalDown = 0;
+
+            /*
+            //This is the format of the lsDays array
+            var lsTest= [
+                ['1', 'Netflix', 'Warcraft', 'Youtube', 'Hulu', 'Facebook', 'Pogo'],
+                ['2', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['3', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                ['4', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['5', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['6', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['7', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['8', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['9', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['10', 1901067, 6792087, 1037327, 1284795, 6240921, 19830493],
+                ['12', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['13', 1538156, 3968305, 928875, 1151983, 5940129, 17356071],
+                ['14', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['15', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['16', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['17', 1576579, 4063225, 1063414, 1156441, 5714009, 16716049],
+                ['18', 1600652, 4604684, 940478, 1167979, 6190532, 18542843],
+                ['19', 1968113, 4013653, 1037079, 1207029, 6420270, 19564053],
+                ['20', 1901067, 6792087, 1037327, 1284795, 6240921, 19830493],
+                ['22', 1336060, 3817614, 974066, 1104797, 6651824, 15727003],
+                ['23', 1538156, 3968305, 928875, 1151983, 5940129, 17356071]
+            ]
+            */
+
+            var lsFlowNames = [];
+            var nTotalDown = 0;
+
+
+            //create the top list of month and per flow columns
+            for(var x in rawhours)
+            {
+                //add all the flows in this to our flow list
+                for(var n in rawhours[x].flows)
+                {
+                    var name = flowname(n);
+
+                    if(typeof lsFlowNames[name] == 'undefined')
+                    {
+                        lsFlowNames[name] = name;
+                    }
+                }
+
+                //accumlate the total of all days download
+                nTotalDown += rawhours[x].rx_total;
+            }
+
+            var toprow = [];
+
+            toprow.push("Day")
+
+            //make top row
+            for(var n in lsFlowNames)
+            {
+                toprow.push(n);
+            }
+
+            if(toprow.length == 1)
+            {
+                toprow.push("Nothing");
+            }
+
+            //get the top row index
+            //for placing flow in our other rows
+            //in the correct column
+            function topindex(name)
+            {
+                var nIndex=-1;
+
+                for(var n in toprow)
+                {
+                    if(toprow[n] == name)
+                    {
+                        nIndex = n;
+                        break;
+                    }
+                }
+
+                return nIndex;
+            }
+
+            var lsHours = [];
+
+            //walk the raw and make a table
+            for(var x in rawhours)
+            {
+                var lsRow = [];
+
+                //prepop row with 0's
+                for(var e in toprow)
+                {
+                    lsRow.push(0);
+                }
+                lsRow[0] = String((parseInt(x) + 1));
+
+                for(var f in rawhours[x].flows)
+                {
+                    //get the name for the flow from the policy
+                    var fname = flowname(f);
+
+                    //get the index for the flow type by looking at the top index
+                    var ndex = topindex(fname);
+
+                    //add percent of total for each flow type
+                    lsRow[ndex] = parseInt((rawhours[x].flows[f].rx_bytes/nTotalDown)*100);
+                }
+
+                //put the row at the head of the months
+                lsHours.push(lsRow);
+
+            }
+
+            //put the row at the head of the months
+            lsHours.unshift(toprow);
+
+            return lsHours;
+        }
+
+        //global data fro chart drawing
+        var dataM = null;
+        var dataD = null;
+        var rawData = null;
+        var isDrawingChart = 0;
+
+        //current times and day/month/year parts
+        var dtNow = new Date();
+        var nDay    = dtNow.getDate();
+        var nMonth  = dtNow.getMonth(); //January is 0!
+        var nYear   = dtNow.getFullYear();
+
+        //draw months data
+        var lsMonths = null;
+
+        /*
+            Function: drawMonths
+
+            draw the months table
+
+            Parameters:
+            rawData - returns from getevents()
+            strNode - mac of node to draw events for
+
+            returns:
+            nothnig
+        */
+        function drawMonths(rawData,strNode)
+        {
+            //get per month data
+            var monthly = getMonthData( rawData,
+                                        strNode);
+
+            lsMonths = getMonthTable(monthly);
+
+
+            // Create and populate the last 4 months flows
+            dataM = google.visualization.arrayToDataTable(lsMonths);
+
+             var optionsM = {
+                title: "Top Flows By Month",
+                colors: colorrange,
+                width: "100%",
+                height: 200,
+                hAxis: {
+                    title: "Month",
+                    showTextEvery:1                    
+                },
+                isStacked: true,
+                backgroundColor: "transparent",
+                focusTarget: 'category',
+                tooltip: { isHtml: true}
+            };
+
+              // Create months
+            var m = new google.visualization.ColumnChart(document.getElementById('chartMonths'));
+            m.draw(dataM, optionsM);
+
+            google.visualization.events.addListener(m, 'select', function()
+                {
+                    var selection = m.getSelection();
+
+
+                    var mnth = dtNow.getMonth();
+                    var topindex = dtNow.getMonth();
+                    if(typeof selection != 'undefined' && typeof selection[0] != 'undefined' &&typeof selection[0].row != 'undefined')
+                    {
+                        mnth = selection[0].row;
+                        topindex = lsMonths[mnth+1][0];
+
+                        // console.log('topindex: '+ topindex);
+                        nMonth = indexMnths.indexOf(topindex,0);
+
+                        drawDays(rawData,strNode,nMonth);
+                        nDay    = dtNow.getDate();
+                        drawHours(rawData,strNode,nMonth,nDay);
+
+                    }
+
+                });
+        }
+
+        //draw days data
+        var lsDays = null;
+
+
+        function lastDayOfMonth(nmonth)
+        {
+            var dtNow = new Date();
+            var nCurrentMonth  = dtNow.getMonth(); //January is 0!
+            var nYear   = dtNow.getFullYear();
+
+            if (nmonth > nCurrentMonth)
+            {
+                --nYear;
+            }
+
+            return lastDay(nYear, nmonth);
+
+        }
+
+        /*
+            Function: drawDays
+
+            draw the days table
+
+            Parameters:
+            rawData - returns from getevents()
+            strNode - mac of node to draw events for
+            nmonth  - 0 based index of month to draw data for
+
+            returns:
+            nothnig
+        */
+        function drawDays(rawData,strNode,nmonth)
+        {
+            //get days data
+            var daily = getDayData(   rawData,
+                                        strNode,
+                                        nmonth);
+
+            //process th day data for the table
+            lsDays = getDaysTable(daily, nmonth);
+
+            // Create and populate the data table.
+            dataD = google.visualization.arrayToDataTable(lsDays);
+
+            // console.log('dataD: ');
+            // console.log(dataD);
+
+            var optionsD = {
+                title: "Top Flows By Day in "+indexMnths[nMonth],
+                colors: colorrange,
+                width: "100%",
+                height: 200,
+                hAxis: {
+                    title: "Day",
+                    showTextEvery:2
+                },
+                isStacked: true,
+                backgroundColor: "transparent",
+                focusTarget: 'category',
+                tooltip: { isHtml: true}
+            };
+
+            // console.log('getNumberOfRows: ' + dataD.getNumberOfRows());
+            // console.log('getNumberOfColumns: ' + dataD.getNumberOfColumns());
+
+            // for (var row = 0; row < dataD.getNumberOfRows(); ++row)
+            // {
+            //     for (var col = 0; col < dataD.getNumberOfColumns(); ++col)
+            //     {
+            //         console.log('(' + row + ', ' + col + '):');
+            //         console.log( dataD.getValue(row, col));                                
+            //     }                
+            // }
+            // console.log( dataD.getValue(0, 2));            
+
+            // var formatter = new google.visualization.NumberFormat({pattern: '#%'});
+            // formatter.format(dataD, 1); // format column 1
+
+            // Create days
+            var d = new google.visualization.ColumnChart(document.getElementById('chartDays'));
+            d.draw(dataD, optionsD);
+
+            google.visualization.events.addListener(d, 'select', function()
+                {
+                    var selection = d.getSelection();
+
+                    var day = 0;
+                    if(typeof selection != 'undefined' && typeof selection[0] != 'undefined' &&typeof selection[0].row != 'undefined')
+                    {
+                        day = selection[0].row;
+                    }
+                    nDay = parseInt(lsDays[day+1][0]);
+
+                    drawHours(rawData,strNode,nMonth,nDay);
+                });
+
+        }
+
+        /*
+            Function: drawHours
+
+            draw the days table
+
+            Parameters:
+            rawData - returns from getevents()
+            strNode - mac of node to draw events for
+            nMonth  - 0 based index of month to draw data for
+            nDay    - 0 based index of day to draw data for
+
+            returns:
+            nothnig
+        */
+        function drawHours(rawData,strNode,nMonth,nDay)
+        {
+            var hourly = getHourData(   rawData,
+                                        strNode,
+                                        nMonth,
+                                        nDay);
+
+            var lsHours = getHoursTable(hourly);
+
+            // Create and populate the data table.
+            var dataH = google.visualization.arrayToDataTable(lsHours);
+
+            var optionsH = {
+                title: "Top Flows By Hour on "+indexMnths[nMonth]+" "+nDay,
+                colors: colorrange,
+                width: "100%",
+                height: 200,
+                hAxis: {
+                    title: "Hour",
+                    showTextEvery:1
+                },
+                isStacked: true,
+                backgroundColor: "transparent",
+                focusTarget: 'category',
+                tooltip: { isHtml: true}
+            };
+            // Create hours
+            var h = new google.visualization.ColumnChart(document.getElementById('chartHours')).draw(dataH, optionsH);
+        }
+
+        function drawChartWithAjaxLoading()
+        {
+            $("body").addClass("loading");  
+
+            $("#divModal").show( 200, function() { 
+                setTimeout(function() {
+                    drawChart(); 
+                }, 100);
+            }); 
+        }
+
+        /*
+            Function: drawChart
+
+            draws all the charts for this page
+
+            Parameters:
+            none.
+
+            returns:
+            nothnig.
+        */
+        function drawChart()
+        {
+            //calc div height
+            var nDivHeight = $(window).height() - $("#mydiv").offset().top;
+
+            //make sure its tall enough to draw
+            if(nDivHeight < g_nMinChartHeight)
+                nDivHeight = g_nMinChartHeight;
+
+            //set height
+            $("#mydiv").css({height: nDivHeight});
+
+            //the device list
+            rtDevices   = getDevices();
+
+            //get the policy names
+            rtPolicy    = getPolicy();
+
+            //get the raw event
+            if(rawData == null)
+            {
+                rawData = getEvents();
+                // console.log( 'rawData was NULL, after getEvents rawData is now:' ); 
+                // console.log( rawData ); 
+            }
+
+            // rawData = null;
+
+            //get the current events
+            var rtData = getDeviceData(rawData);
+
+            //get the node to show from the parametrs of your url
+            var strNode = $.urlParam("nodeid");
+
+            //convert mac to name
+            var strName = mac2name(strNode);
+
+            //convert mac to name
+            var strType = mac2type(strNode);
+
+            //convert mac to name
+            var strIP = mac2ip(strNode);
+
+
+            //set the mac/name fields
+            $("#idName").text(strName);
+            $("#idMac").text(strNode);
+            $("#idType").text(strType);
+            $("#idIP").text(strIP);
+
+
+            var strIcon = nodeIcon(mac2type(strNode));
+
+            if(strIcon.indexOf(g_path.cloud) == -1 && strIcon.indexOf("/images/") == -1)
+            {
+                strIcon = g_path.cloud+strIcon;
+            }
+
+            // console.log("path: "+strIcon);
+            $("#idDevIcon").attr("src",strIcon);
+
+            //create our base table
+            devicetable   = [
+                                ['Device', 'Download Percent']
+                            ];
+
+            //append live data to table
+            for(var x in rtData.devices)
+            {
+                devicetable.push([mac2name(x),parseInt(rtData.devices[x].rx_percent)]);
+            }
+
+            //corvert tabel to google chart format
+            var data = google.visualization.arrayToDataTable(devicetable);
+
+            //setup pie table options
+            var options = {
+                legend: {
+                    position: 'labeled',
+                    textStyle: {color:'black'}
+                },
+                backgroundColor: {
+                    fill: 'transparent',
+                    stroke: "transparent",
+                    strokeWidth: 0
+                },
+                colors: colorrange,
+                pieSliceTextStyle: {
+                    'color': '#FFFFFF'
+                },
+                chartArea: {
+                    left: 0,
+                    top: 20
+                }
+            };
+            //create our pie chart
+            var piechart = new google.visualization.PieChart(document.getElementById('chartPie'));
+
+            //draw device pie that was clicke on in fxPerDevice
+            piechart.draw(data, options);
+
+            //draw month columns
+            // console.log(rawData);
+            // console.log(strNode);
+            drawMonths(rawData,strNode);
+
+            //draw days columns
+            drawDays(rawData,strNode,nMonth);
+
+            //draw the hours columns
+            drawHours(rawData,strNode,nMonth,nDay);
+
+            if (0)
+            {
+            }
+
+            isDrawingChart = 0;
+            // console.log( 'drawChart end, hide modal' ); 
+            $("body").removeClass("loading");
+            $("#divModal").hide();  
+
+            $("#divDeviceName").attr('style', 'display:flex');
+
+        }
+
+        var callback = function(data, status) {
+            g_nLastUpdateTime = new Date().getTime();
+            // console.log('callback, status:' + status); 
+            if (status == 0)
+            {
+                $.merge(rawData, data);
+
+                // console.log( 'drawChart, async got data' );
+                $("body").addClass("loading");  
+                $("#divModal").show();                            
+                drawChart();
+
+                g_nRemainingEventFlows -= g_nNumOfEventFlowPerFetch;
+
+                if (g_nNumOfEventFlowPerFetch == g_nNumOfEventFlowFirstFetch)
+                {
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowRemainingFetch;
+                }
+
+                if (g_nRemainingEventFlows >= 0)
+                {
+                    $("#divModal").show();                                                            
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);                              
+                } 
+                else
+                {
+                    isDrawingChart = 0;
+                }
+
+            }         
+            else
+            {
+                isDrawingChart = 0;
+                $("#divDebugMesg").show().html("error ! statusCode: " + status+"<br/>"+$("#divDebugMesg").html());                             
+                // console.log( 'failed, remove modal' ); 
+                $("body").removeClass("loading");
+                $("#divModal").hide();                         
+            }
+
+        } // callback
+
+        //called when page loads
+        $(document).ready(function() {
+            //get the device tables
+            loadDeviceTable(function()
+            {
+                // console.log( 'loadDeviceTable when document.ready' ); 
+                //get the flow tables
+                flowTable(function()
+                {
+                    //init start to ridiculously early date
+                    g_nStart = 0;
+
+                    //set end to current time
+                    g_nEnd = new Date().getTime();
+
+                    //now that we have our meta data loaded draw it!
+                    // drawChartWithAjaxLoading();
+
+                    $("body").addClass("loading");  
+                    $("#divModal").show();
+
+                    rawData = [];
+                    isDrawingChart = 1;
+                    var retRetireOzker = retireOzker();            
+                    // console.log( 'retRetireOzker result:' + retRetireOzker); 
+
+                    g_nRemainingEventFlows = getNumberOfFlowEvents();   
+                    // g_nRemainingEventFlows = 7300; 
+                    // console.log( 'g_nRemainingEventFlows:' + g_nRemainingEventFlows); 
+
+                    g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+                    asyncEvents(g_nStart/1000,g_nEnd/1000, 
+                        g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback);                                    
+                    //hook up window resize
+                    $(window).resize(function() {
+                        drawChartWithAjaxLoading();
+                    });
+
+                    //init tabs filters
+                    $("#tabs").tabs();
+                    $("#datestart").datepicker({
+                        showOn: "button",
+                        buttonText: "Choose"
+                    });
+                    $("#dateend").datepicker({
+                        showOn: "button",
+                        buttonText: "Choose"
+                    });
+
+                    //this is the update interval
+                    setInterval(function()
+                    {
+                        // console.log( 'isDrawingChart:' + isDrawingChart );
+
+                        // stop update if interval is too short.
+                        if (new Date().getTime() - g_nLastUpdateTime < g_nMinUpdateInterval)
+                        {
+                            return;
+                        }
+
+                        if (isDrawingChart)
+                        {
+                            // console.log( 'still drawing chart, ignore this update' );
+                            $("#divDebugMesg").show().html("still drawing chart, ignore this update.<br/>"+$("#divDebugMesg").html());
+                            return;
+                        }
+
+                        //init start to ridiculously early date
+                        g_nStart = 0;
+
+                        //set end to current time
+                        g_nEnd = new Date().getTime();
+
+                        // console.log( 'interval reget data & drawChart, asyncGettingData' );
+                        $("body").addClass("loading");  
+                        $("#divModal").show();
+                        isDrawingChart = 1;
+
+                        var retRetireOzker = retireOzker();            
+                        // console.log( 'retRetireOzker result:' + retRetireOzker); 
+
+                        g_nRemainingEventFlows = getNumberOfFlowEvents();   
+                        // console.log( 'g_nRemainingEventFlows:' + g_nRemainingEventFlows); 
+
+                        rawData = [];
+                        g_nNumOfEventFlowPerFetch = g_nNumOfEventFlowFirstFetch;
+
+                        asyncEvents(g_nStart/1000,g_nEnd/1000, g_nRemainingEventFlows - g_nNumOfEventFlowPerFetch, g_nRemainingEventFlows, callback); 
+                      
+                    },
+                    g_nUpdateTime);
+
+                });
+            });
+        });    
+
+		function menu(){
+			
+			window.parent.menu.location.href = "<%=controller%>/expert/configuration/security/menu_app";
+			
+		}
+		
+    </script>
+	
+</head>
+
+<body>
+
+  <div id="title_c" >
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+	  <tr>
+		<td width="300"><div id="title_n" ><%:Detailed_Consumption_for_Selected_Device%></div></td>
+		<td>&nbsp;</td>
+	  </tr>
+	</table>
+  </div>
+
+  <div id="all_w">
+   <% if enable_streamboost == "1" then%>
+	<li class="table_content">
+	  <div id="data" >
+        <div id="mydiv" style="min-height:810px;">
+			<div id="divDeviceName" style="display:none; flex-direction:row; margin-left: 0px;">
+				<div id="chartPie" style="width: 32%; height: 15%; display:flex; flex-direction:column; margin-top: 40px; margin-left: 20px;"></div>
+				<div style="width: 33%; height: 15%; display:flex; flex-direction:column; background-color: rgb(219, 219, 219);border: 1.5px solid rgb(207, 207, 207);margin:0px;margin-top: 15px;float:right;margin-right:33%;">
+					<h1 style="color: rgb(0, 116, 176);font-size: 14px;text-align: center;width:100%;margin:0px;"><%:Detailed_Consumption_for_Selected_Device%></h1>
+					<table id="idbox" style="width:100%;font-size: 12px;margin: 0px;">
+						<thead>
+							<th style="width: 33%;"></th>
+							<th style="width: 72px;"></th>
+							<th></th>
+						</thead>
+						<tbody>
+							<tr style="height: 24px;">
+								<td><img id="idDevIcon" src="/images/UnknownDevice.png" style="width:64px;height:64px;margin-left: 50%;"></td>
+								<td style="padding-left:12px;"><%:Name%>: </td>
+								<td id="idName">Android</td>
+							</tr>
+							<tr style="height: 12px;">
+								<td></td>
+								<td style="padding-left:12px;"><%:Type%>:</td>
+								<td id="idType">Unknown</td>
+							</tr>
+							<tr style="height: 12px;">
+								<td></td>
+								<td style="padding-left:12px;">IP:</td>
+								<td id="idIP">0.0.0.0</td>
+							</tr>
+							<tr style="height: 12px;">
+								<td></td>
+								<td style="padding-left:12px;">Mac:</td>
+								<td id="idMac">00:00:00:00:00:00</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div id="chartMonths" style="width: 100%; height: 20%;"></div>
+			<div class="spaceair"></div>
+			<div id="chartDays" style="width: 100%; height: 20%;margin-top: 10px;"></div>
+			<div class="spaceair"></div>
+			<div id="chartHours" style="width: 100%; height: 20%;margin-top: 10px;"></div>
+			<div class="spaceair"></div>
+		</div>
+		<div class="spaceair"></div>
+	  </div>
+	</li>
+	<div class="spaceair"></div> 
+   <%else%>
+	<div class="data" >
+		<div class="w_text">
+				
+			<%:Streamboost_on_warning%>
+			<a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxbandwidth" onclick="menu();" ><%:Streamboost_on_warning3%></a> <%:Streamboost_on_warning4%>
+				
+		</div>
+	</div>
+  <% end %>   
+ </div>
+    <%local enable_streamboostDebug = uci:get("appflow","tccontroller","enable_streamboostDebug")%>
+    <%if enable_streamboostDebug == "1" then%>
+    <div class="debug" id="divDebugMesg"></div>
+    <%end%>
+    <div class="modal" id="divModal"><!-- Place at bottom of page --></div>
+
+</body>
+
+</html>

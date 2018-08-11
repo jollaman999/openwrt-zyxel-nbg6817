@@ -1,0 +1,29 @@
+From 8169d0aede81e7d4e513efafe548ab671be9a6e7 Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Fri, 4 Sep 2015 17:11:16 +0800
+Subject: [PATCH 7/8] 
+ ZyXEL_fixed_mmc_gpio_unstable_while_testing_throughput_IxChariot
+
+---
+ arch/arm/mach-msm/board-ipq806x-storage.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm/mach-msm/board-ipq806x-storage.c b/arch/arm/mach-msm/board-ipq806x-storage.c
+index e511d6a..275a77f 100644
+--- a/arch/arm/mach-msm/board-ipq806x-storage.c
++++ b/arch/arm/mach-msm/board-ipq806x-storage.c
+@@ -277,6 +277,11 @@ void __init ipq806x_init_mmc(void)
+ 		ipq806x_add_sdcc(2, &sdc3_data);
+ 	}
+ 
++	if (machine_is_ipq806x_ap145_1xx() || machine_is_ipq806x_ap148() || machine_is_ipq806x_nbg6816()) {
++		sdc3_data.status_gpio = -1;
++		sdc3_data.status_irq = 0;
++	}
++	
+ 	if (machine_is_ipq806x_ap160() ||
+ 		machine_is_ipq806x_ap160_2xx()) {
+ 		drv = sdc3_data_ap160.pin_data->pad_data->drv;
+-- 
+1.9.1
+

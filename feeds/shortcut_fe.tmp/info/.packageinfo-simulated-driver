@@ -1,0 +1,18 @@
+Source-Makefile: feeds/shortcut_fe/simulated-driver/Makefile
+Package: kmod-shortcut-fe-drv
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-shortcut-fe
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Simulated sfe driver for ECM
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-simulated-driver-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Description: Simulated sfe driver for ECM
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+

@@ -1,0 +1,247 @@
+#!/bin/sh
+
+local product_name=$(uci get system.main.product_name)
+local brlan="br-lan"
+
+#after reading/writing data on USB, it will release cash memory
+top -n 1 > /tmp/top_log &
+sleep 1
+
+local io_value=$( cat /tmp/top_log | grep "CPU:" | awk '{print $10}' | awk '{FS="%"} {print $1}' )
+
+if [ $io_value -ge 1 ] ;then
+	echo 0 > /tmp/io_value_sum
+fi
+
+[ -f /tmp/top_log ] && { 
+	rm /tmp/top_log
+}
+
+if [ -f /tmp/io_value_sum ] ;then
+	local io_value_sum=$(cat /tmp/io_value_sum)
+	local sum=$(($io_value_sum+1))
+
+	echo $sum > /tmp/io_value_sum	
+	
+	if [ $sum -eq 30 ] ;then
+		echo 3 > /proc/sys/vm/drop_caches
+		rm /tmp/io_value_sum
+	fi
+fi
+
+##For QTN WiFi5G check br-lan:0 host0
+if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ];then
+	if [ -z "$( ifconfig $brlan:0 | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}' )" ];then
+		brctl addif br-lan host0
+		ifconfig br-lan:0 223.254.253.251 up
+	fi
+fi
+
+## Check to DUT connects status
+ping 8.8.8.8 -c 1 | grep time > /var/connect_internet
+local connect_value=$(cat /var/connect_internet)
+[ -n "$connect_value" ] && {
+	## Does set Auto Time zone in DUT ?
+	local tzIndex_status=$(uci get time.main.tzIndex)
+	if [ "$tzIndex_status" == "63" ]; then
+		local checkTime_Min=$(date +%M)
+		if [ "$checkTime_Min" == "00" ] || [ "$checkTime_Min" == "30" ]; then
+			local lastchar_num
+			local laster_serial_num=$(fw_printenv serialnum | awk -F"=" '{print $2}' | cut -c 13-13)
+			laster_serial_num=$(($laster_serial_num+0))
+			local lastchar=$(fw_printenv ethaddr | awk -F"=" '{print $2}' |sed 's/"//g' | awk -F":" 'BEGIN{OFS=""}{print $1,$2,$3,$4,$5,$6}' | cut -c 12-12)
+			case $lastchar in
+			"0")
+				lastchar_num=0
+				lastchar_num=$(($lastchar_num+0))
+				;;
+			"4")
+				lastchar_num=4
+				lastchar_num=$(($lastchar_num+0))
+			;;
+			"8")
+				lastchar_num=8
+				lastchar_num=$(($lastchar_num+0))
+			;;
+			"c")
+				lastchar_num=12
+				lastchar_num=$(($lastchar_num+0))
+			;;
+			"C")
+				lastchar_num=12
+				lastchar_num=$(($lastchar_num+0))
+			;;
+			esac
+
+			local checkTime_Sec=$(($laster_serial_num+$lastchar_num))
+			local times_sec=$(date +%S)
+			local DUT_time=$(date)
+			#echo "checkTime_Sec=$checkTime_Sec DUT_Time=$DUT_time" > /dev/console
+			if [ $times_sec -le $checkTime_Sec ]; then
+				local TZ=""
+				local TZ_time=""
+				#Auto TZ
+				for i in 0 1
+				do
+					case $i in
+					"0")
+						path=$(curl -s http://api.ipinfodb.com/v3/ip-city/?key\=8dda3a644570ff8d5bc77d4139230adb75454bab76683e0e796f02c590b50a50)
+						;;
+					"1")
+						path=$(curl -s http://addgadgets.com/ipaddress/|grep 'Time Zone'| awk 'BEGIN{FS="<td>"}{print $2}'|awk 'BEGIN{FS="</td>"}{print $1}')
+						;;
+					esac
+
+					local ip_info=$(echo $path)
+					local ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=";"}{print $11}')
+					if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+						break
+					fi
+
+					ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=" "}{print $1}')
+					if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+						break
+					fi
+				done
+
+				if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+					local sign=$(echo $ip_timezone | grep "-")
+
+					if [ "$sign" == "" ]; then
+						local Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="+"}{printf $2}' )	
+						 TZ="GMT-$Timezone"
+					else
+						Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="-"}{printf $2}' )
+						TZ="GMT+$Timezone"
+					fi
+
+					TZ_time=$TZ
+					local runing_TZ=$(cat /tmp/TZ)
+
+					if [ "$TZ_time" == "$runing_TZ" ]; then
+						#echo "There are the same in TimeZone." > /dev/console
+						echo "There are the same in TimeZone."
+					else
+						#echo "TZ_time=$TZ_time  runing_TZ=$runing_TZ" > /dev/console
+						/sbin/time_daemon_AP
+					fi
+				else
+					#echo "Auto timezone is fail" > /dev/console
+					echo "Auto timezone is fail"
+				fi
+			fi
+		fi
+	fi
+}
+
+#check Time Zone status
+[ -f /tmp/TimeZone_status ] && {
+	local Record_TimeZone=$( cat /tmp/TimeZone_status )
+	local Now_TimeZone=$( date | awk '{print $5}' )
+	
+	if [ "$Record_TimeZone" == "$Now_TimeZone" ] ;then
+		break
+	else
+		if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ]; then
+			local chk_lan_ip_alise=$( ifconfig $brlan:0 | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}' )
+			if [ "$chk_lan_ip_alise" == "" ] ;then
+				ifconfig $brlan:0 223.254.253.251
+			fi
+		fi
+		/etc/init.d/wifi_scheduling restart
+		/etc/init.d/wifi_scheduling5G restart
+		/etc/init.d/wireless_macfilter restart
+		/etc/init.d/wireless5G_macfilter restart
+		echo "$Now_TimeZone" > /tmp/TimeZone_status
+	fi
+
+	local brlan_proto=$(uci get network.lan.proto)
+	local check_timesetting_daemon=$(ps | grep -w 'watch -tn 600 /sbin/time_daemon_AP' | grep -v 'grep')
+	if [ "$brlan_proto" == "static" ] ;then
+		if [ "$check_timesetting_daemon" == "" ] ;then
+			watch -tn 600 /sbin/time_daemon_AP 1>/dev/null 2>&1 &
+		fi
+	else
+		local time_daemon_AP_ID=$(ps | grep -w 'watch -tn 600 /sbin/time_daemon_AP' | grep -v 'grep' | awk -F " " '{print $1}')
+		if [ "$time_daemon_AP_ID" != "" ] ;then
+			kill -9 $time_daemon_AP_ID
+		fi
+	fi
+} || {
+	local TimeZone=$( date | awk '{print $5}' )
+	echo "$TimeZone" > /tmp/TimeZone_status
+}
+
+## LAN is IP from DHCP in AP mode
+brlan_proto=$(uci get network.lan.proto)
+if [ "$brlan_proto" == "dhcp" ] ;then
+	local udhcpc_pid=$(pgrep udhcpc)
+	if [ "$udhcpc_pid" == "" ] ;then
+		[ -f /tmp/AP_udhcpc ] && {
+			local AP_udhcpc_status=$(cat /tmp/AP_udhcpc)
+			if [ "$AP_udhcpc_status" == "warring" ] ;then
+				echo "network restart" > /tmp/AP_udhcpc
+			else
+				/etc/inin.d/network reload
+			fi
+		} || {
+		echo "warring" > /tmp/AP_udhcpc
+		}
+	else
+		[ -f /tmp/AP_udhcpc ] && { 
+		rm /tmp/AP_udhcpc
+		}
+		break
+	fi
+
+	local chk_lan=$(ifconfig $brlan | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}')
+	if [ "$chk_lan" != "" ] ;then
+		if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ]; then
+			local chk_lan_ip_alise=$( ifconfig $brlan:0 | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}' )
+			if [ "$chk_lan_ip_alise" == "" ] ;then
+				ifconfig $brlan:0 223.254.253.251
+			fi
+		fi
+	
+		local GW_ip=$(route -n | grep -w 'UG' | awk '{print $2}')
+		local old_brlan=$(cat /tmp/old_brlan)
+		
+		if [ "$chk_lan" != "$old_brlan" ] ;then
+			echo "$chk_lan" > /tmp/old_brlan
+			/bin/switch_port wan reset
+			/bin/switch_port lan auto_ipchange
+			/etc/init.d/wireless restart
+			/sbin/time_daemon reload 1>/dev/null 2>&1 &
+			/etc/init.d/samba restart 1>/dev/null 2>&1 &
+		fi
+
+		if [ "$GW_ip" != "" ] ;then
+			local connect_status=$(ping $GW_ip -c 1 | grep "100% packet loss")
+			if [ "$connect_status" != "" ] ;then
+				local udhcpc_pid=$(pgrep udhcpc)
+				kill -9 $udhcpc_pid
+				ifconfig br-lan 0.0.0.0
+				[ -f /tmp/brlan_mac ] && {
+					sleep 3
+					local brlan_mac=$(cat /tmp/brlan_mac)
+					ifconfig br-lan hw ether $brlan_mac
+				}
+				/etc/init.d/wireless restart
+			fi
+		fi
+	else
+		if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ]; then
+			local chk_lan_ip_alise=$( ifconfig $brlan:0 | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}' )
+			if [ "$chk_lan_ip_alise" == "" ] ;then
+				ifconfig $brlan:0 223.254.253.251
+			fi
+		fi
+		break
+	fi
+fi
+
+## check lighttpd log size
+local lighttpd_log_size=$(ls /tmp/log/lighttpd/error.log -la | awk -F' ' '{print $5}')
+if [ "$lighttpd_log_size" -gt 6291456 ]; then
+	echo "" > /tmp/log/lighttpd/error.log
+fi

@@ -1,0 +1,255 @@
+#!/bin/sh
+
+local TZ=""
+local TZ_time=""
+
+auto_detect_timezone() {
+	TZ="GMT-0"
+	TZ_time="(GMT)"
+	#Checking internet status
+	life_DNS="8.8.8.8"
+	IP_version=$(uci get network.wan.IP_version)
+	proto=$(uci get network.wan.proto)
+
+	if [ "$proto" == "pppoe" ] || [ "$proto" == "pptp" ]; then
+		WAN=$proto-wan
+	else
+		WAN=$(uci get network.wan.ifname)
+	fi
+
+	if [ "$IP_version" == "IPv6_Only" ]; then
+		chk_wan=$(ifconfig $WAN | awk '/Global/{print $3}')
+	else
+		chk_wan=$(ifconfig $WAN | grep "inet addr" | awk '{print $2}' | awk -F":" '{print $2}')
+	fi
+
+	connect_status=$(ping $life_DNS -c 1 | grep "100% packet loss")
+
+	if [ "$chk_wan" == "" ] || [ "$connect_status" != "" ] ;then
+		uci set time.main.auto_timezone="$TZ"
+		uci set time.main.timezone="$TZ"
+		uci set time.main.city="$TZ_time"
+		uci set time.main.tzIndex="63"
+		uci commit time
+		sync
+
+		uci set system.main.timezone="$TZ"
+		uci commit system
+		sync
+		break
+	fi
+
+	#get_wanpublicIP=$(curl -s checkip.dyndns.org | sed 's#.*Address: \(.*\)</b.*#\1#')
+
+	#Auto TZ
+	for i in 0 1
+	do
+		case $i in
+		"0")
+			path=$(curl -s http://api.ipinfodb.com/v3/ip-city/?key\=8dda3a644570ff8d5bc77d4139230adb75454bab76683e0e796f02c590b50a50)
+			;;
+		"1")
+			path=$(curl -s http://addgadgets.com/ipaddress/|grep 'Time Zone'| awk 'BEGIN{FS="<td>"}{print $2}'|awk 'BEGIN{FS="</td>"}{print $1}')
+			;;
+		esac
+
+		ip_info=$(echo $path)
+		ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=";"}{print $11}')
+		if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+			break
+		fi
+
+		ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=" "}{print $1}')
+		if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+			break
+		fi
+	done
+
+	if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+		#echo "$i Auto timezone are parsing." > /dev/console
+		case $i in
+		 "0")
+			ip_city=$(echo $ip_info | awk 'BEGIN{FS=";"}{print $5}')
+			;;
+		 "1")
+			ip_city=$(echo $ip_info | awk 'BEGIN{FS=" "}{print $2}')
+			;;
+		esac
+
+		if [ "$(echo $ip_city | grep -ie "TAIWAN")" != "" ];then
+			ip_city="TAIWAN"
+		fi
+
+		city="(GMT$ip_timezone)$ip_city"	
+		sign=$(echo $ip_timezone | grep "-")
+
+		if [ "$sign" == "" ]; then
+			Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="+"}{printf $2}' )	
+			TZ="GMT-$Timezone"
+		else
+			Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="-"}{printf $2}' )
+			TZ="GMT+$Timezone"
+		fi
+
+		DST=$(uci get time.DST.enable)
+
+		if [ "$DST" == "1" ];then
+			startMonth=$(uci get time.DST.start_month)
+			startNum=$(uci get time.DST.start_num)
+			startD=$(uci get time.DST.start_d)
+			startTime=$(uci get time.DST.start_clock)
+			endMonth=$(uci get time.DST.end_month)
+			endNum=$(uci get time.DST.end_num)
+			endD=$(uci get time.DST.end_d)
+			endTime=$(uci get time.DST.end_clock)
+			TZ=$TZ"DST,M"$startMonth.$startNum.$startD/$startTime",M"$endMonth.$endNum.$endD/$endTime
+		fi
+
+		TZ_time=$TZ
+		uci set time.main.auto_timezone="$TZ_time"
+		uci set time.main.timezone="$TZ_time"
+		uci set time.main.city="$city"
+		uci set time.main.tzIndex="63"
+		uci commit time
+		sync
+
+		uci set system.main.timezone="$TZ_time"
+		uci commit system
+		sync
+	else
+		echo "Auto timezone is fail"
+	fi
+}
+
+reload_time(){
+	auto_timezone_enable=$(uci get time.main.auto_timezone_enable)
+	
+	if [ "$auto_timezone_enable" == "1" ]; then
+		auto_detect_timezone
+	fi
+
+	if [ "$TZ_time" == "" ]; then
+		TZ_time=$(uci get time.main.timezone)
+	fi
+
+	mtenNew_Year=$(uci get time.main.manual_year)
+	mtenNew_Mon=$(uci get time.main.manual_mon)
+	mtenNew_Day=$(uci get time.main.manual_day)
+	mtenNew_Hour=$(uci get time.main.manual_hour)
+	mtenNew_Min=$(uci get time.main.manual_min)
+	mtenNew_Sec=$(uci get time.main.manual_sec)
+	mten_ServiceType=$(uci get time.main.mode)
+	ntp_name=$(uci get time.main.ntpName)
+
+	echo $TZ_time > /tmp/TZ
+
+	ntp_process=$(ps | grep ntpclient | grep -v grep)
+	if [ "$ntp_process" != "" ]; then
+		killall ntpclient
+	fi
+
+	if [ "$mten_ServiceType" == "manual" ]; then
+
+		/bin/date $mtenNew_Year.$mtenNew_Mon.$mtenNew_Day-$mtenNew_Hour:$mtenNew_Min:$mtenNew_Sec
+
+		#fix Timezone issue.
+		/bin/date -k
+
+		#if parental and Daylight saving are enable, then reset status of TimeZone_status
+		rm /tmp/TimeZone_status
+		rm /tmp/Daylight_saving_Time
+
+	elif [ "$mten_ServiceType" == "NTP" ]; then
+
+		NTPC=$(which ntpclient)
+		COUNT=$(uci get ntpclient.ntpclient.count)
+		INTERVAL=$(uci get ntpclient.ntpclient.interval)
+		PORT=$(uci get ntpclient.ntpserver.port)
+		$NTPC ${COUNT:+-c $COUNT} ${INTERVAL:+-i $INTERVAL} -s -l -D -p $PORT -h $ntp_name 2>/dev/null
+
+		if [ "$ntp_name" == "pool.ntp.org" ]; then
+			chk_year "$(date | awk '{print $6}')"
+			chk_min $(date | awk '{print $4}' |  cut -f2 -d':')
+		fi
+		#fix Timezone issue.
+		/bin/date -k
+
+	fi
+
+	wifi_scheduling24G=$(uci get wifi_schedule.schedule.enabled)
+	wifi_scheduling5G=$(uci get wifi_schedule5G.schedule.enabled)
+	
+	if [ "$wifi_scheduling24G" == "enable" ]; then
+		/etc/init.d/wifi_scheduling start
+	fi
+	
+	if [ "$wifi_scheduling5G" == "enable" ]; then
+		/etc/init.d/wifi_scheduling5G start
+	fi
+}
+
+chk_year(){
+	local year="$1"
+	local date1=$(date)
+	for count in 0 1 2 3
+	do
+		if [ "$year" == "1970" ]; then
+			ntp_process=$(ps | grep ntpclient | grep -v grep)
+			if [ "$ntp_process" != "" ]; then
+				killall ntpclient
+			fi
+			domain="pool.ntp.org"
+			# domain="$count.pool.ntp.org"
+			NTPC=$(which ntpclient)
+			COUNT=$(uci get ntpclient.ntpclient.count)
+			INTERVAL=$(uci get ntpclient.ntpclient.interval)
+			PORT=$(uci get ntpclient.ntpserver.port)
+			$NTPC ${COUNT:+-c $COUNT} ${INTERVAL:+-i $INTERVAL} -s -l -D -p $PORT -h $domain 2>/dev/null
+			sleep 3
+			year=$(date | awk '{print $6}')
+		else
+			break
+		fi
+	done
+}
+
+chk_min(){
+	local min="$1"
+	local minutes2=""
+	for count in 0 1 2 3
+	do
+		ntp_process=$(ps | grep ntpclient | grep -v grep)
+		if [ "$ntp_process" != "" ]; then
+			killall ntpclient
+		fi
+		domain="pool.ntp.org"
+		# domain="$count.pool.ntp.org"
+		NTPC=$(which ntpclient)
+		COUNT=$(uci get ntpclient.ntpclient.count)
+		INTERVAL=$(uci get ntpclient.ntpclient.interval)
+		PORT=$(uci get ntpclient.ntpserver.port)
+		$NTPC ${COUNT:+-c $COUNT} ${INTERVAL:+-i $INTERVAL} -s -l -D -p $PORT -h $domain 2>/dev/null
+		sleep 3
+		minutes1=$(date | awk '{print $4}' |  cut -f2 -d':')
+		if [ "$minutes2" != "" ];	then
+			if [ "$min" != "$minutes1" ] && [ "$minutes1" == "$minutes2" ]; then
+				/bin/date -k
+				break
+			fi
+		fi
+		minutes2="$minutes1"
+	done
+}
+
+
+cmd=$1
+shift
+case "$cmd" in
+        --help|help) usage ;;
+		start|stop|reload|restart|init)
+		reload_time
+		exit $?
+        ;;
+esac
+ 
+exit $?

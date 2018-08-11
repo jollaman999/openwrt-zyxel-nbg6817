@@ -1,0 +1,54 @@
+<%
+require "luci.sys"
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local sys = require("luci.sys")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<title>tree menu</title>
+
+
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<link href="<%=media%>/css/menu.css" rel="stylesheet" type="text/css">
+
+
+</head>
+
+<body>
+<div id="menu_bg">
+  <div id="menu_t"><%:net_map_wireless%></div>
+
+   <ul class=mtree>
+   
+	<li><a href="<%=controller%>/expert/configuration/network/wlan" target="data"><%:net_map_wireless%></a></li>
+	<% if sys_op_mode ~= "2" then%>
+		<li><a href="<%=controller%>/expert/configuration/network/wlan/wlan_multissid" target="data"><%:Guest_Wireless%></a></li>
+	<%end%>
+	<li><a href="<%=controller%>/expert/configuration/network/wlan/wlanmacfilter" target="data"><%:mac_filter%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/network/wlan/wlanadvanced" target="data"><%:Advanced%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/network/wlan/wlanatf" target="data"><%:AirtimeFairness%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/network/wlan/wlanwps" target="data"><%:wps%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/network/wlan/wlanscheduling" target="data"><%:scheduling%></a></li>
+  
+  </ul>
+</div>
+
+<div id="skm_LockPane" class="LockOff"></div> 
+</body>
+<script src="<%=media%>/js/lmenu_1.js"></script>
+<script src="<%=media%>/js/lmenu_2.js"></script>
+<script src="<%=media%>/js/lmenu_3.js"></script>
+</html>

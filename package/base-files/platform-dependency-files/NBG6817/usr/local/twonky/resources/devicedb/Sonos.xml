@@ -1,0 +1,25 @@
+<Client>
+	<DeviceId>
+		<DisplayName>Sonos</DisplayName>
+		<DeviceDescriptionRecognition>
+			<DescriptionText>Sonos</DescriptionText>
+		</DeviceDescriptionRecognition>
+		<HttpRecognition>
+			<HttpText>Sonos</HttpText>
+		</HttpRecognition>
+		<MappingUpdatePolicy>FIX</MappingUpdatePolicy>
+		<DeviceGroup>MUSIC</DeviceGroup>
+	</DeviceId>
+	<Adaptations>
+		<DLNA>
+			<PretendServer>WMC</PretendServer>
+            <Version>DLNA15</Version>
+			<DescriptionFile>devicedescription-sonos.xml</DescriptionFile>
+		</DLNA>
+	</Adaptations>
+	<DeviceQuirks>
+		<Quirk>FORCE_DURATION</Quirk>
+		<Quirk>FORCE_4TH_FIELD</Quirk>
+		<Quirk>UNLIMITED</Quirk>
+	</DeviceQuirks>
+</Client>

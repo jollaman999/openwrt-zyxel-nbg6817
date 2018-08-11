@@ -1,0 +1,122 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci=require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="<%=media%>/css/popup.css" media="screen" type="text/css" />
+
+<title><%:Wi_Fi%></title>
+
+
+</head>
+
+<body>
+<div id="easy123_b">
+ <div id="easy123_w">
+    <div id="popup_t"><%:Wi_Fi%></div>
+    <div id="popup" class="popup" ><a class="close" href="<%=controller%>/easy/networkmap">&times;</a></div >
+    <!-- <div id="apply"><a href="<%=controller%>/easy/networkmap">Apply</a></div> -->
+	<div id="popup_tab">
+	<iframe src="<%=controller%>/easy/wlan" height="400" width="850" scrolling="yes" frameborder="0">
+	</iframe>
+	</div>
+ 
+     <!--  <div id="wifi_tab">
+
+      <div id="wtab1_s">General</div>
+
+      <div id="wtab2"><a href="wifi_wpb1.html">WPS Push Button Configuration</a></div>
+
+      <div id="wtab3"><a href="wifi_wp.html">WPS PIN Configuration</a></div>
+      
+      <div id="wtab_d">
+        <table width="100%" border="0" cellspacing="0" cellpadding="10">
+          <tr>
+            <td width="404" rowspan="9" valign="top"><span class="p2">Data transmitted wirelessly without encryption is not safe. Guard your wireless network with a security mode and the password you setup. And then, you can use WPS to connect your computers to your wireless network with just one single click (via the WPS tab).</span></td>
+            <td width="207"><span class="p3">Wireless Radio:</span></td>
+            <td width="209"><form id="form2" name="form2" method="post" action="">
+              <select name="wr" id="easy123_select_menu5">
+                <option value="#">Husker</option>
+                <option value="#">Starbuck</option>
+                <option value="#">Hot Dog</option>
+                <option value="#">Apollo</option>
+              </select>
+            </form></td>
+          </tr>
+          <tr>
+            <td><span class="p3">Wireless Network:</span></td>
+            <td><form id="form3" name="form3" method="post" action="">
+              <input type="text" name="textfield2" id="easy123_select_menu4" />
+            </form></td>
+          </tr>
+          <tr>
+            <td><span class="p3">Security Mode:</span></td>
+            <td><form id="form4" name="form4" method="post" action="">
+              <select name="sm" id="easy123_select_menu5">
+                <option value="#">Husker</option>
+                <option value="#">Starbuck</option>
+                <option value="#">Hot Dog</option>
+                <option value="#">Apollo</option>
+              </select>
+            </form></td>
+          </tr>
+          <tr>
+            <td><span class="p3">Wireless Password:</span></td>
+            <td><form id="form5" name="form5" method="post" action="">
+              <input type="text" name="textfield3" id="easy123_select_menu4" />
+            </form></td>
+          </tr>
+          <tr>
+            <td><span class="p3">Verify Password</span>:</td>
+            <td><form id="form6" name="form6" method="post" action="">
+              <input type="text" name="textfield4" id="easy123_select_menu4" />
+            </form></td>
+          </tr>
+          <tr>
+            <td height="77" colspan="2">&nbsp;</td>
+          </tr>
+          <tr></tr>
+        </table>
+      </div>
+      
+
+</div> -->
+ 
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

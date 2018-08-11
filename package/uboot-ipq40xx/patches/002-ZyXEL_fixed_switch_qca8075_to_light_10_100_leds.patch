@@ -1,0 +1,18 @@
+Index: uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_qca8075.c
+===================================================================
+--- uboot-1.0-2012.07.orig/drivers/net/ipq40xx/ipq40xx_qca8075.c	2015-11-17 11:34:31.775571148 +0800
++++ uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_qca8075.c	2015-11-17 11:46:09.719573670 +0800
+@@ -826,6 +826,13 @@
+ 		}
+ 	}
+ 
++	/*
++	 * Enable MMD7 LED_1000_n control 1 register(0x8076) to make Ethernet LEDs light while connecting to 10/100Mbps
++	 */
++	for (phy_id = 0; phy_id < 5; phy_id++) {
++		qca8075_phy_mmd_write(0, phy_id, QCA8075_PHY_MMD7_NUM, 0x8076, 0x670);
++	}
++
+ 	phy_data = qca8075_phy_mmd_read(0, 4, QCA8075_PHY_MMD3_NUM, 0x805a);
+ 	phy_data &= (~(1 << 1));
+ 	qca8075_phy_mmd_write(0, 4, QCA8075_PHY_MMD3_NUM, 0x805a, phy_data);

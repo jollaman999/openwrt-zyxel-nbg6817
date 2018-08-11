@@ -1,0 +1,264 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+--require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+time_value = uci:get("system","main","gui_restart_time")
+if time_value == nil then
+  time_value = "420"
+end
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript" type="text/javascript"> 
+
+function initValue()
+{
+	
+	nv_OP_Mode = "<%=uci:get("system","main","system_mode") %>";
+
+	if (nv_OP_Mode == 1)
+		document.OP_MODE_APP.OPMode[0].checked = true;
+	else if (nv_OP_Mode == 2)
+		document.OP_MODE_APP.OPMode[1].checked = true;
+	else if (nv_OP_Mode == 3)
+		document.OP_MODE_APP.OPMode[2].checked = true;
+	else if (nv_OP_Mode == 4)
+		document.OP_MODE_APP.OPMode[3].checked = true;
+	else if (nv_OP_Mode == 5)
+		document.OP_MODE_APP.OPMode[4].checked = true;
+
+}
+
+
+lanip_router = "<%=uci:get("network","general","backup_lan_ip") %>";
+lanip_ap = "<%=uci:get("network","general","backup_aplan_ip") %>";
+
+function changmod_msg_Router()
+{
+alert(("<%:eaZy123_note_1%>")+"\n"+("<%:eaZy123_note_2%>")+"\n"+("<%:eaZy123_note_3%>")+lanip_router+"\n"+("<%:eaZy123_note_4%>"));      
+}
+function changmod_msg_WISP()
+{
+alert(("<%:eaZy123_note_9%>")+"\n"+("<%:eaZy123_note_2%>")+"\n"+("<%:eaZy123_note_3%>")+lanip_router+"\n"+("<%:eaZy123_note_4%>"));      
+}
+function changmod_msg_WISP_UR()
+{
+alert(("<%:eaZy123_note_9%>")+"\n"+("<%:eaZy123_note_2%>")+"\n"+("<%:eaZy123_note_3%>")+lanip_router+"\n"+("<%:eaZy123_note_4%>"));      
+}
+function changmod_msg_AP()
+{
+alert(("<%:eaZy123_note_5%>")+"\n"+("<%:eaZy123_note_6%>")+"\n"+("<%:eaZy123_note_7%>")+lanip_ap+"\n"+("<%:eaZy123_note_8%>"));      
+}
+
+function redirect()
+{
+	<% if changemode then %>	
+	if (nv_OP_Mode == 2 || nv_OP_Mode == 3) {
+		top.location.href="http://"+lanip_ap;
+	}	
+	else {
+		top.location.href="http://"+lanip_router;
+	}
+	<% else %>
+	top.location.href="/";
+	<% end %>
+}
+
+function CountDown()
+{
+	CountDownSecond = document.theForm.timer.value;
+	skm_LockScreen();
+	if ( CountDownSecond !=0 ) {
+		document.theForm.timer.value = CountDownSecond - 1;
+		setTimeout('CountDown()',1000);
+	}
+	else {
+		redirect();
+	}
+}
+</script>
+</head>
+<body onLoad="initValue()">
+
+<% local Product_Name = uci:get("system","main","product_name") %>
+<% if rebootsystem == 1 then %>
+<form name="theForm">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Operation_Mode%></div></td>
+    <td>&nbsp;</td>
+          
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+<div id="table">
+  <ul>
+   
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <div class="title"><%:restarting%></div>
+          <div class="w_text"><%:bak_remind1%>
+            <input name="timer"  size="3" type="text" value="<%=time_value%>" style="border:0;background:transparent" readonly=true />
+            <%:seconds%>.
+          </div>
+          <div class="spaceair"></div> 
+        </ul> 
+      </div>
+    </li>
+    <li class="table_button"></li>
+  </ul>
+</div>
+</div>
+</form>
+<script language="JavaScript">
+	$(document).ready(function() {
+		CountDown();
+	});
+</script>
+<% else %>
+    <form method=post name="OP_MODE_APP" action="<%=controller%>/expert/maintenance/operation_mode" >
+	<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Operation_Mode%></div></td>
+    <td>&nbsp;</td>
+      <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:apply%>" type="submit" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+    <div id="table">
+      <ul>
+        <li class="table_content">
+            <div class="data">
+              <ul>
+                 <li class="title">
+                  <%:Config_Mode%>
+                 </li>
+
+				<li class="w_text">
+				
+				<input type="radio" name="OPMode" value="1" onClick="changmod_msg_Router()"/><font id ="OPModeRouter"><%:Router_Mode%></font>
+				</li>
+
+				<li class="w_text">
+				<input type="radio" name="OPMode" value="2" onClick="changmod_msg_AP()"/><font id ="OPModeAP"><%:AP_Mode%>
+				</li>
+
+				<% if Product_Name == "NBG4615v2" then %>
+				<li class="w_text">
+				<input type="radio" name="OPMode" value="3" onClick="changmod_msg_AP()"/><font id ="OPModeUR"><%:UR_Mode%></font></td>
+				
+				</li>
+
+				<li class="w_text">
+				<input type="radio" name="OPMode" value="4" onClick="changmod_msg_WISP()"/><font id ="OPModeWISP"><%:WISP_Mode%></font></td>
+				
+				</li>
+
+<li class="w_text">
+<input type="radio" name="OPMode" value="5" onClick="changmod_msg_WISP_UR()"/><font id ="OPModeWISPUR"><%:WISP_UR_Mode%></font></td>
+
+</li>
+
+<% end %>
+
+<li class="w_text">
+<table width="90%" border="0" align=center cellspacing="0">
+<tr>
+<td>&nbsp;</td>
+</tr>
+</table>
+</li>
+
+<li class="w_text">
+<span class="i_note" id="OPModeNote1_0"><%:maintenance_Note_1%></span>
+
+
+</li>
+<li class="w_text">
+<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+<tr>
+<td class="i_note_a" id="OPModeNote1_1"><%:Router_note%></td>
+</tr>
+<tr>
+<td class="i_note_a" id="OPModeNote1_2"><%:AP_note%></td>
+</tr>
+
+<% if Product_Name == "NBG4615v2" then %>
+<tr>
+<td class="i_note_a" id="OPModeNote1_4"><%:UR_note%></td>
+</tr>
+<tr>
+<td class="i_note_a" id="OPModeNote1_3"><%:WISP_note%></td>
+</tr>
+<tr>
+<td class="i_note_a" id="OPModeNote1_5"><%:WISP_UR_note%></td>
+</tr>
+<% end %>
+
+</table>
+</li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+              </ul>
+            </div>
+			</li>
+<!--         <center>
+        <li class="table_button">        
+        <input name="apply" value="<%:apply%>" type="submit" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input name="Cancel" value="<%:cancel%>" type="reset" />       
+        </li>
+        </center> -->
+</div>
+</div>
+</form>
+<% end %>        
+
+
+</body>
+ 
+</html>

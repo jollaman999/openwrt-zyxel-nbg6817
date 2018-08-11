@@ -1,0 +1,460 @@
+#!/bin/sh 
+
+##check mode,if AP/UR,exit	
+local sys_mode=$(get_sys_mode)
+[ "$sys_mode" == "2" -o "$sys_mode" == "3" ] && exit 0
+
+wan_proto=$(uci get network.wan.proto)
+wan_interface="eth0"
+if [ "$wan_proto" == "pppoe" ] || [ "$wan_proto" == "pptp" ]; then
+	wan_interface="$wan_proto-wan"
+else
+	wan_interface="eth0"
+fi
+#echo "$wan_interface" > /tmp/WAN_interface
+
+. /etc/functions.sh
+include /lib/config
+
+usage() {
+	echo $0 "<command>"
+	exit 0
+}
+
+
+reload_webFilter(){
+	
+	killall -9 crond
+	#local keyword=$1	
+
+	insmod x_tables  2>&- >&-
+	insmod ip_tables  2>&- >&-
+	insmod ip6_tables  2>&- >&-
+	insmod iptable_filter  2>&- >&-
+	insmod ipt_REJECT  2>&- >&-
+	insmod xt_tcpudp  2>&- >&-
+	insmod xt_string  2>&- >&-
+	insmod xt_webstr  2>&- >&-
+	iptables -N web_filter
+	iptables -N access_schedule_ex
+
+	#config_get filter_trustip trust_ip ipaddr
+	
+	#config_get filter_activeX restrict_web activeX
+	#config_get filter_java restrict_web java
+	#config_get filter_cookies restrict_web cookies
+	#config_get filter_web_proxy restrict_web web_proxy
+
+	
+	# config_get keywords keyword keywords
+	# config_get filter_enable keyword enable
+	
+	config_get rule_num general count
+	config_get parental_enable general enable
+		
+	##filter trust_ip
+	#[ $filter_trustip != "0.0.0.0" ] && (iptables -A web_filter -p tcp -m tcp -s $filter_trustip -j ACCEPT)	
+	
+	#[ $filter_trustip != "0.0.0.0" ] && (iptables -A web_filter -p tcp -m tcp -d $filter_trustip -j ACCEPT)		
+	
+	##filter restrict_web
+	#[ $filter_activeX = 1 ] && filter_activeX=2
+	#[ $filter_java = 1 ] && filter_java=1
+	#[ $filter_cookies = 1 ] && filter_cookies=4
+	#[ $filter_web_proxy = 1 ] && filter_web_proxy=8
+	
+	#filter_sum=$(( $filter_activeX+$filter_java+$filter_cookies+$filter_web_proxy ))
+	
+	
+	##need to check fast-forward dependency
+	
+	#if [[ $filter_sum -gt 0 ]];then
+	#	iptables -A web_filter -p tcp -m tcp --dport 80 -m webstr --content $filter_sum -j REJECT --reject-with tcp-reset
+	#	iptables -A web_filter -p tcp -m tcp --dport 3128 -m webstr --content $filter_sum -j REJECT --reject-with tcp-reset
+	#	iptables -A web_filter -p tcp -m tcp --dport 8080 -m webstr --content $filter_sum -j REJECT --reject-with tcp-reset
+	#fi	
+	
+	##Content filter keyword
+	# if [ $filter_enable = "1" ]; then 
+	
+		# rules=`echo $keywords | awk '{FS=";"} {print NF}'`
+		# i=1
+		# while [ "$i" -le "$rules" ]
+		# do
+			# keyword=`echo $keywords | awk '{FS=";"} {print $'$i'}'`			
+			# ##iptables -A web_filter -p tcp -m tcp -m webstr --host $keyword -j REJECT --reject-with tcp-reset
+			# iptables -A web_filter -p tcp -m tcp -m webstr --url $keyword -j REJECT --reject-with tcp-reset
+			# i=$(( $i + 1 ))
+		# done
+		
+	# fi
+	
+	#DST=0
+	
+	
+	
+	##Parental Control
+	if [ $parental_enable = "1" ]; then
+		
+			iptables -V > /tmp/iptablesVer
+					iptables_version=$(cat /tmp/iptablesVer |awk -F "." '{ print $3 }')
+		i=1
+		while [ "$i" -le "$rule_num" ]
+		do
+			config_get rule_enable rule$i enable
+			if [ $rule_enable = "1" ]; then 
+				
+				config_get weekdays rule$i weekdays
+				config_get filter_keyword rule$i keyword
+				config_get src_type rule$i src_type
+				config_get src_mac_list rule$i src_mac
+				config_get service_count rule$i service_count
+				config_get service_act rule"$i" service_act
+				
+				# init value
+				alltime=""
+				
+				## one more rule for DST
+				
+				##filter time
+					for j in `seq 0 1 23`
+					do
+						config_get weekdays rule$i time$j
+						weekday=""	
+						
+						[ ${weekdays:1:1} == "1" ] && weekday="Mon,"
+						[ ${weekdays:2:1} == "1" ] && weekday="$weekday"Tue,
+						[ ${weekdays:3:1} == "1" ] && weekday="$weekday"Wed,
+						[ ${weekdays:4:1} == "1" ] && weekday="$weekday"Thu,
+						[ ${weekdays:5:1} == "1" ] && weekday="$weekday"Fri,
+						[ ${weekdays:6:1} == "1" ] && weekday="$weekday"Sat,
+						[ ${weekdays:0:1} == "1" ] && weekday="$weekday"Sun,
+						
+						k=$(($j + 1))
+						num_day=`echo $weekday|awk -F "," "{print NF}"`
+						
+						if [ "$weekday" == "" ]; then 
+							alltime="$alltime 0;"  
+						else
+							[ "$k" == 24 ] && k=0
+							if [ $iptables_version = "21" ]; then #version=1.4.21
+								if [ "$num_day" == 8 ]; then
+									alltime="$alltime -m time --timestart $j:00 --timestop $k:00 --kerneltz;" 
+								else
+									alltime="$alltime -m time --weekdays $weekday --timestart $j:00 --timestop $k:00 --kerneltz;"
+								fi
+							else
+								if [ "$num_day" == 8 ]; then
+									alltime="$alltime -m time --timestart $j:00 --timestop $k:00;" 
+								else
+									alltime="$alltime -m time --weekdays $weekday --timestart $j:00 --timestop $k:00;"
+								fi	
+							fi	
+						fi
+					done
+
+				
+				
+				##Network service
+					k=1
+					TCP_port=""
+					UDP_port=""
+					service_allow_tcp_port=""
+					service_block_tcp_port=""
+					service_allow_udp_port=""
+					service_block_udp_port=""
+					service_allow_icmp_port=""
+					service_block_icmp_port=""
+					while [ "$k" -le "$service_count" ]
+					do
+						config_get proto rule"$i"_service"$k" proto
+						port=$(uci_get parental_ex rule"$i"_service"$k" port | sed 's/-/:/g')
+						if [ $proto = "TCP/UDP" ]; then
+							TCP_port=$TCP_port,$port
+							UDP_port=$UDP_port,$port
+						fi
+						if [ $proto = "UDP" ]; then
+							UDP_port=$UDP_port,$port
+						fi
+						if [ $proto = "TCP" ]; then
+							TCP_port=$TCP_port,$port
+						fi
+						if [ $k = "$service_count" ]; then
+							TCP_port=$(echo $TCP_port |cut -c 2-)
+							UDP_port=$(echo $UDP_port |cut -c 2-)
+							if [ $service_act = "allow" ]; then
+								service_block_icmp_port=" -p icmp -o $wan_interface"
+								if [ $TCP_port != "" ]; then
+									service_allow_tcp_port="-p tcp -o $wan_interface -m multiport --dport $TCP_port"
+									service_block_tcp_port="-p tcp -o $wan_interface -m multiport ! --dport $TCP_port"
+									#iptables -A network_service -p tcp -m multiport --dport $TCP_port -j REJECT
+								fi
+								if [ $UDP_port != "" ]; then
+									service_allow_udp_port="-p udp -o $wan_interface -m multiport --dport $UDP_port"
+									service_block_udp_port="-p udp -o $wan_interface -m multiport ! --dport $UDP_port"
+									#iptables -A network_service -p udp -m multiport --dport $UDP_port -j REJECT
+								fi
+							else
+								service_allow_icmp_port=" -p icmp -o $wan_interface"
+								if [ $TCP_port != "" ]; then
+									service_allow_tcp_port="-p tcp -o $wan_interface -m multiport ! --dport $TCP_port"
+									service_block_tcp_port="-p tcp -o $wan_interface -m multiport --dport $TCP_port"
+									#iptables -A network_service -p tcp -o $wan_interface -m multiport ! --dport $TCP_port -j REJECT
+								else
+									service_allow_tcp_port="-p tcp -o $wan_interface"
+									#iptables -A network_service -p tcp -o $wan_interface -j REJECT
+								fi
+								if [ $UDP_port != "" ]; then
+									service_allow_udp_port="-p udp -o $wan_interface -m multiport ! --dport $UDP_port"
+									service_block_udp_port="-p udp -o $wan_interface -m multiport --dport $UDP_port"
+									#iptables -A network_service -p udp -o $wan_interface -m multiport ! --dport $UDP_port -j REJECT
+								else
+									service_allow_udp_port="-p udp -o $wan_interface"
+									#iptables -A network_service -p udp -o $wan_interface -j REJECT
+								fi
+							fi							
+						fi
+						k=$(( $k + 1 ))
+				done
+			
+			for src_mac in $src_mac_list
+			do
+				
+				if [ $src_type = "all" ]; then	
+					[ "$service_block_icmp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_block_icmp_port -j REJECT
+					[ "$service_block_udp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_block_udp_port -j REJECT
+					[ "$service_block_tcp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_block_tcp_port -j REJECT
+					[ "$service_allow_icmp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_allow_icmp_port -j RETURN
+					[ "$service_allow_udp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_allow_udp_port -j RETURN
+					[ "$service_allow_tcp_port" != "" ] && iptables -A access_schedule_ex $access_time $service_allow_tcp_port -j RETURN
+					[ "$service_allow_tcp_port" == "" ] && [ "$service_allow_udp_port" == "" ] && [ "$service_block_tcp_port" == "" ] && [ "$service_block_udp_port" == "" ] && iptables -A access_schedule_ex $access_time -j RETURN
+					
+					
+					#iptables -A access_schedule -o $wan_interface -j REJECT
+				else
+					for j in `seq 0 1 23`
+					do
+						[ "$j" == "0" ] && access_time=$(echo $alltime |awk -F ';' '{print $1}')
+						[ "$j" == "1" ] && access_time=$(echo $alltime |awk -F ';' '{print $2}')
+						[ "$j" == "2" ] && access_time=$(echo $alltime |awk -F ';' '{print $3}')
+						[ "$j" == "3" ] && access_time=$(echo $alltime |awk -F ';' '{print $4}')
+						[ "$j" == "4" ] && access_time=$(echo $alltime |awk -F ';' '{print $5}')
+						[ "$j" == "5" ] && access_time=$(echo $alltime |awk -F ';' '{print $6}')
+						[ "$j" == "6" ] && access_time=$(echo $alltime |awk -F ';' '{print $7}')
+						[ "$j" == "7" ] && access_time=$(echo $alltime |awk -F ';' '{print $8}')
+						[ "$j" == "8" ] && access_time=$(echo $alltime |awk -F ';' '{print $9}')
+						[ "$j" == "9" ] && access_time=$(echo $alltime |awk -F ';' '{print $10}')
+						[ "$j" == "10" ] && access_time=$(echo $alltime |awk -F ';' '{print $11}')
+						[ "$j" == "11" ] && access_time=$(echo $alltime |awk -F ';' '{print $12}')
+						[ "$j" == "12" ] && access_time=$(echo $alltime |awk -F ';' '{print $13}')
+						[ "$j" == "13" ] && access_time=$(echo $alltime |awk -F ';' '{print $14}')
+						[ "$j" == "14" ] && access_time=$(echo $alltime |awk -F ';' '{print $15}')
+						[ "$j" == "15" ] && access_time=$(echo $alltime |awk -F ';' '{print $16}')
+						[ "$j" == "16" ] && access_time=$(echo $alltime |awk -F ';' '{print $17}')
+						[ "$j" == "17" ] && access_time=$(echo $alltime |awk -F ';' '{print $18}')
+						[ "$j" == "18" ] && access_time=$(echo $alltime |awk -F ';' '{print $19}')
+						[ "$j" == "19" ] && access_time=$(echo $alltime |awk -F ';' '{print $20}')
+						[ "$j" == "20" ] && access_time=$(echo $alltime |awk -F ';' '{print $21}')
+						[ "$j" == "21" ] && access_time=$(echo $alltime |awk -F ';' '{print $22}')
+						[ "$j" == "22" ] && access_time=$(echo $alltime |awk -F ';' '{print $23}')
+						[ "$j" == "23" ] && access_time=$(echo $alltime |awk -F ';' '{print $24}')
+						
+						[ "$access_time" == "0" ] || [ "$access_time" == " 0" ] || {
+				
+					[ "$service_allow_icmp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_allow_icmp_port -j RETURN
+					[ "$service_allow_udp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_allow_udp_port -j RETURN
+					[ "$service_allow_tcp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_allow_tcp_port -j RETURN
+					[ "$service_block_icmp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_block_icmp_port -j REJECT
+					[ "$service_block_udp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_block_udp_port -j REJECT
+					[ "$service_block_tcp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time $service_block_tcp_port -j REJECT
+							[ "$service_allow_tcp_port" == "" ] && [ "$service_allow_udp_port" == "" ] && [ "$service_block_tcp_port" == "" ] && [ "$service_block_udp_port" == "" ] && {
+							iptables -I access_schedule_ex -m mac --mac-source $src_mac $access_time -j RETURN
+							}
+							
+					}
+						
+					done
+					
+					#iptables -A access_schedule_ex -m mac --mac-source $src_mac -o $wan_interface -j REJECT
+				fi
+				
+				###buffer
+				bComment="rule"$i
+				config_get reward_min rule$i reward_min
+  
+				if [ "$reward_min" != "" ]; then
+					config_get endtimestamp rule$i timestamp
+
+					endtimestamp=@$endtimestamp
+					
+					bonusdays=$(date -d $endtimestamp +%a)
+					Stop_hour=$(date -d $endtimestamp +%k)
+					Stop_min=$(date -d $endtimestamp +%M)
+					Stop_sec=$(date -d $endtimestamp +%S)
+					days_index=$(date -d $endtimestamp +%w)
+					
+					start_times=$(date |awk -F " " '{ print $4 }')
+					start_bonusdays=$(date -d $start_times +%a)
+
+					Stop_hour=$(echo $Stop_hour|awk '{print $0+0}')
+					Stop_min=$(echo $Stop_min|awk '{print $0+0}')
+					Stop_sec=$(echo $Stop_sec|awk '{print $0+0}')
+
+
+					if [ $iptables_version = "21" ]; then #version=1.4.21
+						
+						bouns_time_start="-m time --kerneltz --weekdays $start_bonusdays --timestart "$start_times" "
+						bouns_time_stop="-m time --kerneltz --weekdays $bonusdays  --timestop "$Stop_hour":"$Stop_min":"$Stop_sec""	
+					else							#version=1.4.10
+						
+						bouns_time_start="-m time --weekdays $start_bonusdays --timestart "$start_times" "
+						bouns_time_stop="-m time --weekdays $bonusdays  --timestop "$Stop_hour":"$Stop_min":"$Stop_sec""	
+					fi
+
+					if [ "$start_bonusdays" != "$bonusdays" ]; then
+						iptables -I access_schedule_ex -m mac --mac-source $src_mac -m comment --comment $bComment $bouns_time_start -p all -j  RETURN  
+						iptables -I access_schedule_ex -m mac --mac-source $src_mac -m comment --comment $bComment $bouns_time_stop -p all -j  RETURN
+			
+					else
+							iptables -I access_schedule_ex -m mac --mac-source $src_mac -m comment --comment $bComment $bouns_time_stop -p all -j  RETURN
+					fi
+					# iptables -I access_schedule_ex -m mac --mac-source $src_mac -m comment --comment $bComment $bouns_time -p all -j RETURN
+
+					[ "$service_allow_icmp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_allow_icmp_port -j RETURN
+					[ "$service_allow_udp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_allow_udp_port -j RETURN
+					[ "$service_allow_tcp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_allow_tcp_port -j RETURN
+					[ "$service_block_icmp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_block_icmp_port -j REJECT
+					[ "$service_block_udp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_block_udp_port -j REJECT
+					[ "$service_block_tcp_port" != "" ] && iptables -I access_schedule_ex -m mac --mac-source $src_mac $bouns_time $service_block_tcp_port -j REJECT
+					
+					##set crontabs for deleting expired rules
+					if [ -f /etc/crontabs/root ]; then
+			
+						sed -i -e '/reward.sh '$i'/d' /etc/crontabs/root
+					
+						cron_hour=$Stop_hour
+						cron_min=$(($Stop_min+1))
+						
+						[ "$cron_min" == "60" ] && cron_hour=$(($cron_hour+1)) && cron_min="0"
+						[ "$cron_hour" == "24" ] && days_index=$(($days_index+1)) && cron_hour="0"
+						
+						echo " $cron_min $cron_hour * * $days_index /sbin/reward.sh $i" >> /etc/crontabs/root
+					fi
+				fi
+				
+				
+			
+			
+				##filter keyword
+				rules=`echo $filter_keyword | awk '{FS=";"} {print NF}'`
+				j=1
+				while [ "$j" -le "$rules" ]
+				do
+					keyword=`echo $filter_keyword | awk '{FS=";"} {print $'$j'}'`	
+		
+					if [ $src_type == "all" ]; then
+						iptables -A web_filter -p tcp -m tcp -m webstr --url $keyword -j REJECT --reject-with tcp-reset
+					else				
+						iptables -I web_filter -p tcp -m tcp -m webstr -m mac --mac-source $src_mac --url $keyword -j REJECT --reject-with tcp-reset
+					fi
+					j=$(( $j + 1 ))
+				done
+			
+			done
+			fi
+			i=$(( $i + 1 ))
+		done
+		
+		rm /tmp/dlsaving
+		rm /tmp/iptables_version	
+		## Set to block the rest of access time
+		idx=1
+		checkusr=""
+		
+		while [ "$idx" -le "$rule_num" ]
+		do
+			
+			config_get src_type rule$idx src_type
+			config_get src_enable rule$idx enable
+			config_get src_mac_list rule$idx src_mac
+			
+			[ "$src_enable" = "1" ] && {
+				for src_mac in $src_mac_list
+				do
+					iptables -A access_schedule_ex -m mac --mac-source $src_mac -o $wan_interface -j REJECT
+				done
+			}
+			idx=$(( $idx + 1 ))
+		done
+	else
+		idx=1
+		while [ "$idx" -le "$rule_num" ]
+		do
+			uci delete parental_ex.rule$idx.reward_min
+			idx=$(( $idx + 1 ))
+		done
+		uci commit parental_ex
+
+		sync #This command is for emmc and ext4 filesystem
+		
+		if [ -f /etc/crontabs/root ]; then
+			
+			sed -i -e '/reward.sh/d' /etc/crontabs/root
+		fi	
+	fi
+	crond -c /etc/crontabs
+	return 0 
+}
+
+cmd=$1
+shift
+case "$cmd" in
+	--help|help) usage ;;
+	start|stop|reload|restart|init)
+
+		##check defunct_all of NSS module, that will define to enable or disable NSS module
+		parental_ex_status=$(uci get parental_ex.general.enable)
+		if [ "$parental_ex_status" == "1" ]; then
+			/etc/init.d/qca-nss-ecm stop
+		else
+			/etc/init.d/qca-nss-ecm start
+		fi
+
+		##check module of shortcut that is SFE, if webstr function is enable then will disable SFE feature.
+		[ -d /lib/modules/3.14.43 ] && { 
+			[ -f /etc/init.d/shortcut-fe ] && {
+				parental_ex_status=$(uci get parental_ex.general.enable)
+				if [ "$parental_ex_status" == "1" ]; then
+					if [ "`lsmod | grep 'shortcut_fe_cm'`" != "" ]; then
+						/etc/init.d/shortcut-fe stop
+					fi
+				else
+					if [ "`lsmod | grep 'shortcut_fe_cm'`" == "" ]; then
+						/etc/init.d/shortcut-fe start
+					fi
+				fi
+			}
+		}
+		
+		iptables -F web_filter
+		iptables -F access_schedule_ex
+		iptables -D FORWARD -j web_filter
+		iptables -D FORWARD -j access_schedule
+		iptables -D FORWARD -j access_schedule_ex
+		iptables -X web_filter
+		iptables -X access_schedule_ex
+		config_load parental_ex
+		#config_foreach reload_webFilter parental_keyword
+		reload_webFilter
+		## iptables app reorder
+		/lib/firewall/iptables_app_order
+		##restart NSS module
+		if [ "$(cat /tmp/parental_ecm_status)" != "NotReload" ]; then
+			/etc/init.d/qca-nss-ecm restart
+		fi
+		
+		exit $?
+	;;
+esac
+
+exit $?

@@ -1,0 +1,87 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=98
+
+boot(){
+	local product=$(uci get system.main.product_name)
+
+	## check mode,if AP/UR,exit
+	local sys_mode=$(get_sys_mode)
+	[ "$sys_mode" != "1" ] && {
+		watch -tn 2 /bin/link_monitor_AP 1>/dev/null 2>&1 &
+
+		##For QTN WiFi5G check br-lan:0 host0
+		if [ "$product" == "NBG6815" ] || [ "$product" == "NBG6816" ];then
+			watch -tn 2 /bin/QTN_monitor_interface 1>/dev/null 2>&1 &
+		fi
+
+		## check wan_link_status
+		[ -f /bin/vlan_default ] && {
+			wan_link_status=$(ssdk_sh port linkstatus get 5| grep DISABLE)
+		} || {
+			config_load system
+			local product_name=$(uci_get system main product_name)
+			if [ "$product_name" == "NBG6617"]; then
+				wan_link_status=$(/sbin/swconfig dev switch0 port 5 get link | grep down)
+			else
+				wan_link_status=$(/sbin/swconfig dev eth1 port 5 get link | grep down)
+			fi
+		}
+
+		brlan="br-lan"
+		cur_brlan_mac=$( ifconfig $brlan | grep 'HWaddr' | awk '{print $5}' )
+		echo "$cur_brlan_mac" > /tmp/brlan_mac
+
+		exit 0
+	}
+
+	## check wan_link_status
+	[ -f /bin/vlan_default ] && {
+		wan_link_status=$(ssdk_sh port linkstatus get 5| grep DISABLE)
+	} || {
+		config_load system
+		local product_name=$(uci_get system main product_name)
+		if [ "$product_name" == "NBG6617" ]; then
+			wan_link_status=$(/sbin/swconfig dev switch0 port 5 get link | grep down)
+		else
+			wan_link_status=$(/sbin/swconfig dev eth1 port 5 get link | grep down)
+		fi	
+	}
+
+	wan_proto=$(uci get network.wan.proto)
+
+	[ -z "$wan_link_status" ] && echo 1 > /tmp/wan_link_status || {
+	
+		case $wan_proto	in
+			dhcp)
+				killall dhcpc
+			;;
+			pppoe|pptp)			
+				killall pppd
+			;;
+		esac
+
+		echo 0 > /tmp/wan_link_status
+
+	}
+
+	watch -tn 2 /bin/link_monitor 1>/dev/null 2>&1 &
+
+	##For QTN WiFi5G check br-lan:0 host0
+	if [ "$product" == "NBG6815" ] || [ "$product" == "NBG6816" ];then
+		 watch -tn 2 /bin/QTN_monitor_interface 1>/dev/null 2>&1 &
+	fi
+	
+	config_load appflow	
+	local enable_streamboost=$(uci_get appflow tccontroller enable_streamboost)
+	
+	if [ "$enable_streamboost" == "1" ] ; then
+		# start watch /bin/streamboost_monitor daemon
+		streamboost_monitor_pid=$(ps | grep "/bin/streamboost_monitor" | grep "grep" -v | awk '{print $1}')
+		if [ "$streamboost_monitor_pid" == "" ]; then
+			watch -tn 60 /bin/streamboost_monitor 1>/dev/null 2>&1 &
+		fi
+	fi	
+	
+}

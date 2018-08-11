@@ -1,0 +1,40 @@
+From 14a29483d404782fe5d09a77ee38c1277b7a84b1 Mon Sep 17 00:00:00 2001
+From: kevinchen <kuenhwa@gmail.com>
+Date: Tue, 25 Aug 2015 14:07:03 +0800
+Subject: [PATCH] fix timerfd initialization
+
+from Alexander Gordeev <lasaine@lvk.cs.msu.su>
+
+    sys/timerfd.h defines TFD_NONBLOCK as 0x800 but in kernel TFD_NONBLOCK
+    is an alias for O_NONBLOCK which is defined in arch-specific fcntl.h.
+    While it's still 0x800 for most of archs but for mips it's 0x80. So
+    timerfd_create(..., TFD_NONBLOCK) returns -EINVAL because of that. Fix
+    this by using O_NONBLOCK instead.
+---
+ libusb/io.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/libusb/io.c b/libusb/io.c
+index b9ca767..e7d6ce6 100644
+--- a/libusb/io.c
++++ b/libusb/io.c
+@@ -21,6 +21,7 @@
+ 
+ #include "config.h"
+ #include <errno.h>
++#include <fcntl.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -1141,7 +1142,7 @@ int usbi_io_init(struct libusb_context *ctx)
+ 
+ #ifdef USBI_TIMERFD_AVAILABLE
+ 	ctx->timerfd = timerfd_create(usbi_backend->get_timerfd_clockid(),
+-		TFD_NONBLOCK);
++		O_NONBLOCK);
+ 	if (ctx->timerfd >= 0) {
+ 		usbi_dbg("using timerfd for timeouts");
+ 		r = usbi_add_pollfd(ctx, ctx->timerfd, POLLIN);
+-- 
+1.9.1
+

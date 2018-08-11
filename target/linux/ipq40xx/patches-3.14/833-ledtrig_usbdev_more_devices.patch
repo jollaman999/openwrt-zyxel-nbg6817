@@ -1,0 +1,81 @@
+Index: linux-3.14.43/drivers/leds/ledtrig-usbdev.c
+===================================================================
+--- linux-3.14.43.orig/drivers/leds/ledtrig-usbdev.c
++++ linux-3.14.43/drivers/leds/ledtrig-usbdev.c
+@@ -32,7 +32,7 @@
+ 
+ #include "leds.h"
+ 
+-#define DEV_BUS_ID_SIZE		32
++#define DEV_BUS_ID_SIZE		(32*2)
+ 
+ /*
+  * Configurable sysfs attributes:
+@@ -101,19 +101,27 @@ static ssize_t usbdev_trig_name_store(st
+ 
+ 	if (td->device_name[0] != 0) {
+ 		struct usb_device *usb_dev;
++		char* const delim = ",";
++		char *device_name, *device_names, *org;
+ 
+-		/* check for existing device to update from */
+-		usb_dev = usb_find_device_by_name(td->device_name);
+-		if (usb_dev) {
+-			if (td->usb_dev)
+-				usb_put_dev(td->usb_dev);
+-
+-			td->usb_dev = usb_dev;
+-			td->last_urbnum = atomic_read(&usb_dev->urbnum);
++		org = kstrdup(td->device_name, GFP_KERNEL);
++		device_names = org;
++		while (device_name = strsep(&device_names, delim)) {
++			/* check for existing device to update from */
++			usb_dev = usb_find_device_by_name(device_name);
++			if (usb_dev) {
++				if (td->usb_dev)
++					usb_put_dev(td->usb_dev);
++
++				td->usb_dev = usb_dev;
++				td->last_urbnum = atomic_read(&usb_dev->urbnum);
++				break;
++			}
+ 		}
+ 
+ 		/* updates LEDs, may start timers */
+ 		usbdev_trig_update_state(td);
++		kfree(org);
+ 	}
+ 
+ 	write_unlock(&td->lock);
+@@ -172,6 +180,8 @@ static int usbdev_trig_notify(struct not
+ {
+ 	struct usb_device *usb_dev;
+ 	struct usbdev_trig_data *td;
++	char *device_name, *device_names, *org;
++	char* const delim = ",";
+ 
+ 	if (evt != USB_DEVICE_ADD && evt != USB_DEVICE_REMOVE)
+ 		return NOTIFY_DONE;
+@@ -181,7 +191,13 @@ static int usbdev_trig_notify(struct not
+ 
+ 	write_lock(&td->lock);
+ 
+-	if (strcmp(dev_name(&usb_dev->dev), td->device_name))
++	org = kstrdup(td->device_name, GFP_KERNEL);
++	device_names = org;
++	while (device_name = strsep(&device_names, delim)) {
++		if (!strcmp(dev_name(&usb_dev->dev), device_name))
++			break;
++	}
++	if (device_name == NULL)
+ 		goto done;
+ 
+ 	if (evt == USB_DEVICE_ADD) {
+@@ -200,6 +216,7 @@ static int usbdev_trig_notify(struct not
+ 	usbdev_trig_update_state(td);
+ 
+ done:
++	kfree(org);
+ 	write_unlock(&td->lock);
+ 	return NOTIFY_DONE;
+ }

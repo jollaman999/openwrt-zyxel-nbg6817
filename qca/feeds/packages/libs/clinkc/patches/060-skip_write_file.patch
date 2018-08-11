@@ -1,0 +1,192 @@
+Index: clinkc/src/cybergarage/http/chttp_packet.c
+===================================================================
+--- clinkc.orig/src/cybergarage/http/chttp_packet.c	2016-03-18 16:01:23.000923590 +0800
++++ clinkc/src/cybergarage/http/chttp_packet.c	2016-03-18 16:02:36.233047000 +0800
+@@ -783,7 +783,7 @@
+ 	char filename[256] = {0};
+ 	char valname[256] = {0};
+ 	int parseFlag = 0;
+-	BOOL done = FALSE;
++//	BOOL done = FALSE;
+ 	BOOL parseHeader =FALSE;
+ 
+ 	cg_log_debug_l4("Entering...\n");
+@@ -795,10 +795,12 @@
+ 
+ 	boundaryLen = strlen(boundary);
+ 	conLen = cg_http_packet_getcontentlength(httpPkt);
++#if 0
+ 	if(memory_check(conLen) == FALSE){
+ 		printf("upgrade firmware fail: out of memory!!!\n");
+ 		return FALSE;
+ 	}
++#endif
+ 	if (0 < conLen && conLen <= HTTPD_MAX_UPLOAD_SIZE) {
+ 		readLen = 0;
+ 		
+@@ -806,162 +808,17 @@
+ 		maxReadLen = READBUF_LENGTH;
+ 		parseHeader = TRUE;
+ 		/* Read content until conLen is reached, or tired of trying */
+-		while (readLen < conLen && readLen <= HTTPD_MAX_UPLOAD_SIZE && tries < CG_HTTP_CWMP_SEND_RECV_TRY_COUNT && !done)
++		while (readLen < conLen && readLen <= HTTPD_MAX_UPLOAD_SIZE && tries < CG_HTTP_CWMP_SEND_RECV_TRY_COUNT)
+ 		{
+ 			//printf("### maxReadLen = %d\n", maxReadLen);
+ 			length = cg_socket_read(sock, readBufPtr, maxReadLen);
+ 			//printf("length = %d\n", length);
+ 			if (length > 0){
+ 				readLen += length;
+-				*(readBufPtr+length) = 0;
+-				length = (readBufPtr+length) - readBuf;
+-				ptr = readBuf;
+-				do{
+-					if(parseHeader && (boundaryPtr = find_boundary(ptr, ((readBuf+length) - ptr), boundary, boundaryLen))){
+-						//printf("== boundry start ==\n");
+-						if(boundaryPtr > ptr){
+-							w_len = boundaryPtr - ptr -2; //igonre \r\n before boundry
+-							if(w_len){
+-								if(fp) //store other data
+-									cg_file_write(fp, (CgByte *)ptr, sizeof(char)*w_len);  
+-								else if(val)
+-									cg_http_val_appendvalue(val, ptr, w_len);
+-							
+-								ptr += w_len;
+-								wirteFile+=w_len;
+-							}
+-						}
+-						// if has file pointer
+-						if(fp){
+-							//printf("file size = %d\n",wirteFile);
+-							cg_file_close(fp);
+-							cg_filelist_add(form->_FILE, fp);
+-							fp = NULL;
+-						}
+-						// if has variable pointer
+-						if(val){
+-							//printf("variable size = %d\n",wirteFile);
+-							cg_http_vallist_add(form->_POST, val);
+-							val = NULL;
+-						}
+-						
+-						if(!memcmp(boundaryPtr+strlen(boundary), "--", 2)){
+-							//printf("== [End of boundry] ==\n");
+-							done = TRUE;
+-							break;
+-						}
+-						else if((boundaryCtPtr = strstr(boundaryPtr, "\r\n\r\n"))){
+-							*boundaryCtPtr = 0;	
+-							ptr = boundaryCtPtr+4;
+-							parseHeader = FALSE;
+-							//printf("\n== [strlen boundary header] %d ==\n", strlen(boundaryPtr));
+-
+-							valname[0] = 0;
+-							filename[0] = 0;
+-							
+-							contentDispos = strstr(boundaryPtr, "Content-Disposition:");
+-							contentType = strstr(boundaryPtr, "Content-Type:");	
+-							if(contentType){
+-								contentType+=13;
+-								if((tmp = strstr(contentType, "\r\n"))) *tmp = 0;
+-							}
+-							
+-							if(contentDispos){
+-								contentDispos+=20;
+-								if((tmp = strstr(contentDispos, "\r\n"))) *tmp = 0;
+-								//printf("== [Content-Disposition] %s ==\n", contentDispos);
+-								if((tmp=strstr(contentDispos, "name=")) && (tmp = tmp+6) && (tmp2 = strchr(tmp, '"'))){ //strlen("name=") +1 = 6
+-									if((tmp2-tmp)>tmplength ){
+-										memcpy(valname, tmp, tmplength);
+-									}else{
+-										memcpy(valname, tmp, tmp2-tmp);
+-									}
+-									valname[tmp2-tmp] = 0;
+-									//printf("== [_VAL_NAME_] %s ==\n", valname);
+-								}
+-								if((tmp=strstr(contentDispos, "filename=")) && (tmp = tmp+10) && (tmp2 = strchr(tmp, '"'))){//strlen("filename=") +1 = 10
+-									if(tmp2-tmp){
+-										if((tmp2-tmp)>tmplength ){
+-											memcpy(filename, tmp, tmplength);
+-										}else{
+-											memcpy(filename, tmp, tmp2-tmp);
+-										}
+-										filename[tmp2-tmp] = 0;
+-										//printf("== [_FILE_] %s ==\n", filename);
+-										filepath = tempnam(HTTPD_TMP_PATH, "file");
+-										//printf("filepath: %s\n",filepath);
+-										if(!fp && filepath){
+-											wirteFile = 0;
+-											fp = cg_file_new();
+-											cg_file_setpath(fp, filepath); free(filepath);
+-											cg_file_setfilename(fp ,filename);
+-											if (!cg_file_open(fp, CG_FILE_OPEN_WRITE)) {
+-												printf("[Error] fopen %s fail\n", cg_file_getname(fp));
+-												cg_file_delete(fp);
+-												return FALSE;
+-											}
+-											if(valname[0] != 0) cg_file_setvalname(fp, valname);
+-											if(contentType) cg_file_setContentType(fp, contentType);
+-										}
+-										else {
+-											if(filepath) free(filepath);
+-											printf("[Error] file pointer is not null\n");
+-											return FALSE;
+-										}
+-									}									
+-								}
+-								else{
+-									if(!val){
+-										wirteFile = 0;
+-										val = cg_http_val_new();
+-										if(valname[0] != 0) cg_http_val_setname(val, valname);
+-									}
+-									else {
+-										printf("[Error] variable pointer is not null\n");
+-										return FALSE;
+-									}
+-								}
+-							}
+-						}
+-						else break; //need read a lot
+-					}
+-					
+-					//if(boundaryPtr != ptr){
+-						if((tmp =find_boundary(ptr, (readBuf+length-ptr), "\r\n-", 3))){
+-							w_len = tmp - ptr;
+-							parseHeader = TRUE;
+-						}
+-						else{
+-							w_len = (readBuf+length) - ptr;
+-							parseHeader = FALSE;
+-						}
+-						if(w_len){
+-							if(fp) cg_file_write(fp, (CgByte *)ptr, sizeof(char)*w_len); //fwrite(ptr, sizeof(char), w_len, fp); 
+-							else if(val){
+-								if(w_len) cg_http_val_appendvalue(val, ptr, w_len);
+-							}
+-							
+-							ptr += w_len;
+-							wirteFile+=w_len;
+-						}
+-					//}
+-				} 
+-				while(ptr < (readBuf+length) && ((readBuf+length) - ptr) > boundaryLen);
+-				
+-				if(!done){
+-					if((w_len = readBuf+length - ptr)){
+-						memmove(readBuf, ptr, w_len);
+-						readBufPtr = readBuf+w_len;
+-						maxReadLen = READBUF_LENGTH - w_len;
+-					}
+-					else{
+-						readBufPtr = readBuf;
+-						maxReadLen = READBUF_LENGTH;
+-					}
+-				}
+ 			}
+ 			else{
+-				tries++;
++				//tries++;
++				break;
+ 			}
+ 		}
+ 		

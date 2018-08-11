@@ -1,0 +1,22 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2008-2010 OpenWrt.org
+
+START=50
+
+start() {
+	### applying after WAN connection up ###
+	exit 0
+}
+
+apply() {
+	/sbin/nat apply
+}
+
+init() {
+	exit 0
+}
+
+reload() {
+	/sbin/nat reload
+}
+

@@ -1,0 +1,77 @@
+#!/bin/sh
+. /etc/functions.sh
+include /lib/config
+
+##wifi0--5G   wifi1--24G
+chk_iface=$(uci_get wireless iface wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+wps_status_old=$(cat /tmp/wps_chk_status_5G)
+wps_status=$(hostapd_cli -p /tmp/run/hostapd-$DEV5G/ -i "$DEV5G_FIRSTNAME"0 get_config |grep wps_state=| awk -F"=" '{print $2}') 
+flag=0
+auth=
+ssid=$(cat /tmp/run/hostapd-"$DEV5G_FIRSTNAME"0.conf | grep -v '#WPS#' | grep ssid= | awk -F"=" '{print $2}')
+#auth=$(cat /tmp/hostapd/hostapd-"$DEV5G_FIRSTNAME"0.conf | grep -v '#' |grep wpa_key_mgmt= | awk -F"=" '{print $2}')
+encryption=$(cat /tmp/run/hostapd-"$DEV5G_FIRSTNAME"0.conf | grep -v '#WPS#' |grep wpa_pairwise= | awk -F"=" '{print $2}')
+wpapsk=$(cat /tmp/run/hostapd-"$DEV5G_FIRSTNAME"0.conf | grep -v '#WPS#' | grep wpa_passphrase= | awk -F"=" '{print $2}')
+auth_wpa=$(cat /tmp/run/hostapd-"$DEV5G_FIRSTNAME"0.conf | grep -v '#WPS' |grep wpa= | awk -F"=" '{print $2}')
+	
+if [ "$auth_wpa" == "1" ]; then
+	auth="WPAPSK"
+	encryption="WPAPSK"
+elif [ "$auth_wpa" == "2" ]; then
+	auth="WPA2PSK"
+	encryption="WPA2PSK"
+elif [ "$auth_wpa" == "3" ]; then
+	auth="WPA2PSK"
+	encryption="WPA2PSK"
+elif [ "$auth_wpa" == "0" ]; then
+        auth="NONE"
+        encryption="NONE"
+fi
+
+old_ssid=$(uci get wireless."$DEV5G_FIRSTNAME"0.ssid)
+old_auth=$(uci get wireless."$DEV5G_FIRSTNAME"0.auth)
+old_encrytion=$(uci get wireless."$DEV5G_FIRSTNAME"0.encryption)
+old_WPAPSKkey=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey)
+[ "$old_ssid" == "$ssid" ] || {
+	uci_set wireless "$DEV5G_FIRSTNAME"0 ssid "$ssid"
+	flag=1
+}
+[ "$old_auth" == "$auth" ] || {
+	uci_set wireless "$DEV5G_FIRSTNAME"0 auth "$auth"
+	flag=1
+}
+[ "$old_encrytion" == "$encryption" ] || {
+	uci_set wireless "$DEV5G_FIRSTNAME"0 encryption "$encryption"
+	flag=1
+}
+[ "$old_WPAPSKkey" == "$wpapsk" ] || {
+	uci_set wireless "$DEV5G_FIRSTNAME"0 WPAPSKkey "$wpapsk"
+	flag=1
+}
+[ "$flag" == 1 ] && {
+	uci_set wireless "$DEV5G_FIRSTNAME"0 WPAPSKCompatible 1
+	uci_commit wireless
+	sync #This command is for emmc and ext4 filesystem
+}
+	
+if [ "$wps_status_old" == "not configured" -a "$wps_status" == "configured" ]; then
+	uci_set wps5G wps conf 1
+	uci_commit wps5G
+	sync #This command is for emmc and ext4 filesystem
+fi
+
+#echo $current_chksum > /tmp/conf_chksum_24G
+echo $wps_status > /tmp/wps_chk_status_5G
+

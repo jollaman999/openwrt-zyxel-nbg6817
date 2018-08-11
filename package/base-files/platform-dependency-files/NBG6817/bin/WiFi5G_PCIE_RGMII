@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#insert 5G
+insmod /lib/modules/3.4.0/qdpc-host.ko

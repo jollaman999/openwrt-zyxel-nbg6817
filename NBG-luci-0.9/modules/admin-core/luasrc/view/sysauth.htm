@@ -1,0 +1,242 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at 
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+sys = require("luci.sys")
+uci = require("luci.model.uci").cursor()
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+local easy123_title_1 = uci:get("system","main","product_typ_name")
+local product_name = uci:get("system","main","product_name")
+-%>
+
+<%
+local lan_ipaddr = uci:get("network","lan","ipaddr")
+local htp_mode=sys.exec("cat /proc/cmdline | grep HTP")
+
+if (htp_mode ~= "") then
+	local wlan_pw=uci:get("wireless","ra0","WPAPSKkey")
+	if (wlan_pw == nil) then
+		wlan_pw=sys.exec("cat /tmp/tmppsk")
+	end
+
+	local data= sys.exec("sys atsh")
+	local info = string.gsub(data,"\n","<br>")
+%>
+System Information
+<br>
+-----------------------------------------------------
+<br>
+<%=info%>
+<br>
+-----------------------------------------------------
+<br> 
+Wifi Password:<%=wlan_pw%>
+
+<br> 
+
+<%else%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title><%=product_name%><%:easy123_login_title%></title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="<%=media%>/css/easy123_base.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_skeleton.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_layout.css" /><!--[if lt IE 9]>
+<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+<script type="text/JavaScript">
+$(document).ready(function(){
+/*  $('#password').click(function(){
+    this.type = 'text';
+  });
+
+  $('#password').blur(function() { 
+    this.type = 'password';
+  });
+*/
+});
+
+/* Modify "Password Visible in Source Code" for Login, NBG6816, WenHsiang, 2012/05/10 */
+function submit_data()  // Data validation in "authenticator.htmlauth" of "dispatcher.lua".
+{  
+	<%
+	local eaZy123 = uci:get("system","main","eaZy123")
+	local loginPwd = uci:get("system","main","pwd")
+	if loginPwd == "1234" then 
+	%>			
+		document.web_login.action="<%=controller%>/easy/passWarning";
+		document.web_login.submit();
+	<% 
+	elseif not eaZy123 then
+	%>
+		document.web_login.action="<%=controller%>/easy/eaZy123";
+		document.web_login.submit();
+	<% else %>
+		document.web_login.action="<%=controller%>/easy/networkmap";
+		document.web_login.submit();
+	<% end %>
+}
+
+/* Modify "Password Visible in Source Code" for Login, NBG6816, WenHsiang, 2012/05/10 */
+function check()
+{
+	<%
+		local lang = uci:get("system","main","language")
+		local auto_lang = uci:get("system","main","auto_language")
+	%>
+	var old_lang="<%=lang%>";
+	var auto_lang="<%=auto_lang%>";
+	var lang = window.navigator.userLanguage || window.navigator.language;
+	var lang_key=lang.split("-");
+
+	if ((lang_key[0] != "de") && (lang_key[0] != "en") && (lang_key[0] != "es") && (lang_key[0] != "fr") && (lang_key[0] != "it") && (lang_key[0] != "zh") )
+	{
+
+		lang_key[0]="en";
+	}
+
+	if ( auto_lang != "1" ){
+		if ( old_lang != lang_key[0] ){
+	//		alert(old_lang+"----"+lang_key[0]);
+			var submit_url = '<%=controller%>/';
+			var loc = submit_url;
+			loc += '?language='+lang_key[0];
+			var code = 'location="' + loc + '"';
+			eval(code);
+		};
+	};
+
+	<%
+	local System_eaZy123_flag = uci:get("system","main","eaZy123")
+	if System_eaZy123_flag ~= "1" then 
+	%>
+	
+		if ( (location.href.match("http:") )&&( !location.href.match("<%=lan_ipaddr%>") ) ){
+			top.window.location.href = "http://<%=lan_ipaddr%>";	
+		}
+
+                if ( (location.href.match("https:") )&&( !location.href.match("<%=lan_ipaddr%>") ) ){
+                        top.window.location.href = "http://<%=lan_ipaddr%>";
+                }
+	
+	<% end %>
+	
+	if (window.top!=window.self){
+		top.window.location.href = "<%=controller%>/easy/sysauth";
+	}
+	
+	var status_check = "<%=chk_password%>";
+	<% local user_pass_state = sys.exec("cat /tmp/login_state | tr -d '\n'")
+	if user_pass_state == "block" then %>
+		document.web_login.password.disabled=true;
+		document.web_login.login.disabled=true;
+		document.getElementById("message").innerHTML="<%:login_error1%>";
+		showMsg();
+	<% else %>	
+		if( status_check == "1" )
+		{
+			<% if user_pass_count and tonumber(user_pass_count) ~= 0 then %>
+			{
+				alert("<%:wrong_password%>");
+
+				alert("<%:wrong_Login1%>\n<%:wrong_Login2%> : <%=user_pass_count%>");
+				<% if tonumber(user_pass_count) >= 5 then %>
+				{
+					alert("<%:login_error1%>");	
+					document.web_login.password.disabled=true;
+					document.web_login.login.disabled=true;
+				
+					var submit_url = '<%=controller%>/';
+					var loc = submit_url;
+					loc += '?block=block';
+					var code = 'location="' + loc + '"';
+					eval(code);
+					showMsg2();
+				}
+				<% end %>
+			}
+			<% end %>
+		}
+	<% end %>
+}
+
+<% local user_pass_time=sys.exec("cat /tmp/login_blocktime | tr -d '\n'")%>
+var sec=parseInt("<%=user_pass_time%>", 10);
+function showMsg(){ //for relogin
+	document.getElementById("message").innerHTML="<%:login_error2%>: "+sec+" <%:seconds%>";
+	if(sec>-1){
+		sec--;
+		setTimeout("showMsg()", 1000);
+	}else{
+		document.web_login.password.disabled=false;
+		document.web_login.login.disabled=false;
+		document.getElementById("message").innerHTML="";
+	}
+}
+
+var sec2=600;  //block for 10mins
+function showMsg2(){	//for first login error
+	document.getElementById("message").innerHTML="<%:login_error2%>: "+sec2+" <%:seconds%>";
+	if(sec2>-1){
+		sec2--;
+		setTimeout("showMsg2()", 1000);
+	}else{
+		document.web_login.password.disabled=false;
+		document.web_login.login.disabled=false;
+		document.getElementById("message").innerHTML="";
+	}
+}
+		  
+</script>
+</head>
+
+<body onload="check();">
+	<div class="logo">
+	    <img width="100" height="40" src="<%=media%>/images/easy123_logo.png"></img>
+	</div>
+	<div class="container">
+		<div class="two columns">&nbsp;</div>
+		<div class="six columns">
+			<div><h1><%=easy123_title_1%></h1><h4m><%:easy123_title_2%><%=product_name%></h4m><br><br></div>
+			<br></br>
+
+			<div><h4><%:easy123_login_password_1%></h4>
+				<p><%:easy123_login_password_2%></p>
+				<form method="post" name="web_login" >
+					<input type="hidden" name="username" size="15" maxlength="30" value="<%=duser%>" class=""/>
+					<input type="password" name="password" id="password" <%if loginPwd == "1234" then %>placeholder="<%:easy123_login_password_3%>"<%else%>placeholder="<%:easy123_login_password_6%>"<%end%> required/>
+	    			<input type="submit" name="login" value="<%:easy123_login_password_4%>" onclick="javascript:submit_data()">
+				</form>
+			</div>
+			<div>
+				<span id="message" style="color:red"></span>
+			</div>
+		</div>
+		<div class="seven columns"><img src="<%=media%>/images/easy123_<%=product_name%>.png" width="100%"></img></div>
+		<div class="one column">&nbsp;</div>
+	</div>
+</body>
+</html>
+<%end%>

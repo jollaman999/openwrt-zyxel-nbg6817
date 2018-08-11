@@ -1,0 +1,80 @@
+Source-Makefile: feeds/streamboost/luci-app-streamboost/Makefile
+Package: luci-app-streamboost
+Menu: 1
+Submenu: 3. Applications
+Version: 2
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread luci +flux +background-size-polyfill
+Menu-Depends: 
+Provides: 
+Build-Variant: premium
+Section: luci
+Category: LuCI
+Title: Luci Application for Streamboost
+Maintainer: Earl Manning <earl.manning@qca.qualcomm.com>
+Source: luci-app-streamboost-.tar.gz
+Type: ipkg
+Description: Luci Application for Monitoring and Management of Streamboost
+Earl Manning <earl.manning@qca.qualcomm.com>
+@@
+Config:
+   	menu "overwrite package version"
+		depends on PACKAGE_luci-app-streamboost
+	config luci-app-streamboost_USE_CUSTOM_VERSION
+		depends on PACKAGE_luci-app-streamboost
+		bool "Use custom package version"
+		default n
+
+	config luci-app-streamboost_CUSTOM_VERSION
+		depends on luci-app-streamboost_USE_CUSTOM_VERSION
+		string "luci-app-streamboost version as string (default version: )"
+		default ""
+
+	endmenu
+   	menu "custom source directory"
+		depends on PACKAGE_luci-app-streamboost
+	config luci-app-streamboost_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_luci-app-streamboost
+		bool "Use custom source directory"
+		default n
+	config luci-app-streamboost_CUSTOM_SOURCE_DIR
+		depends on luci-app-streamboost_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+Package: luci-app-streamboost-mainstream
+Menu: 1
+Submenu: 3. Applications
+Version: 2
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread luci +flux +background-size-polyfill
+Menu-Depends: 
+Provides: 
+Build-Variant: mainstream
+Section: luci
+Category: LuCI
+Title: Luci Application for Streamboost ( Mainstream)
+Maintainer: Earl Manning <earl.manning@qca.qualcomm.com>
+Source: luci-app-streamboost-.tar.gz
+Type: ipkg
+Description: Luci Application for Streamboost Mainstream
+Earl Manning <earl.manning@qca.qualcomm.com>
+@@
+
+Package: luci-app-streamboost-assets
+Submenu: 3. Applications
+Version: 2
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread luci +luci-app-streamboost
+Menu-Depends: 
+Provides: 
+Section: luci
+Category: LuCI
+Title: Static assets for Streamboost Luci Application
+Maintainer: Earl Manning <earl.manning@qca.qualcomm.com>
+Source: luci-app-streamboost-.tar.gz
+Type: ipkg
+Description: Static assets for the Streamboost Luci Application.
+Earl Manning <earl.manning@qca.qualcomm.com>
+@@
+
+

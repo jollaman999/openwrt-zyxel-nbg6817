@@ -1,0 +1,107 @@
+#!/bin/sh
+. /etc/functions.sh
+include /lib/config
+
+channel_24g=0
+channel_5g=0
+
+iface_24g="wifi1"
+iface_5g="wifi0"
+
+main_24g_iface="ath10"
+main_5g_iface="ath0"
+
+while true; do
+
+	wifi_disable_24g=$(uci get wireless."$iface_24g".disabled)
+	wifi_disable_5g=$(uci get wireless."$iface_5g".disabled)
+
+	auto_channel_enable_24g=$(uci get wireless."$iface_24g".AutoChannelSelect)
+	auto_channel_enable_5g=$(uci get wireless."$iface_5g".AutoChannelSelect)
+
+	if [ -f /tmp/wifi_reloaded ]; then
+		value=$(cat /tmp/wifi_reloaded | grep $iface_24g)
+		if [ "$value" == "" ]; then
+			wifi_24g_reload=0
+		else
+			wifi_24g_reload=1
+		fi
+
+		value=$(cat /tmp/wifi_reloaded | grep $iface_5g)
+		if [ "$value" == "" ]; then
+			wifi_5g_reload=0
+		else
+			wifi_5g_reload=1
+		fi
+
+		rm /tmp/wifi_reloaded
+	else
+		wifi_24g_reload=0
+		wifi_5g_reload=0
+	fi
+
+	#echo "wifi_disable_24g $wifi_disable_24g"
+	#echo "wifi_disable_5g $wifi_disable_5g"
+	#echo "auto_channel_enable_24g $auto_channel_enable_24g"
+	#echo "auto_channel_enable_5g $auto_channel_enable_5g"
+	#echo "wifi_24g_reload $wifi_24g_reload"
+	#echo "wifi_5g_reload $wifi_5g_reload"
+
+	if [ $wifi_disable_24g == 1 ]; then
+
+		channel_24g=0
+
+	elif [ $wifi_24g_reload == 1 ]; then
+		if [ $auto_channel_enable_24g == 1 ]; then
+			# wait ACS
+			sleep 10
+
+			channel_24g=$(iwlist $main_24g_iface channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+			#echo "channel_24g update from cmd $channel_24g"
+		else
+			channel_24g=$(uci get wireless.$iface_24g.channel)
+			#echo "channel_24g update from config $channel_24g"
+		fi
+	else
+		if [ $channel_24g == 0 ]; then
+			if [ $auto_channel_enable_24g == 1 ]; then
+				channel_24g=$(iwlist $main_24g_iface channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+			else
+				channel_24g=$(uci get wireless.$iface_24g.channel)
+			fi
+		fi
+	fi
+
+	#echo "2.4GHz $channel_24g"
+	echo "24G=$channel_24g" > /tmp/wifi_channel
+
+	if [ $wifi_disable_5g == 1 ]; then
+
+		channel_5g=0
+
+	elif [ $wifi_5g_reload == 1 ]; then
+		if [ $auto_channel_enable_5g == 1 ]; then
+			# wait ACS
+			sleep 10
+
+			channel_5g=$(iwlist $main_5g_iface channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+			#echo "channel_5g update from cmd $channel_5g"
+		else
+			channel_5g=$(uci get wireless.$iface_5g.channel)
+			#echo "channel_5g update from config $channel_5g"
+		fi
+	else
+		if [ $channel_5g == 0 ]; then
+			if [ $auto_channel_enable_5g == 1 ]; then
+				channel_5g=$(iwlist $main_5g_iface channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+			else
+				channel_5g=$(uci get wireless.$iface_5g.channel)
+			fi
+		fi
+	fi
+
+	#echo "5GHz $channel_5g"
+	echo "5G=$channel_5g" >> /tmp/wifi_channel
+
+	sleep 60
+done

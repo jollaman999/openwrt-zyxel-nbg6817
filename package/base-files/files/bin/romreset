@@ -1,0 +1,24 @@
+#!/bin/sh
+
+. /lib/functions.sh
+include /lib/upgrade
+
+if [ "$1" -eq "0" ]; then
+        kill_remaining TERM
+        sleep 3
+        kill_remaining KILL
+        firstboot
+        mount -o remount /
+        echo "No reboot"
+elif [ "$1" -eq "1" ]; then
+	kill_remaining TERM
+	sleep 3
+	kill_remaining KILL
+        firstboot
+	mount -o remount /
+	sleep 3
+	reboot -f
+        echo "Rebooting..."
+else
+        echo "Wrong parameter"
+fi

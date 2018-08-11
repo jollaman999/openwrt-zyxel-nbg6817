@@ -1,0 +1,4 @@
+
+config sendmail 'mail_server_setup'
+	option emails_count '0'
+

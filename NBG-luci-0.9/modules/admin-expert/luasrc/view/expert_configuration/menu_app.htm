@@ -1,0 +1,120 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local load1, load5, load15 = luci.sys.loadavg()
+local request  = require("luci.dispatcher").context.path
+local category = request[1]
+local tree     = luci.dispatcher.node()
+local cattree  = category and luci.dispatcher.node(category)
+local node     = luci.dispatcher.context.dispatched
+local hostname = luci.sys.hostname()
+
+local c = tree
+for i,r in ipairs(request) do
+	if c.nodes and c.nodes[r] then
+		c = c.nodes[r]
+		c._menu_selected = true
+	end
+end
+
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+
+  <title>tree menu</title>
+
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-ui-1.8.21.custom.min.js"></script>
+  
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<link href="<%=media%>/css/menu.css" rel="stylesheet" type="text/css">
+
+<script language="JavaScript" type="text/javascript">
+$(document).ready(function(){
+	if ( "<%=streamboost_status%>" == "NotSupport" )
+	{
+		$("#streamboost_fxbandwidth").hide()
+		$("#streamboost_fxpriority").hide()
+	}
+	else
+	{
+		$("#qos_general").hide()
+		$("#qos_advance").hide()		
+	}
+});
+</script>
+
+</head>
+
+<body>
+<div id="menu_bg">
+
+  <div id="menu_t"><%:Applications%></div>
+  
+   <ul class=mtree>
+<% if sys_op_mode ~= "2" then%>
+   <li><a href="#"><%:parental_control%></a>
+	<ul>
+		<li><a href="<%=controller%>/expert/configuration/security/ParentalControl" target="data"><%:General%> </a></li>
+  
+		<li><a href="<%=controller%>/expert/configuration/security/ParentalControl/ParentalMonitor" target="data"><%:notification%></a></li>
+     
+     </ul>
+	 </li>
+    <li><a href="#"><%:Bandwith_MGMT%></a>
+    <ul>
+	<!-- <li><a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxnetwork" target="data"><%:Network%></a></li> -->
+	<li><a id="streamboost_fxbandwidth" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxbandwidth" target="data"><%:Bandwidth%></a></li>
+	<li><a id="streamboost_fxpriority" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxpriority" target="data"><%:Priorities%></a></li>
+	<!-- <li><a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxtopbytime" target="data"><%:Up_Time%></a></li> -->
+	<!-- <li><a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxtopbydl" target="data"><%:Byetes%></a></li> -->
+	<li><a id="qos_general" href="<%=controller%>/expert/configuration/management/qos" target="data"><%:General%></a></li>
+	<li><a id="qos_advance" href="<%=controller%>/expert/configuration/management/qos/advance" target="data"><%:Advanced%></a></li>
+    </ul>
+   </li>
+ <%end%>  
+    <li><a href="<%=controller%>/expert/configuration/management/media_sharing/dlna" target="data"><%:Media%> </a> </li>
+
+<% if sys_op_mode ~= "2" then%>
+  <li><a href="<%=controller%>/expert/configuration/management/upnp" target="data"><%:UPnP%></a></li>
+<%end%>  
+   <li><a href="#"><%:File_Sharing%> </a>
+    <ul>
+	<li><a href="<%=controller%>/expert/configuration/management/media_sharing/samba" target="data"><%:SAMBA%></a></li>
+	<li><a href="<%=controller%>/expert/configuration/management/media_sharing/ftp" target="data"><%:FTP%></a></li>
+    </ul>
+   </li>
+   <li><a href="<%=controller%>/expert/configuration/management/oneconnect" target="data"><%:oneconnect%></a></li>
+</ul>
+</div>
+
+<div id="skm_LockPane" class="LockOff"></div> 
+</body>
+<script src="<%=media%>/js/lmenu_1.js"></script>
+<script src="<%=media%>/js/lmenu_2.js"></script>
+<script src="<%=media%>/js/lmenu_3.js"></script>
+</html>

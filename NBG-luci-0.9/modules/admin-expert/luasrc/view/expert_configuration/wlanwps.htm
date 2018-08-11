@@ -1,0 +1,395 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<meta http-equiv="Pragma" content="no-cache">
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+
+<style>
+.on {display:on}
+.off {display:none}
+td {white-space: nowrap;}
+</style>
+<script language="JavaScript">
+$(document).ready(function(){
+  init();
+
+  $('#band').change(function(){
+    val = $(this).val();
+    var URL ='<%=luci.dispatcher.build_url("expert","configuration","network","wlan","wlanwps")%>?band='+val;
+    var code = 'location="' + URL + '"';
+    eval(code);
+  });
+
+  $('input:radio[name="wps_function"]').click(function(){
+    val = $(this).val();
+    if (val == 1){
+      $("#show").show();
+    }else{
+      $("#show").hide();
+    }
+  });
+
+  $('input:radio[name="pincode_function"]').click(function(){
+    val = $(this).val();
+    if (val == 1){
+      $('#Generate').attr('disabled', false);
+    }else{
+      $('#Generate').attr('disabled', true);
+    }
+  });
+
+  $('#Release').click(function(){
+    $("#countdown").html("");
+  });
+
+  countdown
+
+  var wps_btn_pin_status="<%=wps_btn_pin_status%>";
+  switch(wps_btn_pin_status){
+    case "1":
+      alert("<%:wps_pin_err%>");
+      break;
+    case "2":
+      alert("<%:wps_overlap%>");
+    break;
+    case "3":
+      alert("<%:wps_time_out%>");
+    break;
+    case "4":
+      alert("<%:wps_success%>");
+    break;
+  }
+});
+
+function init(){
+  var iface_select="<%=iface_select%>";
+  if(iface_select=="5G"){
+    $("#title_n").html("<%:wps%> 5G")
+    $('#band option[value="5G"]').attr('selected', 'selected');
+  };
+
+  var WPS_PinEnable="<%=WPS_PinEnable%>";
+  if(WPS_PinEnable=="1"){
+    $('#Generate').attr('disabled', false);
+  }else{
+    $('input:radio[name="pincode_function"][value="0"]').attr('checked', 'checked');
+  }
+
+  var ConfigStatus="<%=ConfigStatus%>";
+  html = '&nbsp;&nbsp;<input id="Release" name="Release" type="submit" value="<%:release_config%>" onclick="skm_LockScreen();" />';
+  if(ConfigStatus=="Configured"){
+    $('#config_status').html("<%:configured%>"+html);
+  }else{
+    $('#config_status').html("<%:unconfigured%>"+html);
+  }
+
+  var WPS_Enabled="<%=WPS_Enabled%>";
+  if(WPS_Enabled=="1"){
+    $("#show").show();
+  }else{
+    $('#show input').attr('disabled', true);
+    $('input:radio[name="wps_function"][value="0"]').attr('checked', 'checked');
+  }
+
+  var WPS_set="<%=WPS_set%>";
+  if(WPS_set=="NO"){
+    $('input').attr('disabled', true);
+  };
+}
+
+function CheckPINcode(s)
+{
+	var str1;
+	var str2;
+	if(s.match(/^\d{4}$/)){
+   			return true;
+   	}
+	
+	if(s.match("-")||s.match(/\s/)){
+		str1=s.substr(0,4)
+		str2=s.substr(5,4)
+		if(str1.match(/^\d{4}$/) && str2.match(/^\d{4}$/)){
+			return true;
+		}
+	}
+
+	if(s.match(/^\d{8}$/)){
+   			return true;
+   	}else{
+   			return false;
+   	}		
+}		
+	
+function WPS_PIN_add()
+{
+	
+	if(!(CheckPINcode(document.wpsstation_form.wps_pincode.value)))
+	{
+		alert("<%:wps_pin_eight%>");
+		document.forms[0].wps_pincode.focus();
+		document.forms[0].wps_pincode.select();
+		document.wpsstation_form.PinWords_invalid.value = 1;
+		return false;
+	}
+	return true;
+}
+
+function skm_unLockScreen(){
+  var load = document.getElementById("load");
+  var lock = document.getElementById("skm_LockPane");
+  var lock_left = window.parent.menu.document.getElementById("skm_LockPane");
+  var lock_right = window.parent.easy.document.getElementById("skm_LockPane");
+  var lock_top = window.parent.parent.topFrame.document.getElementById("skm_LockPane");
+  var lock_bottom = window.parent.parent.bottom.document.getElementById("skm_LockPane");
+  document.getElementsByTagName("body")[0].style.overflow = "auto"
+  ;
+  if (lock) 
+    lock.className = 'LockOff';
+
+  load.className = 'LockOff'; 
+  if (lock_left) 
+    lock_left.className = 'LockOff';
+
+  if (lock_right) 
+    lock_right.className = 'LockOff'; 		
+		
+  if (lock_top) 
+    lock_top.className = 'LockOff'; 	
+			
+  if (lock_bottom) 
+    lock_bottom.className = 'LockOff'; 	
+
+}
+
+function skm_LockScreen(){ 
+  var load = document.getElementById("load");
+  var lock = document.getElementById("skm_LockPane");
+  var lock_left = window.parent.menu.document.getElementById("skm_LockPane");
+  var lock_right = window.parent.easy.document.getElementById("skm_LockPane");
+  var lock_top = window.parent.parent.topFrame.document.getElementById("skm_LockPane");
+  var lock_bottom = window.parent.parent.bottom.document.getElementById("skm_LockPane");
+  document.getElementsByTagName("body")[0].style.overflow = "hidden";
+
+  if (lock) 
+    lock.className = 'LockOn'; 
+  load.className = 'spinner'; 
+
+  if (lock_left) 
+    lock_left.className = 'LockOn'; 
+		
+  if (lock_right) 
+    lock_right.className = 'LockOn'; 		
+	
+  if (lock_top) 
+    lock_top.className = 'LockOn'; 	
+		
+	if (lock_bottom) 
+    lock_bottom.className = 'LockOn'; 	
+}
+
+function showcount(){
+  document.getElementById("countdown").style.display = "block";
+  countdown();
+}
+	  
+function countdown(){
+	count_val=$("#countdown").html();
+  if (count_val <= 0 ){
+    return;
+  }
+  $("#countdown").html(count_val-1);
+	setTimeout("countdown()",1000);
+}
+</script>
+</head>
+
+<body onLoad="skm_unLockScreen();">
+
+<form method="post" name="wps_form" action="<%=controller%>/expert/configuration/network/wlan/wlanwps">
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:wps%> 2.4G</div></td>
+    <td>&nbsp;</td>
+
+     <td width="100" valign="top"><div class="apply"  > <input name="sysSubmit" value="<%:apply%>" type="submit" onclick="skm_LockScreen();"/></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:cancel%>" type="reset" /> </div></td>
+  </tr>
+</table>
+
+</div>
+<div id="load" class="LockOff">
+	<div id="countdown" >
+	121
+    </div>
+  <div class="spinner-container container1">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container2">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+  <div class="spinner-container container3">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
+    <div class="circle4"></div>
+  </div>
+</div>
+<div id="skm_LockPane" class="LockOff"></div>
+
+<div id="all_w">
+<div id="table">
+  <ul>
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <div class="w_text">
+            <ul>
+              <li class="title"><%:wps_setup%></li>
+              <li class="left_table" id="Band_title" ><%:Band%> :</li>
+              <li class="right_table"id="Band_switch">
+                <select id="band" name="band" size="1">
+                  <option value="24G" id="2.4G" selected="selected" >2.4GHz </option>
+                  <option value="5G" id="5G" >5GHz </option>
+                </select>
+              </li>
+              <li class="left_table"><%:wps%>  :</li>
+              <li class="right_table">
+                <input name="wps_function" type="radio" value="1" checked="checked" /><%:enable%>
+                <input name="wps_function" type="radio" value="0" /><%:disable%>
+              </li>
+            </ul>
+          </div>
+          <div id="show" style="display:none">
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><%:pin_code%>  :</li>
+                <li class="right_table">
+                  <input name="pincode_function" type="radio" value="1" checked="checked"/><%:enable%>
+                  <input name="pincode_function" type="radio" value="0" /><%:disable%>
+                </li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><%:pin_number%> : <span class="data"><%=WPS_PinNum%></span> </li>
+                <li class="right_table">
+                  <input id="Generate" name="Generate" value="<%:generate%>" type="submit" disabled="disabled"/>
+                </li>
+              </ul>
+            </div>
+            <div class="spaceair"></div>
+            <div class="w_text">
+              <ul>
+                <li class="all_table"><%:wps_push_btn%>
+                  <input name="wps_button" value="<%:push_btn%>" type="submit" onclick="skm_LockScreen();showcount();"/>
+                </li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <span class="right_table">
+                  <li class="left_table"><%:wps_pin%> :</li>
+                  <li class="right_table"><input name="wps_pincode" size="12" maxlength="12" value="" type="text" />
+                    <input name="wps_pin" value="<%:wps_pin_start%>" type="submit" onclick="skm_LockScreen();showcount();WPS_PIN_add();" />
+                  &nbsp;
+                  </li>
+                </span>
+              </ul>
+            </div>
+            <div class="spaceair"></div>
+            <div class="w_text">
+              <ul>
+                <li class="all_table"><span class="i_note"><%:note%>:</span></li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="all_table"><span class="i_note_a">1. <%:wps_note2%></span></li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="all_table"><span class="i_note_a">2. <%:wps_note3%></span></li>
+                <li class="space"></li>
+              </ul>
+            </div>
+            <div class="spaceair"></div>
+            <div class="w_text">
+              <ul>
+                <li class="title"><%:wps_status%></li>
+                <li class="left_table"><%:status%>  :</li>
+                <li class="right_table" id="config_status"></li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><%:80211_mode%>  :</li>
+                <li class="right_table"><%=RadioMode%></li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table">SSID  :</li>
+                <li class="right_table"><%=SSID%></li>
+              </ul>
+            </div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><%:security%>   :</li>
+                <li class="right_table"><%=SecureMode%></li>
+              </ul>
+            </div>
+	    <div class="spaceair"></div>
+	    <div class="w_text"><span class="i_note"><%:note%>:</span> </div>
+            <div class="w_text"><span class="i_note_a"><%:wps_note1%></span></div>
+          </ul>
+          <ul>
+            <div class="spaceair"></div>
+          </ul>
+          </div>
+      </div>
+    </li>
+  </ul>
+</div>
+</form>
+</div>
+
+</body>
+</html>

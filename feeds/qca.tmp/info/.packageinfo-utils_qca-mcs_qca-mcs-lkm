@@ -1,0 +1,46 @@
+Source-Makefile: feeds/qca/utils/qca-mcs/qca-mcs-lkm/Makefile
+Package: kmod-qca-mcs
+Submenu: Network Support
+Version: <LINUX_VERSION>-1
+Depends: 
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: QCA Multicast Snooping Support
+Maintainer: Qualcomm Atheros, Inc.
+Source: qca-mcs.tar.bz2
+Type: ipkg
+Kernel-Config: CONFIG_NETFILTER=y CONFIG_BRIDGE_NETFILTER=y
+Description:   This package installs the IGMP/MLD Snooping Module
+http://www.qca.qualcomm.com
+Qualcomm Atheros, Inc.
+@@
+Config:
+   	menu "overwrite package version"
+		depends on PACKAGE_kmod-qca-mcs
+	config qca-mcs_USE_CUSTOM_VERSION
+		depends on PACKAGE_kmod-qca-mcs
+		bool "Use custom package version"
+		default n
+
+	config qca-mcs_CUSTOM_VERSION
+		depends on qca-mcs_USE_CUSTOM_VERSION
+		string "qca-mcs version as string (default version: )"
+		default ""
+
+	endmenu
+   	menu "custom source directory"
+		depends on PACKAGE_kmod-qca-mcs
+	config qca-mcs_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_kmod-qca-mcs
+		bool "Use custom source directory"
+		default n
+	config qca-mcs_CUSTOM_SOURCE_DIR
+		depends on qca-mcs_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+@@
+
+

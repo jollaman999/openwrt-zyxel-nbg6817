@@ -1,0 +1,86 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local sys = require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev
+
+local release_year = uci:get("system","main","release_year")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="<%=media%>/css/easy123_base.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_skeleton.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_layout.css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+
+<title><%:easy123_setup_g4_error_title2%></title>
+</head>
+
+<body>
+<div class="logo">
+  <div class="red2"><h5t><img width="100" height="40" src="<%=media%>/images/easy123_logo.png"></img><%:easy123_title_1%></h5t></div>
+</div>
+<div class="container">
+  <div class="sixteen columns">
+    <div align="center"><h2><%:easy123_setup_g4_error6%> !</h2><hr></div>
+    <div align="center">
+      <img src="<%=media%>/images/easy123_callhelp.jpg" width="36%">
+      <br>
+      <br>
+      <h4><%:easy123_setup_g4_error7%></h4>
+      <p><%:easy123_setup_g4_error8%>:</p>
+    </div>
+  </div>
+  <div class="two columns">&nbsp;</div>
+  <div class="twelve columns">
+    <p>1. <%:easy123_setup_g4_error9%>
+    <br>
+    2. <%:easy123_setup_g4_error10%>
+    <br>
+    3. <%:easy123_setup_g4_error11%></p>
+  
+    <div class="two columns">&nbsp;</div>
+    <div class="sixteen columns">&nbsp;</div>
+
+    <div class="row">
+      <div align="center">
+        <form action="<%=controller%>/easy/eaZy123" style="display: inline;">
+          <input type="submit" value="<%:easy123_setup_g4_error4%>" />
+        </form>
+        &nbsp;&nbsp;&nbsp;
+        <form action="<%=controller%>/easy/eaZy123/genie4_1" style="display: inline;">
+          <input type="submit" value="<%:easy123_setup_g4_error5%>" />
+        </form>
+      </div>
+    </div>
+    <hr>
+    <div align="center"><p class="footer"><%:easy123_zyxel%><%=release_year%></p></div>
+  </div>
+</div>
+</body>
+</html>

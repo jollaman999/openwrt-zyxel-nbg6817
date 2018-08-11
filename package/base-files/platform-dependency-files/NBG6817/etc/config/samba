@@ -1,0 +1,57 @@
+## 0:disable    1:enable
+config  'samba'      'general'
+                option  'enable'                '1'
+                option  'easymode'              '1'
+                option  'name'                  'NBG6817'
+                option  'workgroup'             'WORKGROUP'
+                option  'description'           'Samba on NBG6817'
+                option  'charset'               'UTF-8'
+
+config  'smabausb'   'usb1'
+                option  'name'  ''
+                option  'path'  ''
+
+config  'smabausb'   'usb2'
+                option  'name'  ''
+                option  'path'  ''
+
+## 0:none       1:read  2:read/write
+config  'sambauser'  'user1'
+                option enable 0
+                option name ""
+                option passwd ""
+                option sum ""
+                option  'usb1'  '0'
+                option  'usb2'  '0'
+
+config  'sambauser'  'user2'
+                option enable 0
+                option name ""
+                option passwd ""
+                option sum ""
+                option  'usb1'  '0'
+                option  'usb2'  '0'
+
+config  'sambauser'  'user3'
+                option enable 0
+                option name ""
+                option passwd ""
+                option sum ""
+                option  'usb1'  '0'
+                option  'usb2'  '0'
+
+config  'sambauser'  'user4'
+                option enable 0
+                option name ""
+                option passwd ""
+                option sum ""
+                option  'usb1'  '0'
+                option  'usb2'  '0'
+
+config  'sambauser'  'user5'
+                option enable 0
+                option name ""
+                option passwd ""
+                option sum ""
+                option  'usb1'  '0'
+                option  'usb2'  '0'

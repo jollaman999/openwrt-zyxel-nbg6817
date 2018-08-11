@@ -1,0 +1,70 @@
+#!/bin/sh
+
+stop(){
+	for i in 1 2 3
+	do
+		path="/var/run/dnsmasq_guest_lan""$i"".pid"
+		if [ -f $path ];then
+			chk_ath=$(uci get wireless.ath"$i".disabled)
+			chk_ath5g=$(uci get wireless.ath1"$i".disabled)
+			if [ $chk_ath == "1" ] && [ $chk_ath5g == "1" ]; then
+				dnsmasq_pid=$(cat $path)
+				kill $dnsmasq_pid
+				rm $path
+			fi
+		fi
+	done
+}
+
+start(){
+	dev="$2"
+	ipaddr="$3"
+	ipmask="$4"
+
+	dnsmasq_pid=$(ps | grep "dnsmasq -C /tmp/dnsmasq_guest_lan$dev.conf" | grep -v "grep" | awk '{print $1}')
+	if [ -z $dnsmasq_pid ];then
+		local start="10"
+		local end="32"
+		local leasetime="720m"
+		eval "$(ipcalc.sh $ipaddr $ipmask $start $end)"
+		local args="-C /tmp/dnsmasq_guest_lan$dev.conf -z -a $ipaddr -K -F $START,$END,$NETMASK,$leasetime"
+		dnsmasq $args
+		dnsmasq_pid=$(ps | grep "dnsmasq -C /tmp/dnsmasq_guest_lan$dev.conf" | grep -v "grep" | awk '{print $1}')
+		echo $dnsmasq_pid > /var/run/dnsmasq_guest_lan"$dev".pid
+	fi
+}
+
+restart(){
+	for i in 1 2 3
+	do
+		##dnsmasq down
+		path="/var/run/dnsmasq_guest_lan$i.pid"
+		if [ -f $path ];then
+			dnsmasq_pid=$(cat $path)
+			kill $dnsmasq_pid
+			rm $path
+		fi
+
+		##dnsmasq up
+		chk_ath=$(uci get wireless.ath$i.disabled)
+		chk_ath5g=$(uci get wireless.ath1$i.disabled)
+		ipaddr=$(uci get wireless.ath$i.guest_ip)
+		ipmask=$(uci get wireless.ath$i.guest_ip_mask)
+
+		if [ $chk_ath == "0" ] || [ $chk_ath5g == "0" ]; then
+			start "START" $i $ipaddr $ipmask
+		fi
+	done
+}
+
+case "$1" in
+	STOP)
+		stop
+	;;
+	START)
+		start "$@"
+	;;
+	RESTART)
+		restart
+	;;
+esac

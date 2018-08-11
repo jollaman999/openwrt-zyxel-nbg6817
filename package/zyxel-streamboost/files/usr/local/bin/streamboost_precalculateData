@@ -1,0 +1,26 @@
+#!/bin/sh
+
+##
+
+local redis_server_pid
+system_date=$(date)
+
+streamboost_enable=$(uci get appflow.tccontroller.enable_streamboost)
+
+if [ "$streamboost_enable" == "1"  ] ;then
+
+	# check redis-server daemon
+	redis_server_pid=$(ps | grep "/usr/bin/redis-server" | grep "grep" -v | awk '{print $1}')
+
+	if [ "$redis_server_pid" != "" ] ;then
+
+		/bin/dump_flow_precalculateFlow "$(date +%s)" 1 500 1 0
+
+		quotaLeft=$(redis-cli -s /var/run/appflow/redis.sock --eval /bin/precalculateFlow.lua usageAlert logCalculation "$(date +%s)" "$(date +%z)")
+
+		if [ "$quotaLeft" != "-1" ] && [ "$quotaLeft" != "" ] && [ "${quotaLeft:0:1}" != "E" ] ;then
+			/bin/usagealert_sendmail.sh $quotaLeft
+		fi
+	fi
+
+fi

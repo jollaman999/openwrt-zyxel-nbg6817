@@ -1,0 +1,23 @@
+#!/bin/sh
+
+##check mode,if AP/UR,exit
+local sys_mode=$(get_sys_mode)
+[ "$sys_mode" == "2" -o "$sys_mode" == "3" ] && exit 0
+
+. /etc/functions.sh
+include /lib/config
+
+dhcpEnable=$(uci_get dhcp lan enabled)
+
+[ "$dhcpEnable" == "1" ]&&[ "$ACTION" == "ifup" ]&&[ "$INTERFACE" == "lan" ]&&[ "$PROTO" == "static" ]&&{
+	/etc/init.d/dnsmasq stop
+
+	ipaddr=$(uci_get network lan ipaddr)    
+        hostname=$(uci_get system main hostname)
+	echo $ipaddr $hostname > /etc/hosts 
+	echo $ipaddr myrouter >> /etc/hosts
+	echo 127.0.0.1 localhost >> /etc/hosts
+
+	/sbin/update_lan_dns
+	/etc/init.d/dnsmasq start
+}

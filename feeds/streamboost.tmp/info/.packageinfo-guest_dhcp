@@ -1,0 +1,18 @@
+Source-Makefile: feeds/streamboost/guest_dhcp/Makefile
+Package: guest_dhcp
+Submenu: Utilities
+Version: 1-1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +dnsmasq +iptables-mod-extra +iptables-mod-rawnat +iptables-mod-nat-extra
+Menu-Depends: 
+Provides: 
+Section: base
+Category: Bigfoot
+Title: Guest Network support for dnsmasq
+Maintainer: Cristian Prundeanu <prundeanu@qca.qualcomm.com>
+Source: 
+Type: ipkg
+Description: Guest Network support for dnsmasq
+Cristian Prundeanu <prundeanu@qca.qualcomm.com>
+@@
+
+

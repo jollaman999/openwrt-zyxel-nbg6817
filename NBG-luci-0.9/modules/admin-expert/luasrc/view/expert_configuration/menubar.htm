@@ -1,0 +1,124 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+local load1, load5, load15 = luci.sys.loadavg()
+local request  = require("luci.dispatcher").context.path
+local category = request[1]
+local tree     = luci.dispatcher.node()
+local cattree  = category and luci.dispatcher.node(category)
+local node     = luci.dispatcher.context.dispatched
+local hostname = luci.sys.hostname()
+
+local c = tree
+for i,r in ipairs(request) do
+	if c.nodes and c.nodes[r] then
+		c = c.nodes[r]
+		c._menu_selected = true
+	end
+end
+
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+    <title>Lava Lamp Menu Demo</title>
+	<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+    <link rel="stylesheet" href="<%=media%>/css/menubar.css" type="text/css" media="screen">
+    <script type="text/javascript" src="<%=media%>/js/jquery-1.2.3.min.js"></script>
+    <script type="text/javascript" src="<%=media%>/js/jquery.easing.min.js"></script>
+    <script type="text/javascript" src="<%=media%>/js/jquery.lavalamp.min.js"></script>
+<script type="text/javascript">
+$(function() {
+	    $("#1, #2, #3").lavaLamp({
+		fx: "backout",
+		speed: 288,
+
+	    });
+	});
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+    </script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<body onLoad="MM_preloadImages('<%=media%>/img/mb_st3.png','<%=media%>/img/mb_wan3.png','<%=media%>/img/mb_wl3.png','<%=media%>/img/mb_lan3.png','<%=media%>/img/mb_ap3.png','<%=media%>/img/mb_se3.png','<%=media%>/img/mb_ma3.png')" >
+
+<div id="memubar_t_bg">
+<ul class="memubar" id="1">
+
+    <li ><a href="<%=controller%>/expert/status" target="mainFrame" onMouseDown="MM_swapImage('bt1','','<%=media%>/img/mb_st3.png',1)" onMouseOver="MM_swapImage('bt1','','<%=media%>/img/mb_st3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_st1.png" name="bt1" width="26" height="17" border="0" align="middle" valign="middle"><%:status%></a> </li>
+<% if sys_op_mode == "2" then%>
+    <li class="disabled"><a >
+    <img src="<%=media%>/img/mb_wan1.png" alt="" name="bt2" width="26" height="17" border="0" align="middle" id="Image1" valign="middle"><%:WAN%></a></li>
+<%else%>
+	<li ><a href="<%=controller%>/expert/configuration/network/wan" target="mainFrame" onMouseDown="MM_swapImage('bt2','','<%=media%>/img/mb_wan3.png',1)" onMouseOver="MM_swapImage('bt2','','<%=media%>/img/mb_wan3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_wan1.png" alt="" name="bt2" width="26" height="17" border="0" align="middle" id="Image1" valign="middle"><%:WAN%></a></li>
+
+<%end%>
+    <li ><a href="<%=controller%>/expert/configuration/network/wireless" target="mainFrame" onMouseDown="MM_swapImage('bt3','','<%=media%>/img/mb_wl3.png',1)" onMouseOver="MM_swapImage('bt3','','<%=media%>/img/mb_wl3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_wl1.png" alt="" name="bt3" width="26" height="17" border="0" align="middle" id="bt3" valign="middle"><%:net_map_wireless%></a></li>
+
+    <li ><a href="<%=controller%>/expert/configuration/network/lan" target="mainFrame" onMouseDown="MM_swapImage('bt4','','<%=media%>/img/mb_lan3.png',1)" onMouseOver="MM_swapImage('bt4','','<%=media%>/img/mb_lan3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_lan1.png" alt="" name="bt4" width="26" height="17" border="0" align="middle" id="bt4" valign="middle"><%:LAN%></a></li>
+
+	<li ><a href="<%=controller%>/expert/configuration/security/applications" target="mainFrame" onMouseDown="MM_swapImage('bt5','','<%=media%>/img/mb_ap3.png',1)" onMouseOver="MM_swapImage('bt5','','<%=media%>/img/mb_ap3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_ap1.png" alt="" name="bt5" width="26" height="17" border="0" align="middle" id="bt5" valign="middle"><%:Applications%></a></li>
+
+<% if sys_op_mode == "2" then%>
+
+    <li class="disabled"><a >
+    <img src="<%=media%>/img/mb_se1.png" alt="" name="bt6" width="26" height="17" border="0" align="middle" id="bt6" valign="middle"><%:Security%></a></li>
+<%else%>
+
+	<li ><a href="<%=controller%>/expert/configuration/security" target="mainFrame" onMouseDown="MM_swapImage('bt6','','<%=media%>/img/mb_se3.png',1)" onMouseOver="MM_swapImage('bt6','','<%=media%>/img/mb_se3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_se1.png" alt="" name="bt6" width="26" height="17" border="0" align="middle" id="bt6" valign="middle"><%:Security%></a></li>
+<%end%>
+
+
+    <li ><a href="<%=controller%>/expert/maintenance/maintenance" target="mainFrame"onMouseDown="MM_swapImage('bt7','','<%=media%>/img/mb_ma3.png',1)" onMouseOver="MM_swapImage('bt7','','<%=media%>/img/mb_ma3.png',1)" onMouseOut="MM_swapImgRestore()">
+    <img src="<%=media%>/img/mb_ma1.png" alt="" name="bt7" width="26" height="17" border="0" align="middle" id="bt7" valign="middle"><%:Maintenance%></a></li>
+
+</ul>
+ </div>
+ <div id="skm_LockPane" class="LockOff" ></div>
+</body></html>

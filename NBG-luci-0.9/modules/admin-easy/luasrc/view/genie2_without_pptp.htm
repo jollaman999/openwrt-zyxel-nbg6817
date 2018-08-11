@@ -1,0 +1,432 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev
+
+local release_year = uci:get("system","main","release_year")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="<%=media%>/css/easy123_base.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_skeleton.css" />
+<link rel="stylesheet" href="<%=media%>/css/easy123_layout.css" />
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+
+<title><%:easy123_title_3%></title>
+<!-- Show and hide 5G wireless javascript part for line 119 -->
+<script type="text/javascript">
+<!-- Show and hide WAN connection type -->
+$(document).ready(function(){
+  $('input[type="radio"]').click(function() {
+    if($(this).attr('id') == 'watch-me') {
+      $('#show-me').show();
+      $("#pptpRadio").val("static");
+      $('#pptpIP').prop('required',true);
+      $('#pptpSUBNET').prop('required',true);
+//      $('#pptpGATEWAY').prop('required',true);
+    }
+    else {
+      $('#show-me').hide();
+      $("#pptpRadio").val("dhcp");
+      $('#pptpIP').prop('required',false);
+      $('#pptpSUBNET').prop('required',false);
+//      $('#pptpGATEWAY').prop('required',false);
+    }
+  });
+
+  $('#wifiSSID5G').prop('required',false);
+  $('#wifiPASSWORD5G').prop('required',false);
+  select_change();
+
+  $('#wifiSSID').bind('input', function () {
+    $('#wifiSSID5G').val($('#wifiSSID').val()+".speed");
+  });
+
+  $('#wifiPASSWORD').bind('input', function () {
+    $('#wifiPASSWORD5G').val($('#wifiPASSWORD').val());
+  });
+
+  $('#wifiPASSWORD').click(function(){
+    this.type = 'text';
+  });
+
+  $('#wifiPASSWORD').blur(function() {
+    this.type = 'password';
+  });
+
+  $('#wifiPASSWORD5G').click(function(){
+    this.type = 'text';
+  });
+
+  $('#wifiPASSWORD5G').blur(function() {
+    this.type = 'password';
+  });
+
+	if ( "<%=pptp_status%>" == "NotSupport" ){
+		$("#PPTP").hide()
+	}
+});
+
+function showMe (box) {
+    var chboxs = document.getElementsByName("5gedit");
+    $("#checkboxG4").val("both");
+    var vis = "none";
+    for(var i=0;i<chboxs.length;i++) {
+        if(chboxs[i].checked){
+          $("#checkboxG4").val("NOboth");
+          vis = "block";
+          break;
+        }
+    }
+    document.getElementById(box).style.display = vis;
+
+    if( vis == "block" ){
+      $('#wifiSSID5G').prop('required',true);
+      $('#wifiPASSWORD5G').prop('required',true);
+    }
+    else{
+      $('#wifiSSID5G').prop('required',false);
+      $('#wifiPASSWORD5G').prop('required',false);
+    }
+}
+
+function init(){
+  var proto = "<%=proto_select%>";
+  $("select").val(proto);
+  select_change();
+
+  var SSID = "<%=SSID%>";
+  var pwd = "<%=pwd%>";
+  var SSID_len = SSID.length;
+  if(SSID_len > 26){
+    SSID = SSID.substr(0,26);
+  }
+  $("#wifiSSID").val(SSID);
+  $("#wifiSSID5G").val(SSID+".speed");
+  $("#wifiPASSWORD").val(pwd);
+  $("#wifiPASSWORD5G").val(pwd);
+}
+
+function select_change(){
+$("select").change(function(){
+  $( "select option:selected").each(function(){
+    $('#pppoeUSER').prop('required',false);
+    $('#pppoePASSWORD').prop('required',false);
+    $('#staticIP').prop('required',false);
+    $('#staticSUBNET').prop('required',false);
+    $('#staticDNS').prop('required',false);
+    $('#pptpUSER').prop('required',false);
+    $('#pptpPASSWORD').prop('required',false);
+    $('#pptpServerIP').prop('required',false);
+
+
+    if($(this).attr("value")=="pppoe"){
+      $('#pppoeUSER').prop('required',true);
+      $('#pppoePASSWORD').prop('required',true);
+      $(".box").hide();
+      $(".pppoe").show();
+    }
+    if($(this).attr("value")=="pptp"){
+      $('#pptpUSER').prop('required',true);
+      $('#pptpPASSWORD').prop('required',true);
+      $('#pptpServerIP').prop('required',true);
+      $(".box").hide();
+      $(".pptp").show();
+    }
+    if($(this).attr("value")=="static"){
+      $('#staticIP').prop('required',true);
+      $('#staticSUBNET').prop('required',true);
+      $('#staticDNS').prop('required',true);
+      $(".box").hide();
+      $(".static").show();
+    }
+    if($(this).attr("value")=="dhcp"){
+      $(".box").hide();
+      $(".dhcp").show();
+    }
+  });
+}).change();
+}
+
+function checkAll(){
+  if (checkInternetSetting() == false){
+    return false;
+  }
+  if (checkWiFiSetting() == false){
+    return false;
+  }
+}
+
+function checkWiFiSetting(){
+  var wifiSSID = $('#wifiSSID').val();
+  var wifiPASSWORD = $('#wifiPASSWORD').val();
+  var Injection_alert="<%:Injection_alert%>";
+  if(checkString(wifiSSID) == false){
+      alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+      return false;
+  }
+  if(checklen(wifiPASSWORD) == false){
+      alert('<%:easy123_setup_error2%>');
+      return false;
+  }
+
+  var chk5G = $("#checkboxG4").val();
+  if(chk5G == "NOboth"){
+    var wifiSSID5G = $('#wifiSSID5G').val();
+    var wifiPASSWORD5G = $('#wifiPASSWORD5G').val();
+    if(checkString(wifiSSID5G) == false){
+      alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+      return false;
+    }
+   if(checklen(wifiPASSWORD5G) == false){
+      alert('<%:easy123_setup_error2%>');
+      return false;
+   }
+  }
+  return true;
+}
+
+function checkInternetSetting(){
+  var proto_type = $("select option:selected").attr("value");
+  if(proto_type=="pppoe"){
+    var pppoeIP = $("#pppoeIP").val();
+    if (pppoeIP != ''){
+      if(checkIP(pppoeIP) == false){
+        alert("<%:easy123_setup_error3%>");
+        return false;
+      }
+    }
+  }else if(proto_type=="pptp"){
+    var pptpRadio = $("#pptpRadio").val();
+    var pptpServerIP = $("#pptpServerIP").val();
+    var pptpIP = $("#pptpIP").val();
+    var pptpSUBNET = $("#pptpSUBNET").val();
+    var pptpGATEWAY = $("#pptpGATEWAY").val();
+    if(checkIP(pptpServerIP) == false){
+      alert("<%:easy123_setup_error3%>");
+      return false;
+    }
+    if(proto_type=="static"){
+      if(checkIP(pptpIP) == false){
+        alert("<%:easy123_setup_error3%>");
+        return false;
+      }
+      if(checkSubnetmask(pptpSUBNET) == false){
+        alert("<%:easy123_setup_error4%>");
+        return false;
+      }
+      if(checkIP(pptpGATEWAY) == false){
+        alert("<%:easy123_setup_error5%>");
+        return false;
+      }
+    }
+
+  }else if(proto_type=="static"){
+    var staticIP = $("#staticIP").val();
+    var staticSUBNET = $("#staticSUBNET").val();
+    var staticGATEWAY = $("#staticGATEWAY").val();
+    var staticDNS = $("#staticDNS").val();
+    if(checkIP(staticIP) == false){
+      alert("<%:easy123_setup_error3%>");
+      return false;
+    }
+    if(checkSubnetmask(staticSUBNET) == false){
+      alert("<%:easy123_setup_error4%>");
+      return false;
+    }
+    if (staticGATEWAY){
+      if(checkIP(staticGATEWAY) == false){
+        alert("<%:easy123_setup_error5%>");
+        return false;
+      }
+    }
+    if(checkIP(staticDNS) == false){
+      alert("<%:easy123_setup_error6%>");
+      return false;
+    }
+
+  }
+  return true;
+}
+
+function checkIP(val){
+  return /^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$/.test(val);
+}
+
+function checkSubnetmask(val){
+  return /^255\.255\.255\.(255|252|248|240|224|192|128|0)|255\.255\.(254|252|248|240|224|192|128|0)\.0|255\.(254|252|248|240|224|192|128|0)\.0\.0|(254|252|248|240|224|192|128)\.0\.0\.0$/.test(val);
+}
+
+function checkString(val){
+  var len = val.length;
+  for (var i=0; i<len; i++) {
+      if ( val.charAt(i) == '"' || val.charAt(i) == "'" || val.charAt(i) == '`' || val.charAt(i) == '<' || val.charAt(i) == '>' || val.charAt(i) == '^' || val.charAt(i) == '$'){
+        return false;
+    }
+  }
+  return true;
+}
+
+function checklen(val){
+  var len = val.length;
+  if( len < 8 || len > 64 ){
+    return false;
+  }
+  if ( len == 64 ){
+    re=/^[a-fA-F0-9]{64}$/;
+    if (re.test(val))
+      return true;
+    else
+      return false;
+  }
+  return true;
+}
+
+</script>
+</head>
+
+<body onLoad="init();">
+<div class="logo">
+    <div class="red2"><h5t><img width="100" height="40" src="<%=media%>/images/easy123_logo.png"></img><%:easy123_title_1%></h5t></div>
+</div>
+
+<form method="post" action="<%=controller%>/easy/eaZy123/genie3" onSubmit="return checkAll();">
+  <div class="containerpad">
+    <div class="container">
+
+      <div class="sixteen columns">
+        <div style="text-align: right;">[ <a href="<%=controller%>/easy/networkmap"><%:easy123_skip_set%></a> ]</div>
+        <div align="center"><h2><%:easy123_title_3%></h2><hr></div>
+      </div>
+
+      <div class="five columns">
+        <div class="red2"><h4><img width="38" height="40" src="<%=media%>/images/easy123_icon_1.png">&nbsp;&nbsp;</img><%:easy123_setup_1%></h4></div>
+        <label><%:easy123_setup_2%></label>
+        <div class="selection">
+          <select name="connectionType">
+            <option value="dhcp"><%:easy123_setup_dhcp%></option>
+            <option value="pppoe">PPPoE</option>
+            <!-- <option value="pptp" id="PPTP">PPTP</option> -->
+            <option value="static"><%:easy123_setup_static%></option>
+          </select>
+
+          <div class="dhcp box">
+            <p><%:easy123_setup_dhcp1%></p>
+          </div>
+
+          <div class="pppoe box">
+            <label for="regularInput"><%:easy123_setup_pppoe1%>:</label>
+            <input name="pppoeUSER" id="pppoeUSER" type="text" placeholder="yourname@isp.com">
+            <label for="regularInput"><%:easy123_setup_pppoe2%>:</label>
+            <input name="pppoePASSWORD" id="pppoePASSWORD" type="password" placeholder="yourisp-password">
+            <label for="regularInput"><%:easy123_setup_pppoe3%>:</label>
+            <input name="pppoeIP" id="pppoeIP" type="text" placeholder="123.123.123.123"/>
+            <p><%:easy123_setup_pppoe4%></p>
+          </div>
+
+          <div class="static box">
+            <span class="wrap"><%:easy123_setup_static1%>:</span>
+            <input type="text" name="staticIP" id="staticIP" placeholder="123.123.123.123">
+            <span class="wrap"><%:easy123_setup_static2%>: </span>
+            <input type="text" name="staticSUBNET" id="staticSUBNET" placeholder="255.255.255.0">
+            <span class="wrap"><%:easy123_setup_static3%>: </span>
+            <input type="text" name="staticGATEWAY" id="staticGATEWAY" placeholder="8.8.8.8">
+            <span class="wrap"><%:DNS_Server%>: </span>
+            <input type="text" name="staticDNS" id="staticDNS" placeholder="8.8.8.8">
+
+            <p><%:easy123_setup_static4%></p>
+          </div>
+
+          <div class="pptp box">
+            <input id='pptpRadio' name='pptpRadio' value="dhcp" type='radio' checked><%:easy123_setup_pptp1%><br />
+            <input id='watch-me' name='pptpRadio' type='radio' /><%:easy123_setup_pptp2%><br />
+            <br />
+            <label for="regularInput"><%:easy123_setup_pptp3%>:</label>
+            <input name="pptpUSER" id="pptpUSER" type="text" placeholder="yourname@isp.com"/>
+            <label for="regularInput"><%:easy123_setup_pptp4%>:</label>
+            <input name="pptpPASSWORD" id="pptpPASSWORD" type="password" placeholder="yourisp-password"/>
+            <label for="regularInput"><%:easy123_setup_pptp5%>:</label>
+            <input name="pptpServerIP" id="pptpServerIP" type="text" placeholder="123.123.123.123"/>
+            <div id='show-me' style='display:none'>
+              <label for="regularInput"><%:easy123_setup_pptp6%>:</label>
+              <input name="pptpIP" id="pptpIP" type="text" placeholder="123.123.123.123"/>
+              <label for="regularInput"><%:easy123_setup_pptp7%>:</label>
+              <input name="pptpSUBNET" id="pptpSUBNET" type="text" placeholder="255.255.255.0"/>
+              <label for="regularInput"><%:easy123_setup_pptp8%>:</label>
+              <input name="pptpGATEWAY" id="pptpGATEWAY" type="text" placeholder="123.123.123.123"/>
+            </div>
+
+            <p><%:easy123_setup_pptp9%></p>
+          </div>
+        </div>
+      </div>
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- Spacer -->
+      <div class="one column">&nbsp;</div>
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- Wireless Section -->
+      <div class="five columns">
+        <div class="red2"><h4><img width="38" height="40" src="<%=media%>/images/easy123_icon_2.png">&nbsp;&nbsp;</img><%:easy123_setup_wifi1%></h4></div>
+        <label for="regularInput"><%:easy123_setup_wifi2%>:</label>
+        <input name="wifiSSID" id="wifiSSID" type="text" maxlength="26" placeholder="<%:easy123_setup_wifi3%>" required/>
+        <label for="regularInput"><%:easy123_setup_wifi4%>:</label>
+        <input name="wifiPASSWORD" id="wifiPASSWORD" type="password" maxlength="64" placeholder="<%:easy123_setup_wifi5%>" required/>
+        <input id="checkboxG4" class="css-checkbox" type="checkbox" name="5gedit" value="both" onClick="showMe('div5g')"></input><label class="css-label" style="font-size: 12px;" for="checkboxG4"><%:easy123_setup_wifi6%></label>
+        <br>
+        <br>
+        <div id="div5g" style="display:none">
+          <label for="regularInput"><%:easy123_setup_wifi7%>:</label>
+          <input name="wifiSSID5G" id="wifiSSID5G" type="text" maxlength="32" placeholder="<%:easy123_setup_wifi8%>"required/>
+          <label for="regularInput"><%:easy123_setup_wifi9%>:</label>
+          <input name="wifiPASSWORD5G" id="wifiPASSWORD5G" type="password" maxlength="64" placeholder="<%:easy123_setup_wifi10%>" required/>
+        </div>
+        <p style="font-size: 75%"><%:easy123_setup_wifi11%></p>
+      </div>
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- Spacer -->
+      <div class="one column">&nbsp;</div>
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- Apply Section -->
+      <div class="four columns">
+        <div class="red2"><h4><img width="38" height="40" src="<%=media%>/images/easy123_icon_3.png">&nbsp;&nbsp;</img><%:easy123_setup_apply1%></h4></div>
+        <div align="center">
+            <input name="apply" type="submit" value="<%:easy123_setup_apply2%>" />
+        </div>
+        <br>
+        <div class="red2"><h66><img width="24" height="24" src="<%=media%>/images/easy123_icon_warning.png">&nbsp;&nbsp;</img><%:easy123_setup_apply3%>!</h66></div>
+        <div class="ptop"><p><%:easy123_setup_apply4%></p></div>
+        <div align="center"><img src="<%=media%>/images/easy123_writedown.png" width="80%"></div>
+      </div>
+
+      <div class="sixteen columns">
+        <hr>
+        <div align="center"><p class="footer"><%:easy123_zyxel%><%=release_year%></p></div>
+      </div>
+  </div>
+</form>
+</body>
+</html>

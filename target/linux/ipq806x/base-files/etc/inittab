@@ -1,0 +1,6 @@
+# Copyright (c) 2013 The Linux Foundation. All rights reserved.
+::sysinit:/etc/init.d/rcS S boot
+::shutdown:/etc/init.d/rcS K shutdown
+#ttyHSL1::askfirst:/bin/ash --login
+tty1::askfirst:/bin/ash --login
+ttyHSL1::askfirst:/sbin/getty -L ttyHSL1 115200 vt100

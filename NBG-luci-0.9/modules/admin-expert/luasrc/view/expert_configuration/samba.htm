@@ -1,0 +1,522 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
+<head>
+<title>.::<%:welcome_to_nbg6716%>::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data_allw_empty.css" rel="stylesheet" type="text/css" />
+
+<style>
+td {white-space: nowrap;}
+</style>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta http-equiv="Pragma" content="no-cache">
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript" type="text/javascript">
+
+function USBStrValue()
+{
+
+	var USB1Type = "<%= uci:get("system","general","usb1_types")%>";
+	var USB2Type = "<%= uci:get("system","general","usb2_types")%>";
+
+	if( USB1Type == 0 ){
+		document.SambaSetup.usb1_value.value = 0;
+		document.SambaSetup.usb1_types.options.selectedIndex = 0;
+	}else{
+		document.SambaSetup.usb1_value.value = 1;
+		document.SambaSetup.usb1_types.options.selectedIndex = 1;
+	}
+
+	if( USB2Type == 0 ){
+		document.SambaSetup.usb2_value.value = 0;
+		document.SambaSetup.usb2_types.options.selectedIndex = 0;
+	}else{
+		document.SambaSetup.usb2_value.value = 1;
+		document.SambaSetup.usb2_types.options.selectedIndex = 1;
+	}
+
+}
+
+
+function USB1Change(index){
+ if(index==0){
+ 		document.SambaSetup.usb1_value.value= 0;
+ }else{
+		document.SambaSetup.usb1_value.value=document.SambaSetup.usb1_types.options[index].value;
+	}
+}
+
+function USB2Change(index){
+ if(index==0){
+ 		document.SambaSetup.usb2_value.value= 0;
+ }else{
+		document.SambaSetup.usb2_value.value=document.SambaSetup.usb2_types.options[index].value;
+	}
+}
+
+function atoi(str, num)
+{
+	i = 1;
+	if (num != 1) {
+		while (i != num && str.length != 0) {
+			if (str.charAt(0) == '.') {
+				i++;
+			}
+			str = str.substring(1);
+		}
+		if (i != num)
+			return -1;
+	}
+	for (i=0; i<str.length; i++) {
+		if (str.charAt(i) == '.') {
+			str = str.substring(0, i);
+			break;
+		}
+	}
+	if (str.length == 0)
+		return -1;
+	return parseInt(str, 10);
+}
+
+function isAllNum(str)
+{
+	for (var i=0; i<str.length; i++) {
+		if ((str.charAt(i) >= '0' && str.charAt(i) <= '9') || (str.charAt(i) == '.' ))
+			continue;
+		return 0;
+	}
+	return 1;
+}
+
+function enableSAMBA(){
+
+	if(document.getElementsByName("sambaEnable")[0].checked == true )
+	{
+		document.SambaSetup.sambaName.disabled = false;
+		document.SambaSetup.sambaWorkgroup.disabled = false;
+		document.SambaSetup.sambaDescription.disabled = false;
+	}
+	else
+	{
+		document.SambaSetup.sambaName.disabled = true;
+		document.SambaSetup.sambaWorkgroup.disabled = true;
+		document.SambaSetup.sambaDescription.disabled = true;
+	}
+}
+
+function checkInjection(str)
+{
+	var len = str.length;
+	for (var i=0; i<str.length; i++) {
+		if ( str.charAt(i) == '`' || str.charAt(i) == '-' ||
+			 str.charAt(i) == '<' || str.charAt(i) == '>' ||
+			 str.charAt(i) == ' ' || str.charAt(i) == '&' ||
+			 str.charAt(i) == '@'){
+				return false;
+		}else
+			continue;
+	}
+	return true;
+}
+
+function checkInjectionWithoutSpace(str)
+{
+	var len = str.length;
+	for (var i=0; i<str.length; i++) {
+		if ( str.charAt(i) == '`' || str.charAt(i) == '-' ||
+			 str.charAt(i) == '<' || str.charAt(i) == '>' ||
+			 str.charAt(i) == '&' || str.charAt(i) == '@'){
+				return false;
+		}else
+			continue;
+	}
+	return true;
+}
+
+function btnApply()
+{
+	var i,j;
+
+	var usb1Type = "";
+	var usb2Type = "";
+	var userEnable = "";
+	var userName = "";
+	var userNameCheck = "";
+	var userNameCheck1 = "";
+	var userNameCheck2 = "";
+	var alluserNameUSB1 = "";
+	var alluserNameUSB2 = "";
+	var userPasswd = "";
+	var userUSB1 = "";
+	var userUSB2 = "";
+
+	with ( document.forms[0] ){
+
+		if(sambaEnable.value == 1){
+			document.SambaSetup.sambaEnable.value=1;
+			if (document.SambaSetup.sambaName.value == "")
+			{
+				alert("<%:SAMBA_text1%>");
+				return false;
+			}
+			if (document.SambaSetup.sambaWorkgroup.value == "")
+			{
+				alert("<%:SAMBA_text2%>");
+				return false;
+			}
+			if(!(checkInjectionWithoutSpace(document.SambaSetup.sambaName.value)))
+			{
+				alert("<%:Injection_alert%> ` - > < & @");
+				return false;
+			}
+			if(!(checkInjectionWithoutSpace(document.SambaSetup.sambaWorkgroup.value)))
+			{
+				alert("<%:Injection_alert%> ` - > < & @");
+				return false;
+			}
+			if(!(checkInjectionWithoutSpace(document.SambaSetup.sambaDescription.value)))
+			{
+				alert("<%:Injection_alert%> ` - > < & @");
+				return false;
+			}
+		}
+
+		/* for user-defined cfg */
+		for (i=1;i<=5;i++){
+
+			sambaMode = $('input[name=mode]:checked').val();
+			userNameCheck1 = document.getElementById("userName" + i).value;
+			userNamePasswd = document.getElementById("userPasswd" + i).value;
+			userNameEnable = document.getElementById("userEnable" + i).checked;
+			if (sambaMode == "0"){
+				if (userNameEnable){
+					if (userNameCheck1 == ""){
+						alert("<%:UserName_null%>")
+						return false
+					}
+
+					if (userNamePasswd == ""){
+						alert("<%:UserPassword_null%>")
+						return false
+					}
+				}
+
+				if(userNameCheck1 != ""){
+						if(!(checkInjection(userNameCheck1)))
+						{
+							alert("<%:Injection_alert%> ` - > < & @ <%:Injection_space%>");
+							return false;
+						}
+					}
+
+				if(userNamePasswd != ""){
+						if(!(checkInjection(userNamePasswd)))
+						{
+							alert("<%:Injection_alert%> ` - > < & @ <%:Injection_space%>");
+							return false;
+						}
+					}
+			}
+
+			if(userNameCheck1 == "supervisor"){
+				alert("<%:SAMBA_text3%>");
+				return false;
+			}
+
+			if(userNameCheck1 == "admin"){
+				alert("<%:SAMBA_text4%>");
+				return false;
+			}
+
+			if(userNameCheck1 == "root"){
+				alert("<%:SAMBA_text5%>");
+				return false;
+			}
+
+			if(userNameCheck1 != ""){
+					for (j=i+1;j<=5;j++){
+
+						userNameCheck2 = document.getElementById("userName" + j).value;
+
+						if(userNameCheck1 == userNameCheck2){
+							alert("<%:Accounts_Error%>");
+							//alert("Input Accounts Error");
+							return false;
+						}
+				}
+			}
+		}
+
+		userNameCheck1 = "";
+		userNameCheck2 = "";
+
+		for (i=1;i<=5;i++){
+
+			userNameCheck1 += document.getElementById("userName" + i).value;
+			userNameCheck2 += document.getElementById("userName" + i).value;
+
+			if(document.getElementById("userEnable" + i).checked == true){
+				//userEnable += "1,";
+				//document.SambaSetup.getElementById("userEnable" + i).value = true;
+				// userNameCheck = document.getElementById("userName" + i).value;
+				// if(userNameCheck != ""){
+				// 	if(!(checkInjection(userNameCheck)))
+				// 	{
+				// 		alert("<%:Injection_alert%> ` - > < and space");
+				// 		return false;
+				// 	}
+				// }
+
+				if(document.getElementById("userUSB1" + i).checked == true){
+					//userUSB1 += "1,";
+					//document.SambaSetup.getElementById("userUSB1" + i).value = 1;
+
+					if(userNameCheck1 != "" && alluserNameUSB1 !="")
+					{
+						alluserNameUSB1 += ",";
+					}
+
+					alluserNameUSB1 += document.getElementById("userName" + i).value;
+
+				}
+
+				if(document.getElementById("userUSB2" + i).checked == true){
+					//userUSB2 += "1,";
+					//document.SambaSetup.getElementById("userUSB2" + i).value = 1;
+
+					if(userNameCheck2 != "" && alluserNameUSB2 !="")
+					{
+						alluserNameUSB2 += ",";
+					}
+
+					alluserNameUSB2 += document.getElementById("userName" + i).value;
+
+				}
+
+			}
+
+
+		}
+		document.SambaSetup.usb1_value.value = alluserNameUSB1;
+		document.SambaSetup.usb2_value.value = alluserNameUSB2;
+
+	}
+	skm_LockScreen();
+}
+
+$(document).ready(function(){
+	$( ".right_table #mode" ).click(function() {
+		val = $(this).val();
+		if (val == "1"){
+			$( "#advance" ).fadeOut();
+		}else{
+			$( "#advance" ).fadeIn();
+		}
+	});
+
+	var enable = "<%= uci:get("samba","general","enable")%>";
+	if ( enable == "0" ){
+		$("sambaName").attr('disabled','disabled');
+		$("sambaWorkgroup").attr('disabled','disabled');
+		$("sambaDescription").attr('disabled','disabled');
+	}
+
+});
+
+</script>
+</head>
+<!--	 body	-->
+<body onload="enableSAMBA();">
+<div id="apDiv1">
+<form method="post" name="SambaSetup" action="<%=controller%>/expert/configuration/management/media_sharing/samba" onSubmit="return btnApply();">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr>
+	<td width="300"><div id="title_n" ><%:SAMBA%></div></td>
+	<td>&nbsp;</td>
+	<td width="100" valign="top"><div class="apply"><input type="submit" value="<%:Apply%>" id="advApply" name="apply" ></div></td>
+	<td width="100" valign="top"><div class="cancel" ><input type="reset" value="<%:cancel%>" id="advReset" name="reset" onClick="window.location.reload()" ></div></td>
+</tr>
+</table>
+
+</div>
+<div id="all_w">
+<input type="hidden" id="usb1_value" name="usb1_value" value="">
+<input type="hidden" id="usb2_value" name="usb2_value" value="">
+
+<div id="table">
+<ul>
+	<li class="table_content">
+		<div class="data">
+		<ul>
+
+		<li class="title">
+				<td nowrap id="bmTitle"><%:SAMBA_Setup%></td>
+		</li>
+
+			<li class="w_text">
+			<table width="95%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+				<ul>
+					<% enable = uci:get("samba","general","enable") %>
+					<li class="left_table"><font><%:enable_samba%></font></li>
+					<li class="right_table">
+					<input name="sambaEnable" id="sambaEnable" type="radio" value="1" <%if enable == "1" then%> checked = "CHECKED" <%end%> onclick="enableSAMBA();"/>
+					<%:enable%>
+					<input name="sambaEnable" id="sambaEnable" type="radio" value="0" <%if enable == "0" then%> checked = "CHECKED" <%end%> onclick="enableSAMBA();"/>
+					<%:disable%>
+					</li>
+				</ul>
+
+				<ul>
+					<!--<li class="left_table"><:Name%></li> -->
+					<li class="left_table"><%:net_map_name%></li>
+						<li class="right_table">
+						<input name="sambaName" size="16" maxlength="20" value="<%= uci:get("samba", "general", "name" )%>" type="text" />
+					</li>
+				</ul>
+
+				<ul>
+					<li class="left_table"><%:Work_Group%></li>
+						<li class="right_table">
+						<input name="sambaWorkgroup" size="16" maxlength="20" value="<%= uci:get("samba", "general", "workgroup" )%>" type="text" />
+					</li>
+				</ul>
+
+				<ul>
+					<li class="left_table"><%:Description%></li>
+						<li class="right_table">
+						<input name="sambaDescription" size="32" maxlength="32" value="<%= uci:get("samba", "general", "description" )%>" type="text" />
+					</li>
+				</ul>
+
+			</table>
+			</li>
+
+
+			<li class="space"></li>
+			<li class="w_text">
+				<ul>
+					<li class="left_table"><font><%:Samba_require_title%></font></li>
+					<li class="right_table">
+					<% mode = uci:get("samba","general","easymode")%>
+					<input name="mode" id="mode" type="radio" value="1" <%if mode == "1" then %>checked<%end%> />
+					<%:No%>
+					<input name="mode" id="mode" type="radio" value="0" <%if mode == "0" then %>checked<%end%> />
+					<%:Yes%>
+					</li>
+				</ul>
+			</li>
+
+			<li class="space"></li>
+			<% mode = uci:get("samba","general","easymode")%>
+			<li class="w_text2" id="advance" <%if mode == "1" then %>style="display:none;"<% end%>>
+			<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+
+			<tr>
+				<td><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+					<tr>
+						<td><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+							<tr>
+							<td><table width="100%" cellpadding="0" cellspacing="0" >
+								<tr>
+									<td height="26" colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+										<tr>
+										<td height="26"class="table_title"><%:user_accounts%></td>
+										</tr>
+									</table></td>
+								</tr>
+								<tr align="center"class="top_font">
+									<td width="10">#</td>
+									<td width="10"><%:Enable%></td>
+									<td width="15" ><%:User_Name%></td>
+									<td width="15" ><%:Password%></td>
+									<td width="10" ><%:usb1%></td>
+									<td width="10" <%if usb_status == "1" then%>style="display: none;"<%end%> ><%:usb2%></td>
+								</tr>
+									<% for i=1,5 do %>
+
+									<% userCfg = uci:get_all("samba","user" .. i)%>
+									<% usb1= uci:get("samba", "user" .. i ,"usb1")%>
+									<% usb2= uci:get("samba", "user" .. i ,"usb2")%>
+
+									<tr align="center" class="table_font" cellpadding="8">
+
+										<td><%=i%></td>
+										<td><input type="checkbox" id="userEnable<%=i%>" name="userEnable<%=i%>" value=1 <%if userCfg["enable"] == "1" then %>checked<%end%> ></td>
+
+										<td><input type="text" size=16 maxlength=20 id="userName<%=i%>" name="userName<%=i%>" <% if userCfg["name"] == "" then %>value=""<%else%>value='<%=userCfg["name"]%>'<%end%> ></td>
+
+										<td><input type="password" size=16 maxlength=14 id="userPasswd<%=i%>" name="userPasswd<%=i%>" <% if userCfg["sum"] == "" then %>value=""<%else%>value='<%=userCfg["sum"]%>'<%end%> ></td>
+
+										<td><select id="userUSB1<%=i%>" name="userUSB1<%=i%>">
+										<option value="0" <%if usb1 == "0" then%> selected <%end%> ><%:None%></option>
+										<option value="1" <%if usb1 == "1" then%> selected <%end%> ><%:Read%></option>
+										<option value="2" <%if usb1 == "2" then%> selected <%end%> ><%:Read_Write%></option>
+										</select></td>
+
+										<td id="usb2<%=i%>_select" <%if usb_status == "1" then%>style="display: none;"<%end%>><select id="userUSB2<%=i%>" name="userUSB2<%=i%>">
+										<option value="0" <%if usb2 == "0" then%> selected <%end%> ><%:None%></option>
+										<option value="1" <%if usb2 == "1" then%> selected <%end%> ><%:Read%></option>
+										<option value="2" <%if usb2 == "2" then%> selected <%end%> ><%:Read_Write%></option>
+										</select></td>
+
+									</tr>
+
+									<% end %>
+
+
+								</table>
+							 </td>
+
+							</tr>
+						 </table>
+						</td>
+					 </tr>
+					</table>
+				</td>
+			 </tr>
+			</table></td>
+			</li>
+
+		</ul>
+		</div>
+	<div class="spaceair"></div>
+	</li>
+</ul>
+</div>
+</form>
+</div>
+</body>
+<script language="JavaScript">
+	<!-- showFullPath(' <%:Management%> > <%:Media%> > <%:SAMBA%>'); -->
+</script>
+</html>

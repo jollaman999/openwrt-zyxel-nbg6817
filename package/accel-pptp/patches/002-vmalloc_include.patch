@@ -1,0 +1,11 @@
+diff -Nru a/kernel/driver/pptp.c b/kernel/driver/pptp.c
+--- a/kernel/driver/pptp.c	2010-10-06 15:27:46.000000000 +0200
++++ b/kernel/driver/pptp.c	2010-10-22 14:02:38.652816719 +0200
+@@ -30,6 +30,7 @@
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
+ #include <linux/version.h>
++#include <linux/vmalloc.h>
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ #include <asm/bitops.h>

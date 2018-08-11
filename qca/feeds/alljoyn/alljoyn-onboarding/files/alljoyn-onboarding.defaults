@@ -1,0 +1,13 @@
+#! /bin/sh
+uci batch <<EOF
+add ucitrack alljoyn-onboarding
+set ucitrack.@alljoyn-onboarding[-1].init=alljoyn-onboarding
+add_list ucitrack.@alljoyn[-1].affects=alljoyn-onboarding
+commit ucitrack
+set wireless.@wifi-device[-1].disabled=0
+set wireless.@wifi-iface[-1].disabled=0
+EOF
+/etc/init.d/alljoyn-onboarding enable
+/etc/init.d/wifi_scan enable
+/etc/init.d/alljoyn-onboarding-reload enable
+exit 0

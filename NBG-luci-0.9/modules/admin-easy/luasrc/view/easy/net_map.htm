@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title></title>
+ <link rel="stylesheet" href="<%=media%>/css/netmap.css" media="screen" type="text/css" />
+ <link rel="stylesheet" href="<%=media%>/css/infomenu.css" media="screen" type="text/css" />
+ 
+<script type="text/javascript">
+function MM_jumpMenu(targ,selObj,restore){ //v3.0
+  eval(targ+".location='"+selObj.options[selObj.selectedIndex].value+"'");
+  if (restore) selObj.selectedIndex=0;
+}
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+</script>
+</head>
+
+<body onload="MM_preloadImages('<%=media%>/images/views/b2.png','<%=media%>/images/views/a2.png','<%=media%>/images/router_2.png','<%=media%>/images/phone_2.png','<%=media%>/images/tablet_2.png','<%=media%>/images/camera_2.png','<%=media%>/images/desktop_2.png','<%=media%>/images/laptop_2.png')">
+
+<div id="easy">
+  <div id="easy_t">
+    <div id="easy_t_a"><%:net_map%></div>
+    <div id="easy_t_b">
+      <form name="form2" id="form2">
+  <select class="ctools-jump-menu-select ctools-jump-menu-change form-select ctools-jump-menu-processed" id="SELECT_1" name="jump">
+	<option selected="selected" id="OPTION_2">
+		Husker
+	</option> 
+	<option value="#" id="OPTION_3">
+		Starbuck	
+	</option> 
+	<option value="#" id="OPTION_4">
+		Hot Dog
+	</option> 
+	<option value="#" id="OPTION_5">
+		Apollo
+	</option> 
+	
+</select>
+      </form>
+    </div>
+    <div id="easy_t_c">Refresh Inteval</div>
+    <div id="easy_t_d">
+      <form name="form1" id="form1">
+        <select class="ctools-jump-menu-select ctools-jump-menu-change form-select ctools-jump-menu-processed" id="SELECT_1" name="jump">
+	<option selected="selected" id="OPTION_2">
+		<%:Node%> 
+	</option> 
+	<option value="#" id="OPTION_3">
+		Connectivity 
+	</option> 
+ 
+</select>
+      </form>
+
+    </div>
+    <div id="easy_t_e">Sorting Options</div>
+    <div id="easy_t_f"><a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image14','','<%=media%>/images/views/b2.png',1)"><img src="<%=media%>/images/views/b1.png" name="Image14" width="31" height="29" border="0" id="Image14" /></a></div>
+    <div id="easy_t_g"><a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image13','','<%=media%>/images/views/a2.png',1)"><img src="<%=media%>/images/views/a1.png" name="Image13" width="29" height="29" border="0" id="Image13" /></a></div>
+  </div>
+  <div id="animation">
+    <p><img src="<%=media%>/images/logo_a.gif" width="100" height="100" /><br />
+    </p>
+</div>
+  <div>
+    <div id="Device_a">
+      <div id="Device"><a href="#"><img src="<%=media%>/images/tablet_1.png" name="Image361" width="70" height="70" border="0" id="Image361" onmouseover="MM_swapImage('Image361','','<%=media%>/images/tablet_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/laptop_1.png" name="Image351" width="70" height="70" border="0" id="Image351" onmouseover="MM_swapImage('Image351','','<%=media%>/images/laptop_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/desktop_1.png" name="Image341" width="70" height="70" border="0" id="Image341" onmouseover="MM_swapImage('Image341','','<%=media%>/images/desktop_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image331" width="70" height="70" border="0" id="Image331" onmouseover="MM_swapImage('Image331','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/phone_1.png" name="Image311" width="70" height="70" border="0" id="Image311" onmouseover="MM_swapImage('Image311','','<%=media%>/images/phone_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image321" width="70" height="70" border="0" id="Image321" onmouseover="MM_swapImage('Image321','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br />
+      <%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image332" width="70" height="70" border="0" id="Image332" onmouseover="MM_swapImage('Image332','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br />
+      <%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/phone_1.png" name="Image312" width="70" height="70" border="0" id="Image312" onmouseover="MM_swapImage('Image312','','<%=media%>/images/phone_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br />
+      <%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image322" width="70" height="70" border="0" id="Image322" onmouseover="MM_swapImage('Image322','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br />
+      <%:Node%>
+  </div>
+    </div>
+    
+    <div id="Device_b">
+      <div id="Device"><a href="#"><img src="<%=media%>/images/tablet_1.png" name="Image36" width="70" height="70" border="0" id="Image36" onmouseover="MM_swapImage('Image36','','<%=media%>/images/tablet_2.png',1);MM_swapImage('Image36','','<%=media%>/images/tablet_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/laptop_1.png" name="Image35" width="70" height="70" border="0" id="Image35" onmouseover="MM_swapImage('Image35','','<%=media%>/images/laptop_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/desktop_1.png" name="Image34" width="70" height="70" border="0" id="Image34" onmouseover="MM_swapImage('Image34','','<%=media%>/images/desktop_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image333" width="70" height="70" border="0" id="Image333" onmouseover="MM_swapImage('Image333','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/phone_1.png" name="Image31" width="70" height="70" border="0" id="Image31" onmouseover="MM_swapImage('Image31','','<%=media%>/images/phone_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image323" width="70" height="70" border="0" id="Image323" onmouseover="MM_swapImage('Image323','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image334" width="70" height="70" border="0" id="Image334" onmouseover="MM_swapImage('Image334','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image324" width="70" height="70" border="0" id="Image324" onmouseover="MM_swapImage('Image324','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image335" width="70" height="70" border="0" id="Image335" onmouseover="MM_swapImage('Image335','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image325" width="70" height="70" border="0" id="Image325" onmouseover="MM_swapImage('Image325','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br />
+      <%:Node%></div>
+    </div>
+    
+    <div id="Device_c">
+       <div id="Device_l"><img src="<%=media%>/images/062a71af.loading_animation.gif" width="24" height="24" /><br /><br /></div>
+      <div id="Device_l"><img src="<%=media%>/images/062a71af.loading_animation.gif" width="24" height="24" /><br /><br /></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image326" width="70" height="70" border="0" id="Image326" onmouseover="MM_swapImage('Image326','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image336" width="70" height="70" border="0" id="Image336" onmouseover="MM_swapImage('Image336','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image327" width="70" height="70" border="0" id="Image327" onmouseover="MM_swapImage('Image327','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image337" width="70" height="70" border="0" id="Image337" onmouseover="MM_swapImage('Image337','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/router_1.png" name="Image328" width="70" height="70" border="0" id="Image328" onmouseover="MM_swapImage('Image328','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device"><a href="#"><img src="<%=media%>/images/camera_1.png" name="Image33" width="70" height="70" border="0" id="Image33" onmouseover="MM_swapImage('Image33','','<%=media%>/images/camera_2.png',1)" onmouseout="MM_swapImgRestore()" /></a><br /><%:Node%></div>
+      <div id="Device" class='button'><a href="#"><img src="<%=media%>/images/router_1.png" name="Image32" width="70" height="70" border="0" id="Image32" onmouseover="MM_swapImage('Image32','','<%=media%>/images/router_2.png',1)" onmouseout="MM_swapImgRestore()" /> </a><br />
+      Device Edit <ul class='menu'><li><a href=''>Option 1</a> </li><li><a href=''>Option 2</a> </li><li><a href=''>Option 3</a></li></ul>
+      </div>
+     
+    </div>
+    
+  </div>
+  
+</div>
+
+</div>
+  <script src='<%=media%>/js/infomenu.js'></script>
+  <script src="<%=media%>/js/infomenu_b.js"></script>
+</body>
+</html>

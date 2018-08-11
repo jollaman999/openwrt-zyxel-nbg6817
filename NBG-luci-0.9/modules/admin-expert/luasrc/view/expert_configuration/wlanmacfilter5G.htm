@@ -1,0 +1,340 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+--require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local sys = require("luci.sys")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<style>
+.on {display:on;}
+.off {display:none;}
+</style>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript">
+			
+function checkMACFormat(value){
+	return /[A-Fa-f0-9][ACEace02468]:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}/.test( value );
+}
+
+function CheckValue()
+{
+	var enable_chk = $('input:radio[name="MACfilter_ON"]:checked').val();
+	if(enable_chk === "1"){
+		//alert("WPS 5G will disabled when you enable MAC Filter 5G.");
+		var enable_chk2=confirm("<%:mac_filter_err3%>");
+		if(!enable_chk2)
+			return false;
+	}
+
+	skm_LockScreen();
+}
+
+function bandSwitch()
+{
+	document.location.href="<%=controller%>/expert/configuration/network/wlan/wlanmacfilter";
+}
+function setMac(){
+	
+	if ("<%=Macaddress%>"){
+	var mac="<%=Macaddress%>".split("'");
+	
+	$.each(mac,function(index,value){
+		var temp = $('#templete').clone().removeAttr('style').removeAttr('id');
+		$("#macFilter").append(temp);
+		console.log(index);
+		console.log(value);
+		$('#macFilter tr:last td:nth-child(2)').text(value).attr("id","test");
+	});
+	}
+	resetTableIndex();
+	autoDHCP(0);
+	}
+	
+function readyMACIP(mac){
+
+	var macaddress = $('#macFilter tr').length;
+	var readyMAC;
+
+	for(var i=4;i<macaddress;i++){
+		readyMAC = $('#macFilter tr:eq(' + i + ') td:eq(1)').text();
+
+		if(mac.toLocaleUpperCase() == readyMAC.toLocaleUpperCase()){
+			alert("<%:DHCP_Error_2%>");
+			return false;
+		}
+		
+	}
+	
+	return true;
+	
+}
+
+function autoDHCP(mo){
+
+		if (mo == "0"){
+			$('#macAD').replaceWith('<select id="macAD" style="text-align: center;"></select>');
+			var clients_MAC = "<%=clients_MAC%>".split(";");
+			var macaddress = "<%=data%>".split(";");
+			var option=0;
+			
+			for (var i=0; i< macaddress.length-1 ;i++ ){
+				if (clients_MAC[i] == "WiFi_5"){
+				$("#macAD").append("<option value="+ i +">" + macaddress[i] + "</option>")
+					option++;
+				}
+				
+			}
+			
+			if (option == 0){
+				$("#macAD").append("<option>None</option>");
+			}
+			
+		}
+		else{
+			$('#macAD').replaceWith('<input maxlength="17" size="18" value="00:00:00:00:00:00"  id="macAD" style="text-align: center;"/>');
+		}
+}	  
+
+$(document).ready(function(){
+
+	$('#DHCPmode').change(function(){
+		var mode = $(this).val();
+		if (mode == "0")
+			location.reload();
+		else
+			autoDHCP(1);
+		
+	});
+	
+	$('#add').unbind('click').click(function(){
+	
+		var len = $("#macFilter tr").length;
+		
+		//limit 64 rules
+		if (len>=68){
+			alert("<%:Firewall_Error_0%>");
+			return false;
+		}
+		
+		var mac;
+		
+		if ($('#DHCPmode').val() == "0" ){
+			mac = $('#macAD option:selected').text();
+			mac = mac.substring(mac.length-18,mac.length-1);
+		}
+		else{
+			mac = $('#macAD').val();
+		}
+	
+		//check if there is the same MAC 
+		if (!readyMACIP(mac)){
+			return false;
+		}
+		
+		//check MAC 
+		if(!checkMACFormat(mac)){
+			alert("<%:mac_filter_err1%>");
+			return false;
+		}
+		if(mac == "00:00:00:00:00:00"){
+			alert("<%:wlan_note71%>");
+			return false;
+		}
+		
+		//go back to default
+		if ($('#DHCPmode').val() == "1" ){
+			$('#macAD').val("00:00:00:00:00:00");
+		}
+		
+		// add new row to table
+		var temp = $('#templete').clone().removeAttr('style').removeAttr('id');
+		$('#macFilter').append(temp);
+		$('#macFilter tr:last td:nth-child(2)').text(mac);
+		
+		//reset index
+		resetTableIndex();
+
+	});
+		
+	var MacFilter_enable = "<%=MacFilter_enable%>";
+	if(MacFilter_enable=="1"){
+		$('input:radio[name="MACfilter_ON"][value="1"]').attr('checked', 'checked');
+	}else{
+		$('input:radio[name="MACfilter_ON"][value="0"]').attr('checked', 'checked');
+	}
+
+	var MacFilter_Action = "<%=MacFilter_Action%>";
+	if(MacFilter_Action=="1"){
+		$('input:radio[name="filter_act"][value="1"]').attr('checked', 'checked');
+	}else{
+		$('input:radio[name="filter_act"][value="0"]').attr('checked', 'checked');
+	}
+});  
+
+function resetTableIndex(){
+	var len = $("#macFilter tr").length;
+	for (var h=4;h<len;h++){
+		$("#macFilter tr:eq("+ h +") td:eq(0)").text(h-3);
+		
+	}
+}
+
+function deleteRule(rule){
+	$(rule).parent().parent().remove();
+	resetTableIndex();
+} 
+
+function setData(){
+	var rows = $("#macFilter tr").length;
+	var mac;
+	var Allmac;
+	var i;
+	$('#Allmac').val("");
+	
+	var html = "";
+	for (var h=4;h<rows;h++){
+		mac = $("#macFilter tr:eq("+ h +") td:eq(1)").text();
+		i = h-3;
+		if (html == "" ){
+			html=mac
+		}else{
+			html=html+"<;;>"+mac
+		}
+	}
+
+	$('.tableframe').append('<input name="MacAddrs" value="'+ html +'" type="hidden" />')
+	
+	$("#rules").val(rows-4);
+}
+
+</script>
+</head>
+<body onload="setMac();">
+
+<form method="post" name="wlan_macfilter_form" onSubmit="return CheckValue()" >
+
+
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:mac_filter%> 5G </div></td>
+    <td>&nbsp;</td>
+	   <td width="100" valign="top"><div class="apply"  > <input name="sysSubmit" value="<%:apply%>" type="submit" onclick="setData();" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:cancel%>" type="reset" /> </div></td>
+  </tr>
+</table>
+
+</div>
+
+<div id="all_w">
+<input name="count" id="rules" type="text" hidden="hidden">
+
+<div id="table">
+  <ul>
+   
+    <li class="table_content">
+      <div class="data">
+        <ul>
+		<div class="w_text">
+			<ul>
+				<li class="left_table" id="Band_title" ><%:Band%> :</li>
+				<li class="right_table"id="Band_switch">
+					<select name="band" size="1" onChange="bandSwitch();">
+						<option value="24" id="2.4G"  >2.4GHz </option>
+						<option value="5" id="5G" selected="selected">5GHz </option>
+					</select>
+				</li>
+
+				<li class="left_table"><%:SSID_Select%> :</li>
+					<li class="right_table">
+						<input name="ap_select" id="ap_select" disabled="disabled" value="<%=ssid%>" >
+					</li>
+					<li class="left_table"><%:mac_addr_filter%>  :</li>
+					<li class="right_table">
+						<input name="MACfilter_ON" id="radio" type="radio" value="1" /><%:enable%>
+						<input name="MACfilter_ON" id="radio2" type="radio" value="0" /><%:disable%>
+					</li>
+				</ul>
+				<ul>
+					<li class="left_table"><%:filter_action%>   : </li>
+					<li class="right_table">
+						<input name="filter_act" type="radio" value="1" /><%:allow%>
+						&nbsp;&nbsp;
+						<input name="filter_act" type="radio" value="0" /><%:deny%>
+					</li>
+				</ul>
+			</div>
+		  
+          <div class="tableframe">
+       
+			<table id="macFilter" width="100%" cellpadding="0" cellspacing="0" class="table_frame">
+                                <tr>
+                    <td colspan="6" height="26"class="table_title"><%:mac_filter_summary%> (<%:Firewall_Error_0%>)</td>
+                                </tr>
+                                    <tr class="top_font" >
+                    <td width="30%">#</td>
+                    <td width="40%"><%:mac_addr%></td>
+					<td><%:easy_filter_add%>/<%:easy_filter_del%></td>
+                </tr>
+				<tr class="table_font" align="center" id="mode">
+                    <td>
+						<select id="DHCPmode">
+						<option value="0" ><%:Auto_Detection%></option>
+						<option value="1" ><%:User_Defined%></option>
+						</select>
+					</td>
+                    <td><input maxlength="17" size="18" value="00:00:00:00:00:00"  id="macAD" style="text-align: center;"/></td>
+					<td>
+						<img id="add" src="<%=media%>/images/add-01.png" onMouseOver="this.src='<%=media%>/images/add_hover-01.png'" onMouseOut="this.src='<%=media%>/images/add-01.png'" type="image" />
+					</td>
+                </tr> 
+				<tr class="table_font" align="center" id="templete" style="display:none" >
+                    <td>#</td>
+                    <td><%:mac%></td>
+					<td>
+						<img id="Del" src="<%=media%>/images/delete-01.png" onMouseOver="this.src='<%=media%>/images/delete_hover-01.png'" onMouseOut="this.src='<%=media%>/images/delete-01.png'" onMouseDown="this.src='<%=media%>/images/delete_active-01.png'" onMouseUp="this.src='<%=media%>/images/delete-01.png'" type="image" onclick="deleteRule(this);"/>
+					</td>
+                </tr>
+    </table>
+                          
+          </div>	
+          <div class="spaceair"></div>
+        </ul>
+      </div>
+    </li>
+  </ul>
+</div>
+</div>
+</form>
+
+</body>
+</html>

@@ -1,0 +1,240 @@
+config network
+	option exec '/bin/sync'
+	option init network
+	list affects dhcp
+#	list affects radvd
+	list affects RA_dhcp6c
+	list affects parental_ex
+
+config wireless
+	option exec '/bin/sync'
+	option init wireless
+	list affects wireless_macfilter
+	list affects wireless5G_macfilter
+	list affects wifi_schedule
+	list affects wifi_schedule5G
+
+config wireless5G
+	option exec '/bin/sync'
+	option init wireless5G
+	list affects wireless5G_macfilter	
+	
+config wireless_macfilter
+	option exec '/bin/sync'
+	option init wireless_macfilter
+
+config wireless5G_macfilter
+	option exec '/bin/sync'
+	option init wireless5G_macfilter	
+
+config firewall
+	option exec '/bin/sync'
+	option init firewall
+	list affects luci-splash
+	list affects qos
+	list affects upnpd
+
+config olsr
+	option exec '/bin/sync'
+	option init olsrd
+
+config dhcp
+	option exec '/bin/sync'
+	option init dnsmasq
+	list affects qca-nss-ecm
+
+config dropbear
+	option exec '/bin/sync'
+	option init dropbear
+
+config uhttpd
+	option exec '/bin/sync'
+	option init uhttpd
+	list affects qca-nss-ecm
+
+config fstab
+	option exec '/bin/sync'
+	option init fstab
+
+config qos
+	option exec '/bin/sync'
+	option init qos
+
+config system
+	option exec '/bin/sync'
+	option init led
+	option init password	
+	option init gwclient
+	list affects luci_statistics
+
+config luci_splash
+	option exec '/bin/sync'
+	option init luci_splash
+
+config upnpd
+	option exec '/bin/sync'
+	option init miniupnpd
+	list affects qca-nss-ecm
+
+config ntpclient
+	option exec '/bin/sync'
+	option init ntpclient
+
+config samba
+	option exec '/bin/sync'
+	option exec '/bin/USB_app_control.sh'
+
+config tinyproxy
+	option exec '/bin/sync'
+	option init tinyproxy
+	
+config nat
+	option exec '/bin/sync'
+	option init nat
+	list affects qca-nss-ecm
+	
+config portTrigger
+	option exec '/bin/sync'
+	option init portTrigger
+	list affects qca-nss-ecm
+
+config updatedd
+	option exec '/bin/sync'
+	option init updatedd
+
+config route
+	option exec '/bin/sync'
+	option init route
+
+config parental_ex
+	option exec '/bin/sync'
+	option init webstr_filter_ex
+	list affects qca-nss-ecm
+	
+config parental
+	option exec '/bin/sync'
+	option init webstr_filter
+	list affects qca-nss-ecm
+
+config parental_monitor
+	option exec '/bin/sync'
+	option init parental_monitor 
+
+config syslogd
+	option exec '/bin/sync'
+	option init syslogd
+
+config wifi_schedule
+	option exec '/bin/sync'
+	option init wifi_scheduling
+
+config wifi_schedule5G
+	option exec '/bin/sync'
+	option init wifi_scheduling5G
+
+config ipsec
+	option exec '/bin/sync'
+	option init vpn_daemon
+
+config time
+	option exec '/bin/sync'
+	option init time_daemon
+
+config ipsec_new
+	option exec '/bin/sync'
+	option init netbios_daemon
+
+config igmpproxy
+	option exec '/bin/sync'
+	option init igmpproxy
+	list affects qca-nss-ecm
+
+config wol
+	option exec '/bin/sync'
+	option init wol
+	list affects qca-nss-ecm
+
+config gw6c
+	option exec '/bin/sync'
+	option init gw6c
+
+config wireless_client
+	option exec '/bin/sync'
+	option init wireless_client
+
+config port_status
+	option exec '/bin/sync'
+	option init port_config
+
+config dlna
+	option exec '/bin/sync'
+	option init dlna
+
+config proftpd
+	option exec '/bin/sync'
+	option exec '/bin/USB_app_control.sh'
+
+config appflow
+	option exec '/bin/sync'
+	option exec '/usr/local/bin/check_apply_appflow'
+
+config tr069
+	option exec '/bin/sync'
+	option init ztr69
+
+config snmpd
+	option exec '/bin/sync'
+	option init snmpd
+
+config dhcp6c
+	option exec '/bin/sync'
+	option init dhcp6c
+
+config RA_status
+	option exec '/bin/sync'
+	option init RA_status
+
+config RA_dhcp6c
+	option exec '/bin/sync'
+	option init RA_dhcp6c
+
+config intfGrp_v6
+	option exec '/bin/sync'
+	option init intfGrp_v6
+
+config firewall6
+	option exec '/bin/sync'
+	option init firewall6
+	list affects qca-nss-ecm
+
+config default_lan_radvd
+	option exec '/bin/sync'
+	option init default_lan_radvd
+
+config account
+	option exec '/bin/sync'
+	option init password
+
+config radvd
+	option exec '/bin/sync'
+	option init radvd
+
+config sendmail
+	option exec '/bin/sync'
+	option init sendmail
+
+config qca-nss-ecm
+	option exec '/bin/sync'
+	option init qca-nss-ecm
+
+config web-redirect
+	option exec '/bin/sync'
+	option init zybootend
+	list affects qca-nss-ecm
+
+config atf
+        option exec '/bin/sync'
+        option init atf
+	
+config end
+	option init end

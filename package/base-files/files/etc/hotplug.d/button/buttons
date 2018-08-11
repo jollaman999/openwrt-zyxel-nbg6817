@@ -1,0 +1,194 @@
+#!/bin/sh
+
+# $BUTTON should be BTN_0 ... BTN_9, $ACTION should be 'pressed' or 'released'
+
+# Reset button for reset board
+BTN_0="RESET"
+# WPS button for trigger WPS functionality
+BTN_2="WPS"
+# WiFi button for trigger WiFi functionality
+BTN_5="WiFi"
+
+eval REAL_BUTTON=\$$BUTTON
+
+do_fun_Reset()
+{
+	echo "You $1 the Reset button!"
+	/sbin/button_count Reset
+	
+	if [ "$ACTION" = "pressed" ]; then
+		START=$(date +%s)
+		echo $START > /tmp/timeout
+		echo 1 > /tmp/ResetTime
+		/sbin/zyxel_led_ctrl ResetDefault
+	fi
+
+	if [ "$ACTION" = "released" ]; then
+	echo 0 > /tmp/ResetTime
+       	END=$(date +%s)
+		START=$(cat /tmp/timeout)
+		DIFF=$(( $END - $START ))
+
+		if [ "$DIFF" -lt 1 ]; then
+			break
+		elif [ "$DIFF" -le 5 ]; then
+			reboot -f
+		elif [ "$DIFF" -gt 5 ]; then
+			cp /bin/busybox /tmp
+			ln -s /tmp/busybox /tmp/reboot
+			firstboot
+			sleep 3
+			/tmp/reboot -f
+			break
+		fi
+	fi
+
+}
+
+do_led_ctrl(){
+	[ -f "/tmp/wireless_init" ] && {
+		/sbin/zyxel_led_ctrl all
+	}
+}
+
+do_fun_WiFi()
+{
+	echo "You $1 the WiFi button!"
+	/sbin/button_count WiFi
+
+	## If HTP Mode enabled,leave it.
+	[ -n "$HTP_ENABLE" ] && exit 0
+
+	wifi_disable=$(uci get wireless.wifi0.disabled)
+	wifi5G_disable=$(uci get wireless.wifi1.disabled)
+
+	if [ "$ACTION" = "pressed" ]; then		
+		echo "WLAN HW button on"
+		echo 1 > /tmp/wlan_on	
+
+		## Check WiFi
+		[ -f "/tmp/wireless_init" ] && {
+			if [ "$wifi_disable" == "0" ] || [ "$wifi5G_disable" == "0" ]; then
+				wifi0_up=$(ifconfig | grep ath0)
+				wifi1_up=$(qcsapi_sockrpc --host 223.254.253.252 rfstatus wifi0)
+				if [ "$wifi0_up" == "" ] || [ "$wifi1_up" == "Off" ]; then
+					/etc/init.d/wireless restart
+				fi
+
+				/etc/init.d/wifi_scheduling start
+				/etc/init.d/wifi_scheduling5G start
+				/etc/init.d/wireless_macfilter restart
+				/etc/init.d/wireless5G_macfilter restart
+
+				check_guest_wifi_bonus
+			fi
+		}
+
+		do_led_ctrl
+	fi
+
+	if [ "$ACTION" = "released" ]; then
+		echo "WLAN HW button off"
+		echo 0 > /tmp/wlan_on
+
+		do_led_ctrl
+
+		[ -f "/tmp/wireless_init" ] && {
+			##setting wifi2.4G off
+			wifi0_up=$(ifconfig | grep ath0)
+			wifi1_up=$(qcsapi_sockrpc --host 223.254.253.252 rfstatus wifi0)
+
+			if [ "$wifi0_up" != "" ] || [ "$wifi1_up" != "Off" ]; then
+				/bin/guestWifiTimer.sh rm_at_rule "all"
+				/sbin/wifi down
+				/bin/check_guest_wifi_bonus.sh
+			fi
+		}
+	fi
+}
+
+do_fun_WPS()
+{
+	echo "You $1 the WPS button!" >> /tmp/BUTTON
+
+	detect_button_for_agent=$(cat /tmp/detect_button_for_agent)
+	if [ $detect_button_for_agent == "1" ]; then
+		if [ "$ACTION" = "pressed" ]; then
+			#echo pair > /tmp/my_fifo
+			echo pair > /tmp/agent_fifo
+			echo 1 > /tmp/agent_button_press
+		fi
+		exit 0
+	fi
+
+	if [ -f /tmp/agent_button_press ]; then
+		if [ "$ACTION" = "released" ]; then
+			rm /tmp/agent_button_press
+		fi
+		exit 0
+	fi
+
+	/sbin/button_count WPS
+#	wlan_disable=$(uci get wireless.ath0.disabled)
+#	wps_enabled=$(uci get wps.wps.enabled)
+
+	if [ "$ACTION" == "released" ]; then
+		wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+		[ "$wlan_btn" == "1" ] && {
+			zyxel_WPS_ctrl WPS_HW
+		} || {
+			echo "WiFi button is disable"
+		}
+	fi	
+}
+
+check_guest_wifi_bonus(){
+	wifi24G=$(uci get wireless.iface.wifi24G)
+	wifi5G=$(uci get wireless.iface.wifi5G)
+
+	for ath in ath1 ath2 ath3 ath11 ath12 ath13
+	do
+		bonus_time=$(uci get wireless.$ath.bonus_time)
+		device=$(uci get wireless.$ath.device)
+
+		if [ "$wifi24G" == "$device" ]; then
+			DEV="24G"
+			if [ "$wifi24G" == "wifi1" ]; then
+				spilt="4"
+			else
+				spilt="3"
+			fi
+		elif [ "$wifi5G" == "$device" ]; then
+			DEV="5G"
+			if [ "$wifi5G" == "wifi1" ]; then
+				spilt="4"
+			else
+				spilt="3"
+			fi
+		fi
+
+		if [ -n "$bonus_time" ]; then
+			echo 1 > /tmp/reload_bonus
+			/bin/guestWifiTimer.sh add_rule "${ath:$spilt}" "$DEV" "$bonus_time"
+		fi
+	done
+	if [ -e "/tmp/reload_bonus" ];then
+		rm /tmp/reload_bonus
+		watch -tn 1800 /bin/check_guest_wifi_bonus.sh 1>/dev/null 2>&1 &
+	fi
+}
+
+case $REAL_BUTTON in
+	WiFi)
+		do_fun_WiFi $ACTION
+		;;
+	RESET)
+		do_fun_Reset $ACTION
+		;;
+	WPS)
+		do_fun_WPS $ACTION
+		;;
+	*)
+		# should not be happen
+		echo "Unknown button $BUTTON!"
+esac

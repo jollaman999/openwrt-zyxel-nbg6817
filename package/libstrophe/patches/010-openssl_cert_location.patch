@@ -1,0 +1,18 @@
+Index: libstrophe-master/src/tls_openssl.c
+===================================================================
+--- libstrophe-master.orig/src/tls_openssl.c	2015-11-16 09:39:40.792843366 +0800
++++ libstrophe-master/src/tls_openssl.c	2015-11-16 09:40:39.634249390 +0800
+@@ -63,9 +63,12 @@
+ 	tls->sock = sock;
+ 	tls->ssl_ctx = SSL_CTX_new(SSLv23_client_method());
+ 
++	SSL_CTX_load_verify_locations(tls->ssl_ctx, "/usr/share/purple/ca-certs/rootCA.crt", NULL);
++
+ 	SSL_CTX_set_client_cert_cb(tls->ssl_ctx, NULL);
+ 	SSL_CTX_set_mode (tls->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
+-	SSL_CTX_set_verify (tls->ssl_ctx, SSL_VERIFY_NONE, NULL);
++	//SSL_CTX_set_verify (tls->ssl_ctx, SSL_VERIFY_NONE, NULL);
++	SSL_CTX_set_verify (tls->ssl_ctx, SSL_VERIFY_PEER, NULL);
+ 
+ 	tls->ssl = SSL_new(tls->ssl_ctx);
+ 

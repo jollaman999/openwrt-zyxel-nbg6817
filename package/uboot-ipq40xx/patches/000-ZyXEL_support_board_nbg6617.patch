@@ -1,0 +1,90 @@
+Index: uboot-1.0-2012.07/boards.cfg
+===================================================================
+--- uboot-1.0-2012.07.orig/boards.cfg	2016-02-05 08:55:49.769854731 +0000
++++ uboot-1.0-2012.07/boards.cfg	2016-02-19 05:56:08.758925347 +0000
+@@ -207,6 +207,7 @@
+ integratorcp_cm946es         arm         arm946es    integrator          armltd         -               integratorcp:CM946ES
+ ipq806x_cdp                  arm         armv7       ipq806x_cdp         qcom           ipq
+ ipq40xx_cdp                  arm         armv7       ipq40xx_cdp         qcom           qca
++nbg6617                      arm         armv7       ipq40xx_cdp         qcom           qca
+ ca9x4_ct_vxp                 arm         armv7       vexpress            armltd
+ am335x_evm                   arm         armv7       am335x              ti             am33xx
+ highbank                     arm         armv7       highbank            -              highbank
+Index: uboot-1.0-2012.07/mkconfig
+===================================================================
+--- uboot-1.0-2012.07.orig/mkconfig	2016-02-05 08:55:49.889855061 +0000
++++ uboot-1.0-2012.07/mkconfig	2016-02-19 05:56:08.762925347 +0000
+@@ -169,6 +169,10 @@
+ 
+ [ "${soc}"    ] && echo "#define CONFIG_SYS_SOC    \"${soc}\""    >> config.h
+ 
++TMP_NAME=`echo ${CONFIG_NAME} | sed 's/./\U&/g'`
++echo "#define CONFIG_BOARD_${TMP_NAME} 1" >> config.h
++echo "#define CONFIG_BOARD_NAME \"${TMP_NAME}\"" >> config.h
++
+ cat << EOF >> config.h
+ #define CONFIG_BOARDDIR board/$BOARDDIR
+ #include <config_cmd_defaults.h>
+Index: uboot-1.0-2012.07/arch/arm/include/asm/mach-types.h
+===================================================================
+--- uboot-1.0-2012.07.orig/arch/arm/include/asm/mach-types.h	2016-02-18 05:52:52.863993939 +0000
++++ uboot-1.0-2012.07/arch/arm/include/asm/mach-types.h	2016-02-19 05:56:08.762925347 +0000
+@@ -1122,6 +1122,7 @@
+ #define MACH_TYPE_OMAP5_SEVM           3777
+ #define MACH_TYPE_IPQ40XX_AP_DK01_1_S1	0x8010200
+ #define MACH_TYPE_IPQ40XX_AP_DK01_1_C1	0x8010000
++#define MACH_TYPE_IPQ40XX_NBG6617       0x8020000
+ #define MACH_TYPE_IPQ40XX_AP_DK01_1_C2	0x8010100
+ #define MACH_TYPE_IPQ40XX_AP_DK04_1_C1	0x8010001
+ #define MACH_TYPE_IPQ40XX_AP_DK04_1_C2	0x8010101
+Index: uboot-1.0-2012.07/board/qcom/ipq40xx_cdp/ipq40xx_board_param.h
+===================================================================
+--- uboot-1.0-2012.07.orig/board/qcom/ipq40xx_cdp/ipq40xx_board_param.h	2016-02-18 05:52:52.887994488 +0000
++++ uboot-1.0-2012.07/board/qcom/ipq40xx_cdp/ipq40xx_board_param.h	2016-02-19 06:03:49.435342912 +0000
+@@ -949,6 +949,22 @@
+ 		.dtb_config_name = "#config@4",
+ 	},
+ 	{
++		.machid = MACH_TYPE_IPQ40XX_NBG6617,
++		.ddr_size = (256 << 20),
++		.mtdids = "nand2=spi0.0",
++		.console_uart_cfg = &uart1_console_uart_dk01,
++		.sw_gpio = sw_gpio_qfn,
++		.sw_gpio_count = ARRAY_SIZE(sw_gpio_qfn),
++		.edma_cfg = {
++			ipq40xx_edma_cfg(0, 5, PSGMII,
++					0, 1, 2, 3, 4)
++		},
++		.spi_nand_available = 0,
++		.nor_nand_available = 0,
++		.nor_emmc_available = 0,
++		.dtb_config_name = "#config@1",
++	},
++	{
+ 		.machid = MACH_TYPE_IPQ40XX_AP_DK01_1_C2,
+ 		.ddr_size = (256 << 20),
+ 		.mtdids = "nand1=nand1,nand2=spi0.0",
+Index: uboot-1.0-2012.07/board/qcom/ipq40xx_cdp/ipq40xx_cdp.c
+===================================================================
+--- uboot-1.0-2012.07.orig/board/qcom/ipq40xx_cdp/ipq40xx_cdp.c	2016-02-18 05:52:52.895994673 +0000
++++ uboot-1.0-2012.07/board/qcom/ipq40xx_cdp/ipq40xx_cdp.c	2016-02-19 05:56:08.762925347 +0000
+@@ -546,6 +546,7 @@
+ 		ipq40xx_register_switch(ipq40xx_qca8075_phy_init);
+ 		break;
+ 	case MACH_TYPE_IPQ40XX_AP_DK01_1_C1:
++	case MACH_TYPE_IPQ40XX_NBG6617:
+ 		mdelay(100);
+ 		writel(GPIO_OUT, GPIO_IN_OUT_ADDR(59));
+ 		ipq40xx_register_switch(ipq40xx_qca8075_phy_init);
+Index: uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_ess_sw.c
+===================================================================
+--- uboot-1.0-2012.07.orig/drivers/net/ipq40xx/ipq40xx_ess_sw.c	2016-02-18 05:52:52.955996051 +0000
++++ uboot-1.0-2012.07/drivers/net/ipq40xx/ipq40xx_ess_sw.c	2016-02-19 05:56:08.762925347 +0000
+@@ -68,6 +68,7 @@
+ 	switch(gboard_param->machid) {
+ 	case MACH_TYPE_IPQ40XX_AP_DK01_1_S1:
+ 	case MACH_TYPE_IPQ40XX_AP_DK01_1_C1:
++	case MACH_TYPE_IPQ40XX_NBG6617:
+ 	case MACH_TYPE_IPQ40XX_AP_DK01_1_C2:
+ 	case MACH_TYPE_IPQ40XX_AP_DK04_1_C1:
+ 	case MACH_TYPE_IPQ40XX_AP_DK04_1_C2:

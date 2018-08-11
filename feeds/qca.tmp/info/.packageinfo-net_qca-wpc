@@ -1,0 +1,45 @@
+Source-Makefile: feeds/qca/net/qca-wpc/Makefile
+Package: qca-wpc-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread kmod-qca-wifi-10.4 +libpthread
+Menu-Depends: 
+Provides: 
+Build-Depends: qca-wifi-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA Wifi Positioning
+Maintainer: Qualcomm Atheros
+Source: qca-wpc-10.4.tar.bz2
+Type: ipkg
+Description: QCA Wifi Positioning
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-wpc-10.4
+	config qca-wpc-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wpc-10.4
+		bool "Use custom source directory"
+		default n
+	config qca-wpc-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wpc-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-wpc-10.4
+	config qca-wpc-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wpc-10.4
+		bool "Use custom package version"
+		default n
+
+	config qca-wpc-10.4_CUSTOM_VERSION
+		depends on qca-wpc-10.4_USE_CUSTOM_VERSION
+		string "qca-wpc-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+

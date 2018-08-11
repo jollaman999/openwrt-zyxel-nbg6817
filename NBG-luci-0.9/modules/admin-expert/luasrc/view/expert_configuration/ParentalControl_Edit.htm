@@ -1,0 +1,1189 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<link href="<%=media%>/css/parental_time.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-ui.js"></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<%
+   local luaSRules = {}
+   local config = "parental_netservice" .. rule
+   uci:foreach( "parental_ex", config, function( section )
+      if not ( nil == section.name ) then
+         local tmp = section
+         tmp.id = section[ '.name' ]
+         table.insert( luaSRules, tmp )
+      end
+   end )
+   
+%>
+
+<script language="JavaScript" type="text/javascript">
+var D_NUM = 32;
+var jsEditNo = "";
+function JSSRoute( id, name, proto, port,user_define_name)
+{
+   this.id = id;
+   this.name = name;
+   this.proto = proto
+   this.port = port;
+   this.user_define_name = user_define_name;
+
+}
+
+
+var jsSRoutes = [
+   <%
+      for name, info in pairs(luaSRules) do
+         %> new JSSRoute( "<%= info.id %>", "<%= info.name %>", "<%= info.proto %>", "<%= info.port %>", "<%= info.user_define_name %>" ), <%
+      end
+   %>
+];
+
+function backToList2()
+{
+   document.getElementById( "edit" ).style.display="none";
+   <!-- document.getElementById( "tabs" ).style.display="block"; -->
+   document.getElementById( "list" ).style.display="block";
+
+}
+
+function backToList()
+{
+   var submit_url = '<%=luci.dispatcher.build_url("expert", "configuration", "security", "ParentalControl")%>';
+	var loc = submit_url;
+	var code = 'location="' + loc + '"';
+    eval(code);
+}
+
+function checkIPFormat( value )
+{
+  return /^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$/.test( value )
+}
+
+function submitEdit2()
+{	
+	var set1 = "";
+	var set0 = "";
+	
+	// if(document.SRForm.User_DomainList.options.length==0){
+	// 	alert( "<%:Monitor_Error_1%>" );
+	// 	return false
+	// }
+	
+	for(var i=0; i < document.SRForm.User_DomainList.options.length; i++){
+			var device = document.SRForm.User_DomainList.options[i].text
+			
+	       if(i!=(document.SRForm.User_DomainList.options.length - 1))
+				{
+					set1 += device.substring(device.length-18,device.length-1) + " ";
+					set0 += device.substring(0,device.length-19)+ ";";
+				}
+		   else
+				{
+					set1 += device.substring(device.length-18,device.length-1);
+					set0 += device.substring(0,device.length-19);
+				}
+
+	}
+	
+	document.SRForm.DomainList_str.value=set0;
+	document.SRForm.DomainList_str_mac.value=set1;
+	
+	var set = "";
+	for(var i=0; i < document.SRForm.cfKeyWord_DomainList.options.length; i++){
+	       if(i!=(document.SRForm.cfKeyWord_DomainList.options.length - 1)) 
+				{set += document.SRForm.cfKeyWord_DomainList.options[i].text + ";";}
+		   else
+				{set += document.SRForm.cfKeyWord_DomainList.options[i].text;}
+	}		
+	document.SRForm.url_str.value=set;
+	
+	
+   skm_LockScreen();
+}
+
+function checklist(entryNo){
+		
+		
+		if (!document.SRForm.User_DomainList.options.length){
+			alert("<%:Monitor_Error_1%>");
+			return false;
+		}
+		else
+		{
+			editSR(entryNo);
+		
+		}
+		
+}
+
+function submitEdit()
+{
+	var set0 = "";
+	var set1 = "";
+	
+
+	for(var i=0; i < document.SRForm.User_DomainList.options.length; i++){
+			var device = document.SRForm.User_DomainList.options[i].text
+			
+	       if(i!=(document.SRForm.User_DomainList.options.length - 1))
+				{
+					set1 += device.substring(device.length-18,device.length-1) + " ";
+					set0 += device.substring(0,device.length-19)+ ";";
+				}
+		   else
+				{
+					set1 += device.substring(device.length-18,device.length-1);
+					set0 += device.substring(0,device.length-19);
+				}
+
+	}
+	
+	document.SRForm.DomainList_str.value=set0;
+	document.SRForm.DomainList_str_mac.value=set1;
+	console.log(document.SRForm.DomainList_str_mac.value);
+	var set = "";
+	for(var i=0; i < document.SRForm.cfKeyWord_DomainList.options.length; i++){
+	       if(i!=(document.SRForm.cfKeyWord_DomainList.options.length - 1)) 
+				{set += document.SRForm.cfKeyWord_DomainList.options[i].text + ";";}
+		   else
+				{set += document.SRForm.cfKeyWord_DomainList.options[i].text;}
+	}		
+	document.SRForm.url_str.value=set;
+	skm_LockScreen();
+}
+function editSR( entryNo )
+{	
+	
+   <!-- document.getElementById( "tabs" ).style.display="none"; -->
+   document.getElementById( "list" ).style.display="none";
+   document.getElementById( "edit" ).style.display="block";
+
+   document.getElementsByName( "SRSubmitType" )[0].value = "edit";
+   jsEditNo = entryNo;
+   repaintEdit();
+   
+}
+
+function repaintEdit()
+{
+   if ( jsEditNo != 'New' )
+   {
+      document.getElementsByName( "service_name" )[0].value = jsSRoutes[ jsEditNo ].name;
+	  document.getElementsByName( "user_define_name" )[0].value = jsSRoutes[ jsEditNo ].user_define_name;
+      document.getElementsByName( "service_proto" )[0].value = jsSRoutes[ jsEditNo ].proto;
+      document.getElementsByName( "SREditID" )[0].value = jsSRoutes[ jsEditNo ].id;
+	  doServiceChange()
+      document.getElementsByName( "service_port" )[0].value = jsSRoutes[ jsEditNo ].port;
+	 
+    
+   }
+   else
+   {
+      document.getElementsByName( "service_name" )[0].value = "UserDefined";
+      document.getElementsByName( "service_proto" )[0].value = "TCP";
+      document.getElementsByName( "service_port" )[0].value = "";
+      document.getElementsByName( "SREditID" )[0].value = 'New';
+      doServiceChange()
+     
+   }
+}
+
+function sumbitTable()
+{
+  
+   return true;
+}
+
+function checkValue(str){
+   var flag=0;
+	for(i=0;i < document.SRForm.cfKeyWord_DomainList.options.length;i++){
+		if(document.SRForm.cfKeyWord_DomainList.options[i].text == str){
+		   flag=1;
+		   break;
+		}
+	}
+	if(flag == 1)
+		return 1;
+	else
+		return 0;
+}
+
+function checkInjection(str)
+{
+	var len = str.length;
+		for (var i=0; i<str.length; i++) {
+			if ( str.charAt(i) == '"' || str.charAt(i) == "'" || str.charAt(i) == '`' || str.charAt(i) == '<' || str.charAt(i) == '>' || str.charAt(i) == '^' || str.charAt(i) == '$' || str.charAt(i) == '&'){
+				return false;
+			}else
+				continue;
+		}
+		return true;
+}
+
+function checkInjectionHyphen(str)
+{
+	var len = str.length;
+		for (var i=0; i<str.length; i++) {
+			if ( str.charAt(i) == '-' ){
+				return false;
+			}else
+				continue;
+		}
+		return true;
+}
+
+function checkAllNum(str)
+{
+	for (var i=0; i<str.length; i++){
+		if((str.charAt(i) >= '0' && str.charAt(i) <= '9') || (str.charAt(i) == '.' ))
+			continue;
+
+		return false;
+	}
+	return true;
+}
+
+function cfKeyWord_AddKeyword_click(){	
+	var D_str=document.SRForm.cfKeyWord_Domain.value;
+	if(D_str!=""){
+		if(!(checkInjection(document.SRForm.cfKeyWord_Domain.value)) || !(checkInjectionHyphen(document.SRForm.cfKeyWord_Domain.value)))
+		{
+			var Injection_alert="<%:Injection_alert%>";
+			alert(Injection_alert+' " ` > < ^ $ - &'+" ' ");
+			return false;
+		}
+
+		var ProtocolCheck = document.SRForm.cfKeyWord_Domain.value.match("http://");
+		if(!ProtocolCheck){
+			D_str=document.SRForm.cfKeyWord_Domain.value;
+		}
+		else{
+			D_str=document.SRForm.cfKeyWord_Domain.value.substr(7);
+		}
+
+		var list_num=document.SRForm.cfKeyWord_DomainList.length;
+		if(list_num < D_NUM){ 
+		    if(checkValue(D_str)==0){
+				document.SRForm.cfKeyWord_DomainList.options[list_num]=new Option(D_str, D_str);
+			}
+			else
+			{	    
+				alert("<%:CF_Error_1%>"); 
+				document.SRForm.cfKeyWord_Domain.value="";
+			}
+		}
+		else
+		   alert("<%:CF_Error_2%>");
+	}
+	
+	document.SRForm.cfKeyWord_Domain.value=""; 
+}
+function cfKeyWord_ClearList_click(){
+	document.SRForm.cfKeyWord_DomainList.options.length=0;		    
+}
+function cfKeyWord_DeleteKeyword_click(){
+    
+	//for IE & firefox
+	if(document.SRForm.cfKeyWord_DomainList.selectedIndex >= 0){
+		document.SRForm.cfKeyWord_DomainList.remove(document.SRForm.cfKeyWord_DomainList.selectedIndex);
+		cfKeyWord_DeleteKeyword_click();
+	}
+} 
+function show_div(show,id) {
+	if(show)
+		document.getElementById(id).style.display = "block" ;
+	else
+		document.getElementById(id).style.display = "none" ;
+}
+function initAll()
+{	
+	<!-- show_div(false, "div_wpapsk_compatible"); -->
+	if (document.SRForm.src_select.value == "Custom" ){	
+			show_div(true, "div_wpapsk_compatible");
+	}
+	if (document.SRForm.src_select.value == "Custom" ){	
+		document.getElementsByName( "src_select" )[0].value = "Custom";
+	}else if (document.SRForm.src_select.value == "All"){
+		document.getElementsByName( "src_select" )[0].value = "All";
+	}else{
+		document.SRForm.src_select.selectedIndex="<%=selectindx%>"
+	}
+}
+
+function doTimeChange(selectedindex)
+{
+	if (document.SRForm.EndHour.value == "24" ){	
+			document.getElementsByName( "EndMin" )[0].value = "00";
+			document.forms[0].EndMin.options[1].selected=false;
+	}	
+	if (document.SRForm.StartHour.value == "24" ){	
+			document.getElementsByName( "StartMin" )[0].value = "00";
+			document.forms[0].StartMin.options[1].selected=false;
+	}
+}
+
+function doUserChange(selectedindex)
+{
+	<!-- show_div(false, "div_wpapsk_compatible"); -->
+	if (document.SRForm.src_select.value == "Custom" ){	
+			show_div(true, "div_wpapsk_compatible");
+	}	
+}
+
+function CheckValue(str)
+{
+	var Domain_length=document.SRForm.User_Domain.options.length;
+
+	for(var i=0; i < Domain_length; i++){
+			document.SRForm.User_Domain.options[i].selected=false;
+	}
+	var userinput =document.getElementsByName( "rule_name" )[0].value;
+	var userinput_value = checkInjection(userinput);
+
+	if (document.getElementsByName( "rule_name" )[0].value == "")
+	{
+		alert("<%:parental_error1%>");
+		return false
+
+	}
+	else if(userinput_value == false)
+	{
+			var Injection_alert="<%:Injection_alert%>";
+			alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+			return false;
+	}
+	else if (document.SRForm.User_DomainList.options.length==0)
+	{
+		alert( "<%:Monitor_Error_1%>" );
+		return false
+	}
+	else if (str == "apply2" ){
+		//network service check
+		for(var i=0; i < <%=#luaSRules%>; i++){
+			if(document.forms[0].service_name.value == "UserDefined")
+				break;
+			if(document.forms[0].service_name.value == jsSRoutes[ i ].name) {
+				if(i!=jsEditNo){
+					alert( "<%:PC_SAlert1%>" );
+					return false;
+				}
+			}
+		}
+		
+		if(document.forms[0].service_name.value == "UserDefined") {
+			if (!(document.forms[0].user_define_name.value)){
+				alert("<%:PC_SAlert2%>");
+				return false;
+			}
+					
+			if (!(document.forms[0].service_port.value)){
+				alert("<%:PC_SAlert3%>");
+				return false;
+			}
+			if(checkAllNum(document.forms[0].service_port.value) == false ) {
+				alert( "<%:PC_SAlert4%>" );
+				return false;
+			}
+			if(!(checkInjection(document.forms[0].user_define_name.value)))
+			{
+				var Injection_alert="<%:Injection_alert%>";
+				alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+				return false;
+			}
+	   }
+	   AllTime(str);
+	}
+	else
+	{
+		AllTime(str);
+	}
+
+	if (document.SRForm.src_select.value == "Custom" ){	
+		var re = /[A-Fa-f0-9][ACEace02468]:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}/;
+		if (document.SRForm.MAC_Address.value.length == 0) {
+			if (document.getElementById( "edit" ).style.display == "none") {
+				alert("<%:WAN_Error_18%>");
+				document.SRForm.MAC_Address.focus();
+				return false;
+			}
+		}
+		if (!re.test(document.SRForm.MAC_Address.value)) {
+			if (document.getElementById( "edit" ).style.display == "none") {
+				alert("<%:WAN_Error_19%>");
+				document.SRForm.MAC_Address.focus();
+				return false;
+			}
+		}
+	}
+}
+function deleteSR( entryNo, element )
+{
+	var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","security","ParentalControl","ParentalControl_Edit")%>';
+	var loc = submit_url + '?delete=' + entryNo;
+	var code = 'location="' + loc + '"';
+    eval(code);
+}
+function doServiceChange()
+{
+	show_div(false, "div_range_show");
+	if(document.forms[0].service_name.value == "UserDefined") {
+		document.forms[0].service_proto.options[0].hidden=false;
+		document.forms[0].service_proto.options[1].hidden=false;
+		document.forms[0].service_proto.options[2].hidden=false;
+		document.forms[0].service_proto.options[0].selected=true;
+		document.forms[0].service_port.disabled=false;
+		show_div(true, "div_range_show");
+	}else if(document.forms[0].service_name.value == "XboxLive") {
+		document.forms[0].service_proto.options[0].hidden=true;
+		document.forms[0].service_proto.options[1].hidden=false;
+		document.forms[0].service_proto.options[2].hidden=false;
+		document.forms[0].service_proto.options[1].selected=true;
+		document.forms[0].service_port.disabled=true;
+	}else if(document.forms[0].service_name.value == "ISPEC_IKE") {
+		document.forms[0].service_proto.options[0].hidden=true;
+		document.forms[0].service_proto.options[1].hidden=true;
+		document.forms[0].service_proto.options[2].hidden=false;
+		document.forms[0].service_proto.options[2].selected=true;
+		document.forms[0].service_port.disabled=true;
+	}else{
+		document.forms[0].service_proto.options[0].hidden=false;
+		document.forms[0].service_proto.options[1].hidden=true;
+		document.forms[0].service_proto.options[2].hidden=true;
+		document.forms[0].service_proto.options[0].selected=true;
+		document.forms[0].service_port.disabled=true;
+	}
+	
+	if(document.forms[0].service_name.value == "UserDefined") {
+		document.getElementsByName( "service_port" )[0].value = "";
+	}else if(document.forms[0].service_name.value == "XboxLive") {
+		document.getElementsByName( "service_port" )[0].value = "3074";
+	}else if(document.forms[0].service_name.value == "HTTP") {
+		document.getElementsByName( "service_port" )[0].value = "80";
+	}else if(document.forms[0].service_name.value == "HTTPS") {
+		document.getElementsByName( "service_port" )[0].value = "443";
+	}else if(document.forms[0].service_name.value == "ISPEC_IKE") {
+		document.getElementsByName( "service_port" )[0].value = "500,4500";
+	}else if(document.forms[0].service_name.value == "MicrosoftRemoteDesktop") {
+		document.getElementsByName( "service_port" )[0].value = "3389";
+	}else if(document.forms[0].service_name.value == "NetMeeting") {
+		document.getElementsByName( "service_port" )[0].value = "1720";
+	}else if(document.forms[0].service_name.value == "POP3") {
+		document.getElementsByName( "service_port" )[0].value = "110";
+	}else if(document.forms[0].service_name.value == "PPTP") {
+		document.getElementsByName( "service_port" )[0].value = "1723";
+	}else if(document.forms[0].service_name.value == "SMTP") {
+		document.getElementsByName( "service_port" )[0].value = "25";
+	}else if(document.forms[0].service_name.value == "SSH") {
+		document.getElementsByName( "service_port" )[0].value = "22";
+	}else {
+		document.getElementsByName( "service_port" )[0].value = "5500,5800,5900-5910";
+	}
+	
+}
+function show_div(show,id) {
+	if(show)
+		document.getElementById(id).style.display = "block" ;
+	else
+		document.getElementById(id).style.display = "none" ;
+}
+//////////////////////////////
+
+function User_Delete_click(){
+	var D_select = document.SRForm.User_DomainList;
+	var D_value = getSelectValues(D_select);
+	
+	
+	for (i = 0; i < D_value.length; i++){
+		var D_str=D_value[i];
+		if(D_str!=""){	
+			var list_num=document.SRForm.User_Domain.length;
+				if(checkValue2(D_str)==0){
+					document.SRForm.User_Domain.options[list_num]=new Option(D_str, D_str);
+					document.SRForm.User_DomainList.remove(document.SRForm.User_DomainList.selectedIndex);
+				}
+				else
+				{	    
+					alert("<%:CF_Error_1%>"); 
+					document.SRForm.User_DomainList.value="";
+				}
+		} 
+	}
+}
+
+function checkValue2(str){
+   var flag=0;
+	for(i=0;i < document.SRForm.User_Domain.options.length;i++){
+		if(document.SRForm.User_Domain.options[i].text == str){
+		   flag=1;
+		   break;	   
+		}		  
+	}
+	if(flag == 1)
+	   	return 1;
+	else
+    	return 0;
+}
+function User_Add_click(){	
+	var D_select = document.SRForm.User_Domain;
+	var D_value = getSelectValues(D_select);
+	
+	for (i = 0; i < D_value.length; i++){
+	
+	var D_str=D_value[i];
+
+		if(D_str!=""){	
+			var list_num=document.SRForm.User_DomainList.length;
+			if(list_num < D_NUM){ 
+				if(checkValue(D_str)==0){
+					document.SRForm.User_DomainList.options[list_num]=new Option(D_str, D_str);
+					document.SRForm.User_Domain.remove(document.SRForm.User_Domain.selectedIndex);
+				}
+				else
+				{	    
+					alert("<%:CF_Error_1%>"); 
+					document.SRForm.User_Domain.value="";
+				}
+			}
+			else{
+				alert("<%:CF_Error_2%>");
+				return false;
+			}
+		} 
+	}
+}
+
+function getSelectValues(select) {
+  var result = [];
+  var options = select && select.options;
+  var opt;
+
+  for (var i=0, iLen=options.length; i<iLen; i++) {
+    opt = options[i];
+
+    if (opt.selected) {
+      result.push(opt.value || opt.text);
+    }
+  }
+  
+  return result;
+}
+
+function setTimeTable(){
+	var weekdays = 7;
+	var dayhours = 24;
+	
+	var main = document.getElementById('selectable');
+	
+	for(i=0;i<weekdays;i++){
+	
+		
+		for(j=0;j<dayhours;j++){
+			cell = document.createElement('div');
+			cell.setAttribute('id',i + '_' + j);
+			cell.setAttribute('class','ui-selectee');
+			cell.innerHTML = '&nbsp;';
+			main.appendChild(cell);
+		}
+		
+		
+	}
+
+
+}
+
+function onclickTime(e){
+	
+	
+	e.className += ' timeboxClick';
+	
+}
+
+function AllTime(str){
+
+
+	var t = ["","","","","","","","","","","","","","","","","","","","","","","",""];
+	
+	var index = "";
+	
+	$.each($('.ui-selected'), function() {
+		this.value = "1";
+	});
+	
+	$.each($('#selectable div'), function() {
+		index = this.id.split("_");
+		if (this.value){
+			t[index[1]] = t[index[1]] + "1";
+		}
+		else{
+			t[index[1]] = t[index[1]] + "0";
+		}
+		
+	});
+	
+	for(i=0;i<24;i++){
+			$( "#selectable" ).append('<input name=t' + i + ' value=' + t[i] + ' type="hidden" />');
+			
+		}
+
+	if (str == "apply" ){
+		submitEdit();
+	}else{
+		submitEdit2();
+	}
+}
+
+function setSelectTime(){
+	var setTime = [];
+	 setTime[0] = "<%=time0%>";
+	
+	if (setTime[0]){
+		setTime[1] = "<%=time1%>";
+		setTime[2] = "<%=time2%>";
+		setTime[3] = "<%=time3%>";
+		setTime[4] = "<%=time4%>";
+		setTime[5] = "<%=time5%>";
+		setTime[6] = "<%=time6%>";	
+		setTime[7] = "<%=time7%>";
+		setTime[8] = "<%=time8%>";
+		setTime[9] = "<%=time9%>";
+		setTime[10] = "<%=time10%>";
+		setTime[11] = "<%=time11%>";
+		setTime[12] = "<%=time12%>";
+		setTime[13] = "<%=time13%>";
+		setTime[14] = "<%=time14%>";
+		setTime[15] = "<%=time15%>";
+		setTime[16] = "<%=time16%>";
+		setTime[17] = "<%=time17%>";
+		setTime[18] = "<%=time18%>";
+		setTime[19] = "<%=time19%>";
+		setTime[20] = "<%=time20%>";
+		setTime[21] = "<%=time21%>";
+		setTime[22] = "<%=time22%>";
+		setTime[23] = "<%=time23%>";
+		var selected;
+		var idd;
+		
+		for (j=0;j<24;j++){
+			
+			selected = setTime[j];
+
+			for (i=0;i<7;i++){
+				if(selected[i] == "1"){
+					idd = i + '_' + j;
+					$('div[id='+ idd +']').addClass('ui-selected');
+				}
+				
+			
+			}
+		}
+
+	}
+}
+
+function setDeviceList(){
+	var device_mac = "<%=macaddr_list%>".split(";");
+	var device_mac_selected = "<%=macaddr_list2%>".split(" ");
+	var device = "<%=mac_list%>".split(";");
+	var device_selected = "<%=mac_list2%>".split(";");
+
+	
+	$.each(device_mac,function(index,value){
+		
+		if (value)
+		$("select[name=User_Domain]").append("<option>"+ device[index] +"("+ value +")</option>");
+		
+	});
+	
+	$.each(device_mac_selected,function(index,value){
+		
+		if (value)
+		$("select[name=User_Domain] option:contains("+value+")").remove();
+		
+	});
+		
+		
+	
+	
+	$.each(device_selected,function(index2,value2){
+		
+		if (value2){
+			
+			$("select[name=User_DomainList]").append("<option>"+ value2 +"("+ device_mac_selected[index2] +")</option>");
+		}
+	});
+}
+
+</script>
+  <style>
+      .scrollable {
+        /*border:1px solid black;*/
+        width:1100px;
+        height:250px;
+
+        overflow: auto; 
+ 
+      }
+
+      .items{
+        width: 980px;
+        /*border:1px solid red;*/
+      }
+    </style>
+</head>
+<body  onload="setTimeTable();setSelectTime();setDeviceList();">
+
+<!--<form method="post" name="SRForm" action="<%=controller%>/expert/configuration/security/ParentalControl/ParentalControl_Edit" onSubmit="return CheckValue()">-->
+<form method="post" name="SRForm" action="<%=controller%>/expert/configuration/security/ParentalControl/ParentalControl_Edit">
+
+   
+<ul id="list">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:General_edit%></div></td>
+    <td>&nbsp;</td>
+
+     <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" onclick="return CheckValue('apply')"/></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Back" value="<%:Cancel%>"  type="button" id="back" onclick="backToList()" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+        <li class="table_content">
+            <div class="data">
+               <ul>
+			   <li class="title" > <%:General%> </li>
+			   
+			   <div class="w_text">
+					 <ul>
+							<%local rule_enable = uci:get("parental_ex",rule,"enable")%>
+							<li class="all_table">
+							<input name="rule_enable" type="checkbox" value="1" <%if rule_enable == "1" then%>  checked="CHECKED" <%end%>/> <%:active%>
+							</li>
+					 </ul>
+				 </div>
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:children_name%> :</li>
+                        <li class="right_table">
+							<%local rule_name = uci:get("parental_ex",rule,"name")%>
+                           <input name="rule_name" size="9" maxlength="20" value="<%=rule_name%>" type="text" />
+                        </li>
+                     </ul>
+                  </div>
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:device_list%>  :</li>
+                    <li class="right_table">
+								<table align="left" border="0" cellspacing="0" width="45%">
+									<tbody>
+										<tr>
+											<td>
+											<select name="User_Domain" size="6" multiple="true" Style="Width:220px;Height:100px" onchange="this.form.User_Domain2.value = this.options[this.selectedIndex].text;">
+
+											</select>
+											</td>
+											<input name="User_Domain2" size="6" multiple="true" type="hidden">
+											<td>&nbsp;&nbsp;&nbsp;</td>
+											<td><input name="User_Add" id="SCFilterAdd" value="<%:add_to_right%> " style="width: 70pt;" onclick="User_Add_click();" type="button" ><br>
+												<input name="User_Delete" id="SCFilterDelete" value=" <%:delete_to_left%> " style="width: 70pt;" onclick="User_Delete_click();" type="button">&nbsp;
+											</td>
+											<td>&nbsp;&nbsp;&nbsp;</td>
+											<td>
+											<input name="User_DomainList2" size="6" multiple="true" type="hidden">
+											<select name="User_DomainList" size="6" multiple="true" Style="Width:220px;Height:100px" onchange="this.form.User_DomainList2.value = this.options[this.selectedIndex].text;">
+											</select>
+											</td>
+										</tr>
+										<tr>
+											<td height="5"></td>
+										</tr>
+									</tbody>
+								</table>
+								</li>
+					   </ul>
+				  </div>
+
+                  <div class="spaceair"></div>
+				  <div class="spaceair"></div>
+				  <div class="spaceair"></div>
+				  <div class="spaceair"></div>
+				  
+				    <div id="IAS" >
+				  <li class="space"></li>
+				  <ul>
+				   <li class="title" > <%:internet_access_sche%> </li>
+				  <div class="scrollable">
+      				<div class="items">
+      					<div id="timeslot">
+						<ul>
+							<li>0</li>
+							<li>1</li>
+							<li>2</li>
+							<li>3</li>
+							<li>4</li>
+							<li>5</li>
+							<li>6</li>
+							<li>7</li>
+							<li>8</li>
+							<li>9</li>
+							<li>10</li>
+							<li>11</li>
+							<li>12</li>
+							<li>13</li>
+							<li>14</li>
+							<li>15</li>
+							<li>16</li>
+							<li>17</li>
+							<li>18</li>
+							<li>19</li>
+							<li>20</li>
+							<li>21</li>
+							<li>22</li>
+							<li>23</li>
+							<li>24</li>
+					  	</ul>
+					 	</div>
+				   		<div id="weekdays">
+						 <ul>
+						<li><%:sunday%></li>
+						<li><%:monday%></li>
+						<li><%:tuesday%></li>
+						<li><%:wednesday%></li>
+						<li><%:thursday%></li>
+						<li><%:friday%></li>
+						<li><%:saturday%></li>
+						<div class="spaceair"></div>
+		
+              			</ul>
+              			<div class="left_table" >
+              			<table align="right" valign="right">
+						  <tr>
+						  	<td width="95">&nbsp;</td>
+						    <td style="background-color:#0075C9" width=25 height=15></td>
+						    <td width="5">&nbsp;</td>
+						    <td ><%:Allow%></td>
+						    <td width="15">&nbsp;</td>
+						    <td style="background-color:#999" width=25 height=15></td>
+						    <td width="5">&nbsp;</td>
+						    <td><%:Block%></td>
+						  </tr>
+						</table>
+						</div>
+						<ul>
+              				<div class="spaceair"></div>
+							<li><input type="button" id="clean" value="<%:Clean_All%>" /><input type="button" id="selectAll" value="<%:Select_All%>" /></li>
+						
+						 </ul>
+
+				   		</div>
+			
+						<div id="selectable">
+		
+						</div>
+					</div>
+				</div>
+
+					<div class="spaceair"></div>
+					<div class="spaceair"></div>
+
+					</ul>
+					</div>
+					<div id="NS">
+					<li class="space" ></li>
+					<ul>
+						<li class="title" > <%:network_service%> </li>
+							<div class="w_text">
+								<ul>
+									<li class="left_table"><%:network_service_setting%>  :</li>
+									<li class="right_table">
+									<%local service_act = uci:get("parental_ex",rule,"service_act")%>
+										<select name="service_act" size="1" >
+											<option value="block" <%if service_act == "block" then%>selected="selected"<%end%>> <%:Block%></option>
+											<option value="allow" <%if service_act == "allow" then%>selected="selected"<%end%>> <%:Allow%></option>                
+										</select> <%:selected_service%>
+									</li>
+								</ul>
+							</div>
+							<div class="w_text">
+								<ul>    
+									<input value="<%:add_new_service%>" type="button" onclick="return checklist('New');" />
+								</ul>
+							</div>
+							
+							<ul>
+							  <div class="tableframe">
+								 <table width="70%"   cellpadding="0" cellspacing="0" class="table_frame">
+									<tr>
+									   <td>
+										  
+												   
+															<table id="list_table" width="100%" cellpadding="0" cellspacing="0" >
+															   <tr>
+																  <td height="26" colspan="4">
+																	 <table width="100%" border="0" cellspacing="0" cellpadding="0">
+																		<tr>
+																		   <td height="26" class="table_title">
+																			  <%:network_service_rule%><span class="cTitle"></span>
+																		   </td>
+																		</tr>
+																	 </table>
+																  </td>
+															   </tr>
+															   <tr class="top_font" align="center">
+																  <td width="35">#</td>																  
+																  <td width="90"><%:Service_Name%> </td>
+																   <td width="90"><%:Protocol%>:<%:Port%> </td>
+																  <td width="90"><%:Modify%></td>
+															   </tr>
+															   <% 
+																  for i = 1, #luaSRules do
+																  %>
+																	 <tr class="table_font" align="center">
+																		<td valign="top"><%= i %></td>
+																		<%if luaSRules[i].name == "UserDefined" then%>
+																			<td><%= luaSRules[i].user_define_name %></td>
+																		<%else%>
+																			<td><%= luaSRules[i].name %></td>
+																		<%end%>
+																		<td><%= luaSRules[i].proto %>:<%= luaSRules[i].port %></td>
+																		<td>
+																		   <a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image19','','<%=media%>/admin/images/i_edit_on.gif',1)" ><img src="<%=media%>/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19"  title="<%:Edit%>" onclick="editSR(<%= i - 1 %>)"/></a>
+																			  &nbsp;&nbsp;
+																		   <a href="#"><img src="<%=media%>/admin/images/i_delete.gif" name="Image1411" width="18" height="18" border="0" id="Image1411"  title="<%:Delete%>" onclick="skm_LockScreen();deleteSR(<%= i %>, this)" onmouseover="MM_swapImage('Image1411','','<%=media%>/admin/images/i_delete_on.gif',1)" onmouseout="MM_swapImgRestore()"/></a>
+																		   <a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image14','','<%=media%>/admin/images/i_delete_on.gif',1)"></a>
+																		</td>
+																		
+																	 </tr>
+																  <%
+																  end
+															   %>
+															</table>
+														 
+												
+									   </td>
+									</tr>
+								 </table>
+							  </div>
+                  <div class="spaceair"></div>
+               </ul>
+							
+							
+							<div class="spaceair"></div>	
+					 </ul>
+					</div>
+					<div id="BSUK">
+					<li class="space" ></li>
+					   <ul>
+					   <li class="title" > <%:block_site_url_key%> </li>
+							<div class="w_text">
+								<table align="center" border="0" cellspacing="0" width="95%">
+									<tbody>
+										<tr>
+											<td id="SCFilterKeyword" nowrap="nowrap" width="10%"><%:Keyword%></td>
+											<td width="2%">&nbsp;</td>
+											<td width="20%"><input name="cfKeyWord_Domain" size="48" maxlength="127" type="text">
+											</td>
+											<td width="2%">&nbsp;</td>
+											<td width="66%"><input name="cfKeyWord_AddKeyword" id="SCFilterAdd" value="<%:Add%>" style="width: 60pt;" onclick="cfKeyWord_AddKeyword_click();" type="button">
+											</td>
+										</tr>
+										<tr>
+											<td>&nbsp;</td>
+										</tr>
+									</tbody>
+								</table>
+								<table align="center" border="0" cellspacing="0" width="95%">
+									<tbody>
+										<tr>
+											<td id="SCFilterKeywordList"><%:Keyword_List%></td>
+										</tr>
+										<tr>
+											<td><select name="cfKeyWord_DomainList" size="6" multiple="true" Style="Width:320px;Height:100px" onchange="this.form.cfKeyWord_Domain.value = this.options[this.selectedIndex].text;">
+												<script language="JavaScript" type="text/javascript">
+													var i;
+													var entries = new Array();
+													var all_str = "<%=keywords%>";
+													if (all_str.length) {
+													entries = all_str.split(";");
+													for (i = 0; i < entries.length; i++) {
+															document.write(" <option >");
+															document.write(entries[i]);
+															document.write("</option >");
+														}
+													}
+												</script>
+											</select></td>
+										</tr>
+										<tr>
+											<td height="5"></td>
+										</tr>
+										<tr>
+											<td><input name="cfKeyWord_DeleteKeyword" id="SCFilterDelete" value=" <%:Delete%> "  onclick="cfKeyWord_DeleteKeyword_click()" type="button">&nbsp;
+												<input name="cfKeyWord_ClearList" id="SCFilterClear" value="<%:Clear_All%> "  onclick="cfKeyWord_ClearList_click()" type="button">
+											</td>
+										</tr>
+										<tr>
+											<td>&nbsp;</td>
+										</tr>	
+								</tbody>
+								</table>
+								
+							</div>
+							<div class="spaceair"></div>	
+					   </ul>
+					</div>
+				   
+               </ul>
+            </div>
+
+         </li>
+		
+		 </div>
+		</ul>
+   
+		<input type="hidden" name="SRSubmitType" value="table"/>
+		<input type="hidden" name="SREditID" />
+		<input type="hidden" name="SRDeleteIDs" />
+		<input value="" name="DomainList_str" type="hidden">
+		<input value="" name="DomainList_str_mac" type="hidden">
+		<input value="" name="url_str" type="hidden">
+   <ul id="edit" style="display:none">
+      <div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:General_edit%></div></td>
+    <td>&nbsp;</td>
+
+                
+     <td width="100" valign="top"><div class="apply"  ><input name="apply2" value="<%:Apply%>" type="submit" onclick="return CheckValue('apply2')" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Back2" value="<%:Cancel%>" type="button" id="back" onclick="backToList2()" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+         <li class="table_content">
+            <div class="data">
+               <ul>  
+					<div class="w_text">
+						<ul>
+							<li class="left_table" ><%:Service_Name%>  :</li>
+							<li class="right_table">
+								<select name="service_name" size="1" onchange="doServiceChange(this.selectedIndex);" >
+									<option value="UserDefined" <%if service_name == "UserDefined" then%>selected="selected"<%end%>> <%:UserDefined%></option>
+									<option value="XboxLive" <%if service_name == "XboxLive" then%>selected="selected"<%end%>> XboxLive</option>
+									<option value="HTTP" <%if service_name == "HTTP" then%>selected="selected"<%end%>> HTTP</option> 
+									<option value="HTTPS" <%if service_name == "HTTPS" then%>selected="selected"<%end%>> HTTPS</option> 
+									<option value="ISPEC_IKE" <%if service_name == "ISPEC_IKE" then%>selected="selected"<%end%>> ISPEC_IKE</option> 
+									<option value="MicrosoftRemoteDesktop" <%if service_name == "MicrosoftRemoteDesktop" then%>selected="selected"<%end%>> Microsoft Remote Desktop</option> 
+									<option value="NetMeeting" <%if service_name == "NetMeeting" then%>selected="selected"<%end%>> Net Meeting</option> 
+									<option value="POP3" <%if service_name == "POP3" then%>selected="selected"<%end%>> POP3</option> 
+									<option value="PPTP" <%if service_name == "PPTP" then%>selected="selected"<%end%>> PPTP</option> 
+									<option value="SMTP" <%if service_name == "SMTP" then%>selected="selected"<%end%>> SMTP</option> 
+									<option value="SSH" <%if service_name == "SSH" then%>selected="selected"<%end%>> SSH</option> 
+									<option value="VNC" <%if service_name == "VNC" then%>selected="selected"<%end%>> VNC</option> 
+								</select>
+							</li>
+						</ul>
+					</div>
+					 <ul id="div_range_show" style="display:none">
+					<div class="w_text">
+                     <ul>
+                        <li class="left_table"></li>
+                        <li class="right_table">
+                           <input name="user_define_name" size="15" maxlength="15" value="" type="text" />
+                        </li>
+                     </ul>
+                  </div>
+				   </ul>
+					<div class="w_text">
+						<ul>
+							<li class="left_table"><%:Protocol%>  :</li>
+							<li class="right_table">
+								<select name="service_proto" size="1" onload="initAll();" >
+									<option value="TCP" selected="selected"> TCP</option>
+									<option value="UDP" selected="selected"> UDP</option>
+									<option value="TCP/UDP" selected="selected"> TCP/UDP</option> 
+								</select> 
+							</li>
+						</ul>
+					</div>
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:Port%>  :</li>
+                        <li class="right_table">
+                           <input name="service_port" size="15" maxlength="15" value="" type="text" />
+                        </li>
+                     </ul>
+                  </div>
+				  <div class="w_text">
+                     <ul>
+                        <li class="left_table"></li>
+                        <li class="right_table">
+                          (<%:Example%>:4091)
+                        </li>
+                     </ul>
+                  </div>
+                  <div class="spaceair"></div>
+               </ul>
+            </div>
+         </li>
+ 
+		 </div>
+      </ul>
+	  
+   
+ 
+</form>
+<script>
+$( "#selectable" ).selectable({
+});
+
+$('#clean').click(function(){
+	
+	$( "#selectable div" ).removeClass("ui-selected");
+});
+
+$('#selectAll').click(function(){
+	
+	$( "#selectable div" ).addClass("ui-selected");
+});
+</script>
+</body>
+
+</html>

@@ -1,0 +1,182 @@
+#!/bin/sh
+
+##for NBG6817
+##wifi0--5G   wifi1--24G
+chk_iface=$(uci get wireless.iface.wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+#chk_led=$(uci get system.led.on)
+chk_led="1"
+FLAG_PATH="/tmp/WPSchk"
+
+wps_flag_set(){
+	##1:start  0:over
+	echo "$1" > $FLAG_PATH
+}
+
+set_default(){
+	rm /tmp/pbc_overlap /tmp/wps_success /tmp/wps_timeout /tmp/wps_connect_timeout
+	killall wps
+	killall wps5G
+}
+
+set_WPSconfig(){
+	if [ "$1" == "WPS24G" ]; then
+		config="wps"
+		DEV="$DEV24G"
+		DEV_FIRSTNAME="$DEV24G_FIRSTNAME"0
+	else
+		config="wps5G"
+		DEV="$DEV5G"
+		DEV_FIRSTNAME="$DEV5G_FIRSTNAME"0
+
+	fi
+
+	wps_conf=$(hostapd_cli -p /tmp/run/hostapd-$DEV/ -i "$DEV_FIRSTNAME" get_config |grep wps_state)
+
+	if [ "$wps_conf" == "wps_state=configured" ]; then
+		configured=1
+	else
+		configured=0
+	fi
+
+	uci set $config.wps.conf=$configured
+	uci commit "$config"
+	sync #This command is for emmc and ext4 filesystem
+}
+
+for_loop(){
+	for i in `seq 1 1 124`
+	do
+		sleep 1
+		if [ -e "/tmp/pbc_overlap" ] || [ -e "/tmp/wps_success" ] || [ -e "/tmp/wps_timeout" ]; then
+			break
+		fi
+
+		if [ "$i" == "122" ]; then
+			echo 1 > /tmp/wps_timeout
+		fi
+	done
+
+	# app agent WPS
+	rm /tmp/app_agent_wps
+}
+
+WPS24G_set(){
+	wps_flag_set 1
+	zyxel_led_ctrl WPS24G $chk_led
+	wps "$DEV24G_FIRSTNAME"0 on wps_btn &
+
+	for_loop
+
+	set_WPSconfig WPS24G
+
+	killall wps
+	wps_flag_set 0
+	zyxel_led_ctrl WPS24G 0
+}
+
+WPS24G_pin_set(){
+	pincode="$1"
+	pin_verify=$(hostapd_cli -p /tmp/run/hostapd-$DEV24G/ -i "$DEV24G_FIRSTNAME"0 wps_check_pin $pincode)
+
+	if [ "$pin_verify" == "$pincode" ]; then
+		zyxel_led_ctrl WPS24G $chk_led
+		wps "$DEV24G_FIRSTNAME"0 on wps_pin $pincode &
+
+		for_loop
+	fi
+
+	set_WPSconfig WPS24G
+
+	killall wps
+	zyxel_led_ctrl WPS24G 0
+}
+
+WPS5G_set(){
+	wps_flag_set 1
+	zyxel_led_ctrl WPS5G $chk_led
+	wps5G "$DEV5G_FIRSTNAME"0 on wps_btn &
+
+	for_loop
+
+	set_WPSconfig WPS5G
+
+	killall wps
+	wps_flag_set 0
+	zyxel_led_ctrl WPS5G 0
+}
+
+WPS5G_pin_set(){
+	pincode="$1"
+	pin_verify=$(hostapd_cli -p /tmp/run/hostapd-$DEV5G/ -i "$DEV5G_FIRSTNAME"0 wps_check_pin $pincode)
+
+	if [ "$pin_verify" == "$pincode" ]; then
+		zyxel_led_ctrl WPS5G $chk_led
+		wps5G "$DEV5G_FIRSTNAME"0 on wps_pin $pincode &
+
+		for_loop
+	fi
+
+	set_WPSconfig WPS5G
+
+	killall wps5G
+	zyxel_led_ctrl WPS5G 0
+}
+
+WPS_HW_set(){
+	local Enable_24G=$(uci get wps.wps.enabled)
+	local Enable_5G=$(uci get wps5G.wps.enabled)
+	local wifi_24G=$(iwconfig "$DEV24G_FIRSTNAME"0 |grep "Access Point")
+	local wifi_5G=$(iwconfig "$DEV5G_FIRSTNAME"0 |grep "Access Point")
+
+	if [ "$(cat $FLAG_PATH)" == "1" ]; then
+		echo "wps is sittipg --- `date`" >> /tmp/wps_debug_log
+		exit 0
+	fi
+			
+	if [ "$Enable_24G" == "1" ] && [ -n "$wifi_24G" ]; then
+		WPS24G_set &
+	else
+		zyxel_led_ctrl WPS24G 0
+		echo "Wifi 2.4G WPS config is disabled"
+	fi
+
+	if [ "$Enable_5G" == "1" ] && [ -n "$wifi_5G" ]; then
+		WPS5G_set &
+	else
+		zyxel_led_ctrl WPS5G 0
+		echo "Wifi 5G WPS config is disabled"
+	fi
+}
+
+
+set_default
+case $1 in
+	WPS24G_GUI)
+		WPS24G_set &
+	;;
+	WPS24G_pin_GUI)
+		WPS24G_pin_set $2 &
+	;;
+	WPS5G_GUI)
+		WPS5G_set &
+	;;
+	WPS5G_pin_GUI)
+		WPS5G_pin_set $2 &
+	;;
+	WPS_HW)
+		WPS_HW_set
+	;;
+esac
+exit 0

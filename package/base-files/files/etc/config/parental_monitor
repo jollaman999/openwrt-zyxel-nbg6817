@@ -1,0 +1,5 @@
+
+config parental_general 'general'
+	option ruleIdx 'rule1'
+	option count '0'
+

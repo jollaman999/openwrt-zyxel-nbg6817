@@ -1,0 +1,36 @@
+#!/bin/sh
+
+PROG=`basename $0`
+
+usage() {
+	echo "usage: $PROG action resetDay quotaUsage warningThreshold"
+}
+
+if [ $# -lt 4 ]; then
+	usage
+	exit 1
+fi
+
+action=$1
+resetDay=$2
+quotaUsage=$3
+warningThreshold=$4
+
+# process_step return values
+FLAG_DONE=0
+FLAG_COMMA=1
+FLAG_NOTHING=2
+FLAG_WRITECALCULATION=1
+
+process_step() {
+	redis-cli -s /var/run/appflow/redis.sock --eval /bin/precalculateFlow.lua fetchUsageInfo logCalculation $action $resetDay $quotaUsage $warningThreshold | \
+	{
+		local setcomma=$FLAG_NOTHING
+		while read line; do
+			echo $line
+		done
+		return $setcomma
+	}
+}
+
+process_step

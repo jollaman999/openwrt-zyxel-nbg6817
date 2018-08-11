@@ -1,0 +1,132 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+</head>
+<body  >
+<%
+   local infIdx = tonumber( uci:get( "firewall", "remote_telnet", "interface" ) )
+   local clientCheck = uci:get( "firewall", "remote_telnet", "client_check" )
+%>
+<script type="text/javascript">
+
+function checkIPFormat( value )
+{
+  return /^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$/.test( value )
+}
+
+function submitData()
+{
+   //<![CDATA[
+   if ( document.getElementsByName( "RemoteTelnetClientCheck" )[1].checked
+      && checkIPFormat( document.getElementsByName( "RemoteTelnetClientAddr" )[0].value ) )
+   {
+      showWebMessage( 1, "<%:Message%>", "<%:msg_config%>" );
+      return true;
+   }
+   
+   alert( "<%:IP_Error_3%>" );
+   return false;
+   //]]>
+}
+
+</script>
+<form name="RMGMTTelnetForm">
+<div id="tabs">
+   <ul>
+      <li ><a href="<%=controller%>/expert/configuration/management/remote" title="<%:WWW%>" ><span><%:WWW%></span></a></li>
+      <li class="hightline"><a  title="<%:Telnet%>"><span><%:Telnet%></span></a></li>
+      <li><a href="<%=controller%>/expert/configuration/management/remote/wol" title="<%:Wake_On_LAN%>"><span><%:Wake_On_LAN%></span></a></li>
+   </ul>
+   <br class="clearfloat" />
+</div>
+<div id="table">
+   <ul>
+      <li class="table_top"></li>
+      <li class="table_content">
+         <div class="data">
+            <ul>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:Port%> : </li>
+                     <li class="right_table">
+                        <input name="RemoteTelnetPort" size="5" maxlength="5" value="<%= uci:get( "firewall", "remote_telnet", "port" ) %>"  type="text" />
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:Access_Status%> : </li>
+                     <li class="right_table">
+                        <select name="RemoteTelnetInterface" size="1" >
+                           <option value="00000001" <% if 1 == infIdx then %>selected="selected"<% end %> ><%:LAN_WAN%> </option>
+                           <option value="00000002" <% if 2 == infIdx then %>selected="selected"<% end %> ><%:LAN%> </option>
+                           <option value="00000003" <% if 3 == infIdx then %>selected="selected"<% end %> ><%:WAN%> </option>
+                        </select>
+                     </li>
+                  </ul>
+               </div>
+               <div class="w_text">
+                  <ul>
+                     <li class="left_table"><%:Secured_Client_IP_Address%>   :</li>
+                     <li class="right_table">
+                        <input name="RemoteTelnetClientCheck" value="0" type="radio" <% if "0" == clientCheck then%>checked="checked"<% end %> />
+                           <%:All%>&nbsp;&nbsp;&nbsp;
+                        <input name="RemoteTelnetClientCheck" value="1" type="radio" <% if not ( "0" == clientCheck ) then%>checked="checked"<% end %> />
+                           <%:Selected%>&nbsp;
+                        <input name="RemoteTelnetClientAddr" size="20" maxlength="15" value="<%= uci:get( "firewall", "remote_telnet", "client_addr" ) %>" type="text" />
+                     </li>
+                  </ul>
+               </div>
+               <div class="spaceair"></div>
+               <div class="w_text"><span class="i_note"><%:Note%>:</span></div>
+               <div class="w_text"><%:Remote_MGMT_Note_2%>
+               </div>
+               <div class="spaceair"></div>
+            </ul>
+         </div>
+      </li>
+      <li class="table_button">
+         <div class="button" align="center">
+            <input name="apply" value="<%:Apply%>" type="submit" />
+               &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+            <input name="Cancel" value="<%:Cancel%>" type="reset" onclick="init()"/>
+         </div>
+      </li>
+   </ul>
+</div>
+</form>
+</body>
+<script language="JavaScript">
+   showFullPath(' <%:Management%> > <%:Remote_MGMT%> > <%:Telnet%>');
+   showWebMessage( 0, '<%:Message%>', '<%:Ready%>' );
+</script>
+</html>

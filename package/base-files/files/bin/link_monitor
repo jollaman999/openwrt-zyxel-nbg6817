@@ -1,0 +1,301 @@
+#!/bin/sh
+
+local product=$(uci get system.main.product_name)
+local wan_link_check=$(cat /tmp/wan_link_status)
+local wan_proto=$(uci get network.wan.proto)
+local brlan="br-lan"
+local wan_ifname=$(uci get network.wan.ifname)
+
+##For QTN WiFi5G check br-lan:0 host0
+if [ "$product" == "NBG6815" ] || [ "$product" == "NBG6816" ];then
+	if [ -z "$( ifconfig $brlan:0 | grep "inet addr" | awk '{print $2}' | awk -F ":" '{print $2}' )" ];then
+		brctl addif br-lan host0
+		ifconfig br-lan:0 223.254.253.251 up
+	fi
+fi
+
+## Wan IP Address
+if [ "$wan_proto" == "pppoe" ]; then
+	local wan_info=$(ifconfig $wan_proto-wan | grep "inet addr" | awk -F ":" '{print $2}' | awk '{print $1}')
+elif [ "$wan_proto" == "pptp" ] ;then
+	local wan_info=$(ifconfig $wan_proto-wan | grep "inet addr" | awk -F ":" '{print $2}' | awk '{print $1}')
+else
+	local wan_info=$(ifconfig $wan_ifname | grep "inet addr" | awk -F ":" '{print $2}' | awk '{print $1}')
+fi
+
+## Check to DUT connects status
+if [ "$wan_link_check" == "0" ]; then
+	echo -n > /var/connect_internet
+elif [ "$wan_link_check" == "1" ]; then
+	if [ -n "$wan_info" ]; then
+		ping 8.8.8.8 -c 1 | grep time > /var/connect_internet
+	else
+		echo -n > /var/connect_internet
+	fi
+
+	local connect_value=$(cat /var/connect_internet)
+	if [ "$connect_value" != "" ] ;then
+		## Does set Auto Time zone in DUT ?
+		tzIndex_status=$(uci get time.main.tzIndex)
+		if [ "$tzIndex_status" == "63" ]; then
+			local checkTime_Min=$(date +%M)
+			if [ "$checkTime_Min" == "00" ] || [ "$checkTime_Min" == "30" ]; then
+				local lastchar_num
+				local laster_serial_num=$(fw_printenv serialnum | awk -F"=" '{print $2}' | cut -c 13-13)
+				laster_serial_num=$(($laster_serial_num+0))
+				local lastchar=$(fw_printenv ethaddr | awk -F"=" '{print $2}' |sed 's/"//g' | awk -F":" 'BEGIN{OFS=""}{print $1,$2,$3,$4,$5,$6}' | cut -c 12-12)
+				case $lastchar in
+				"0")
+					lastchar_num=0
+					lastchar_num=$(($lastchar_num+0))
+					;;
+				"4")
+					lastchar_num=4
+					lastchar_num=$(($lastchar_num+0))
+				;;
+				"8")
+					lastchar_num=8
+					lastchar_num=$(($lastchar_num+0))
+				;;
+				"c")
+					lastchar_num=12
+					lastchar_num=$(($lastchar_num+0))
+				;;
+				"C")
+					lastchar_num=12
+					lastchar_num=$(($lastchar_num+0))
+				;;
+				esac
+
+				local checkTime_Sec=$(($laster_serial_num+$lastchar_num))
+				local times_sec=$(date +%S)
+				local DUT_time=$(date)
+				#echo "checkTime_Sec=$checkTime_Sec DUT_Time=$DUT_time" > /dev/console
+				if [ $times_sec -gt $checkTime_Sec ]; then
+					local TZ=""
+					local TZ_time=""
+					#Auto TZ
+					for i in 0 1
+					do
+						case $i in
+						"0")
+							path=$(curl -s http://api.ipinfodb.com/v3/ip-city/?key\=8dda3a644570ff8d5bc77d4139230adb75454bab76683e0e796f02c590b50a50)
+							;;
+						"1")
+							path=$(curl -s http://addgadgets.com/ipaddress/|grep 'Time Zone'| awk 'BEGIN{FS="<td>"}{print $2}'|awk 'BEGIN{FS="</td>"}{print $1}')
+							;;
+						esac
+
+						ip_info=$(echo $path)
+						ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=";"}{print $11}')
+						if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+							break
+						fi
+
+						ip_timezone=$(echo $ip_info | awk 'BEGIN{FS=" "}{print $1}')
+						if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+							break
+						fi
+					done
+
+					if [ "$(echo $ip_timezone | grep '..:..')" != "" ];then
+						sign=$(echo $ip_timezone | grep "-")
+
+						if [ "$sign" == "" ]; then
+							Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="+"}{printf $2}' )	
+							TZ="GMT-$Timezone"
+						else
+							Timezone=$(echo $ip_timezone | awk 'BEGIN{FS="-"}{printf $2}' )
+							TZ="GMT+$Timezone"
+						fi
+
+						TZ_time=$TZ
+						runing_TZ=$(cat /tmp/TZ)
+
+						if [ "$TZ_time" == "$runing_TZ" ]; then
+							#echo "There are the same in TimeZone." > /dev/console
+							echo "There are the same in TimeZone."
+						else
+							#echo "TZ_time=$TZ_time  runing_TZ=$runing_TZ" > /dev/console
+							/sbin/time_daemon reload
+						fi
+					else
+						#echo "Auto timezone is fail" > /dev/console
+						echo "Auto timezone is fail"
+					fi
+				fi
+			fi
+		fi
+	fi
+fi
+
+## After reading/writing data on USB, it will release cash memory
+top -n 1 > /tmp/top_log &
+sleep 1
+
+io_value=$( cat /tmp/top_log | grep "CPU:" | awk '{print $10}' | awk '{FS="%"} {print $1}' )
+
+if [ $io_value -ge 1 ] ;then
+	echo 0 > /tmp/io_value_sum
+fi
+
+if [ -f /tmp/io_value_sum ] ;then
+
+	io_value_sum=$(cat /tmp/io_value_sum)
+	sum=$(($io_value_sum+1))
+
+	echo $sum > /tmp/io_value_sum	
+	
+	if [ $sum -eq 30 ] ;then
+		echo 3 > /proc/sys/vm/drop_caches
+		rm /tmp/io_value_sum
+	fi
+	
+fi
+
+## Check igmpproxy process
+check_igmpproxy_process=$( ps | grep "/usr/sbin/igmpproxy" | grep -v "grep" | awk '{print $1}')
+parser_words=$( cat /tmp/top_log | grep "/usr/sbin/igmpproxy" | sed '2,100d' | awk '{print $7}' | awk '{FS="%"} {print $1}' )
+
+if [ $parser_words -ge 40 ] ;then
+	kill -9 $check_igmpproxy_process
+	/etc/init.d/igmpproxy start
+fi
+
+rm /tmp/top_log
+
+## Check Time Zone status
+[ -f /tmp/TimeZone_status ] && {
+	Record_TimeZone=$( cat /tmp/TimeZone_status )
+	Now_TimeZone=$( date | awk '{print $5}' )
+
+	if [ "$Record_TimeZone" == "$Now_TimeZone" ] ;then
+		break
+	else
+		date -k
+		/etc/init.d/wifi_scheduling restart
+		/etc/init.d/wifi_scheduling5G restart
+		/etc/init.d/wireless_macfilter restart
+		/etc/init.d/wireless5G_macfilter restart
+
+		echo "$Now_TimeZone" > /tmp/TimeZone_status
+	fi
+} || {
+	TimeZone=$( date | awk '{print $5}' )
+	echo "$TimeZone" > /tmp/TimeZone_status
+}
+
+# ## Chk_2.4Gwifi for QCA platform
+# boot_count=$(cat /tmp/wifibootcount | wc -l)
+# wifi_moni=$(iwconfig ath0| grep "Not-Associated")
+# [ -n "$wifi_moni" ] && [ $(expr $boot_count) -le 5 ] && {
+#         echo 1 >/tmp/chkflag
+#         sleep 20
+#         ckwifi=$(cat /tmp/chkflag)
+#         wifi_moni2=$(iwconfig ath0| grep "Not-Associated")
+#         [ -n "$wifi_moni2" ] && [ -n "$ckwifi" ] && {
+#                 /etc/init.d/wireless stop
+#                 sleep 1
+#                 /etc/init.d/wireless start
+#                 echo 1 >>/tmp/wifibootcount
+#                 rm /tmp/chkflag
+#         }
+# }
+
+## Check guest-lan dnsmasq
+for i in 1 2 3
+do
+	chk_ath=$(uci get wireless.ath$i.disabled)
+	chk_ath5g=$(uci get wireless.ath1$i.disabled)
+	ipaddr=$(uci get wireless.ath$i.guest_ip)
+	ipmask=$(uci get wireless.ath$i.guest_ip_mask)
+
+	if [ $chk_ath == "0" ] || [ $chk_ath5g == "0" ]; then
+		if [ "$product" == "NBG6617" ];then
+				iphead=$(echo $ipaddr | awk -F '.' '{print $1"."$2"."$3}')
+				dnsmasq_pid=$(ps | grep "dnsmasq -C /tmp/dnsmasq.conf -z -a $ipaddr" | grep -v "grep" | awk '{print $1}')
+				if [ -z $dnsmasq_pid ];then
+					args="-C /tmp/dnsmasq.conf -z -a $ipaddr -K -F $iphead.10,$iphead.42,$ipmask,720m"
+					dnsmasq $args
+					dnsmasq_pid=$(ps | grep "dnsmasq -C /tmp/dnsmasq.conf -z -a $ipaddr" | grep -v "grep" | awk '{print $1}')
+					echo $dnsmasq_pid > /var/run/dnsmasq.pid.guest_ath$i
+				fi
+		else
+				/bin/dnsmasq_guest_lan "START" $i $ipaddr $ipmask
+		fi
+	fi
+done
+
+## Wan that dials with 6rd, if apply 6rd protocol.
+local ck6rdwaninfo=$(uci get network.general.wan6rd_enable)
+local wan6rd_status=$(cat /tmp/wan6rd_status)
+if [ "$ck6rdwaninfo" == "1" ] && [ "$wan6rd_status" == "1" ]; then
+	wan_6rd_info=$(ifconfig 6rd-wan6rd | grep "inet6 addr")
+	[ -z "$wan_6rd_info" ] && {
+		sleep 5
+		ifup wan
+	}
+	rm /tmp/wan6rd_status
+fi
+
+## WAN: Port 4
+[ -f /bin/vlan_default ] && {
+	wan_link_status=$(ssdk_sh port linkstatus get 5| grep DISABLE)
+} || {
+	if [ "$product" == "NBG6617" ];then
+		wan_link_status=$(/sbin/swconfig dev switch0 port 5 get link | grep down)
+	else
+		wan_link_status=$(/sbin/swconfig dev eth1 port 5 get link | grep down)
+	fi
+}
+
+## Wan Link Status
+wan_port_info=$(sys portspeed 4)
+echo "status:$wan_port_info" > /tmp/wan_info
+
+wan_mac=$(ifconfig $wan_ifname | grep HWaddr | awk '{print $5}')
+
+echo "ip:$wan_info" >> /tmp/wan_info
+echo "mac:$wan_mac" >> /tmp/wan_info
+
+/sbin/zyxel_led_ctrl chk_Internet
+
+if [ -z "$wan_link_status" -a "$wan_link_check" == "0" ] ;then
+
+	ubus call network reload
+	##restart wan interface	
+	ifup wan
+	##restart 6rd -- not support multiple wan now.
+	local ck6rdwan=$(uci get network.general.wan6rd_enable)
+	[ "$ck6rdwan" == "1" ] && ifup wan6rd || ifdown wan6rd
+	##restart 6to4 -- not support multiple wan now.
+	local ck6to4wan=$(uci get network.general.wan6to4_enable)
+	[ "$ck6to4wan" == "1" ] && ifup wan6to4 || ifdown wan6to4
+	##restart 6in4 -- not support multiple wan now.
+	local ck6in4wan=$(uci get network.general.wan6in4_enable)
+	[ "$ck6in4wan" == "1" ] && ifup wan6in4 || ifdown wan6in4
+
+	#internet_led
+	echo 1 > /tmp/wan_link_status
+
+elif [ -n "$wan_link_status" -a "$wan_link_check" == "1"  ] ;then
+
+	if [ "$wan_proto" == "dhcp" ] || [ "$wan_proto" == "static" ] ;then
+		ifconfig eth0 0.0.0.0
+	elif [ "$wan_proto" == "pppoe" ] ;then
+		ifconfig $wan_proto-wan 0.0.0.0
+	else
+		ifconfig eth0 0.0.0.0
+		ifconfig $wan_proto-wan 0.0.0.0
+	fi
+
+	echo 0 > /tmp/wan_link_status
+	/sbin/led_ctrl INTERNET off
+
+fi
+
+## check lighttpd log size
+local lighttpd_log_size=$(ls /tmp/log/lighttpd/error.log -la | awk -F' ' '{print $5}')
+if [ "$lighttpd_log_size" -gt 6291456 ]; then
+	echo "" > /tmp/log/lighttpd/error.log
+fi

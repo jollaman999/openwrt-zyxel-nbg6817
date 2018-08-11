@@ -1,0 +1,91 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+local sys_op_mode = uci:get("system","main","system_mode")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+
+  <title>tree menu</title>
+
+
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<link href="<%=media%>/css/menu.css" rel="stylesheet" type="text/css">
+
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-ui-1.8.21.custom.min.js"></script>
+
+<script language="JavaScript" type="text/javascript">
+
+$(document).ready(function(){
+	if ( "<%=streamboost_status%>" == "NotSupport" ){
+		$("#fxnetwork").hide()
+		$("#UsageMonitor").hide()
+		$("#fxtopbytime").hide()
+		$("#fxtopbydl").hide()
+	}
+});
+
+</script>
+</head>
+
+<body>
+<div id="menu_bg">
+  <div id="menu_t"><%:Status%></div>
+   <ul class=mtree>
+  
+  
+	<li><a href="<%=controller%>/expert/status/system_status" target="data"><%:system_status%> </a></li>
+<% if sys_op_mode ~= "2" then%>	
+	<li><a id="fxnetwork" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxnetwork" target="data"><%:Live_Network_Monitor%></a></li>
+	<li><a id="UsageMonitor" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_UsageMonitor" target="data"><%:Usage_Monitor%></a></li>
+	<li><a id="fxtopbytime" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxtopbytime" target="data"><%:Common_Usage%></a></li>
+	<li><a id="fxtopbydl" href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxtopbydl" target="data"><%:Download_Traffic_Statistics%></a></li>
+	<!--<li><a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxperdevice" target="data"><%:Consumption_Per_Device%></a></li>-->	
+	<!--<li><a href="<%=controller%>/expert/configuration/management/streamboost/streamboost_fxperflow" target="data"><%:Consumption_Per_Flow%></a></li>-->
+<!-- 	<li><a href="<%=controller%>/expert/configuration/network/dhcpserver/dhcptbl" target="data"><%:DHCP_Table%> </a></li> -->
+		<li><a href="<%=controller%>/expert/configuration/network/dhcpserver/dhcptable" target="data"> <%:DHCP_Table%></a></li>
+<%end%>		
+	<!--  <li><a href="<%=controller%>/expert/monitor/wlanstats_24g" target="data"><%:WLAN_2_dot_4_G_Station_Status%></a></li>
+	<li><a href="<%=controller%>/expert/monitor/wlanstats_5g" target="data"><%:WLAN_5_G_Station_Status%></a></li> -->
+	
+  </li>
+ 
+ 
+
+</ul>
+</div>
+<div id="skm_LockPane" class="LockOff"></div> 
+
+
+
+</body>
+<script src="<%=media%>/js/lmenu_1.js"></script>
+<script src="<%=media%>/js/lmenu_2.js"></script>
+<script src="<%=media%>/js/lmenu_3.js"></script>
+</html>

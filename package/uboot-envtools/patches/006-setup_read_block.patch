@@ -1,0 +1,10 @@
+--- uboot-envtools-2012.04.01/fw_env.c	2014-10-29 03:36:29.754488694 -0700
++++ uboot-envtools-2012.04.01_modify/fw_env.c	2014-10-29 04:21:31.797846000 -0700
+@@ -711,6 +711,7 @@
+ 	}
+ 
+ 	/* This only runs once on NOR flash */
++	readlen = blocklen = 0x800;	/* block_size = 2048 */
+ 	while (processed < count) {
+ 		rc = flash_bad_block (fd, mtd_type, &blockstart);
+ 		if (rc < 0)		/* block test failed */

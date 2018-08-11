@@ -1,0 +1,48 @@
+--- linux-3.4.103/net/ipv6/addrconf.c	2016-05-25 15:25:47.804803400 +0800
++++ linux-3.4.103/net/ipv6/addrconf.c	2016-05-25 15:26:25.140717300 +0800
+@@ -2959,7 +2959,10 @@
+ 	if (idev->dead || !(idev->if_flags & IF_READY))
+ 		goto out;
+ 
+-	if (idev->cnf.forwarding)
++	/*
++	 *Retrans RS when get invalid RA option
++	 */
++	if (idev->cnf.forwarding==1)
+ 		goto out;
+ 
+ 	/* Announcement received after solicitation was sent */
+@@ -3122,7 +3125,7 @@
+ 	   router advertisements, start sending router solicitations.
+ 	 */
+ 
+-	if (((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
++	if (((ifp->idev->cnf.accept_ra == 1 && (ifp->idev->cnf.forwarding == 0 || ifp->idev->cnf.forwarding == 2)) ||
+ 	     ifp->idev->cnf.accept_ra == 2) &&
+ 	    ifp->idev->cnf.rtr_solicits > 0 &&
+ 	    (dev->flags&IFF_LOOPBACK) == 0 &&
+
+--- linux-3.4/net/ipv6/ndisc.c	2016-05-25 15:24:25.837633900 +0800
++++ linux-3.4/net/ipv6/ndisc.c	2016-05-25 15:25:37.987809000 +0800
+@@ -1045,6 +1045,12 @@
+ 	if (ipv6_addr_any(saddr))
+ 		goto out;
+ 
++	/*
++	 *Ignored RS from wan port
++	 */
++	if(skb->skb_iif==2)
++		goto out;
++
+ 	/* Parse ND options */
+ 	if (!ndisc_parse_options(rs_msg->opt, ndoptlen, &ndopts)) {
+ 		if (net_ratelimit())
+@@ -1123,7 +1129,7 @@
+ 	 * If forwarding is enabled, RA are not accepted unless the special
+ 	 * hybrid mode (accept_ra=2) is enabled.
+ 	 */
+-	if (in6_dev->cnf.forwarding && in6_dev->cnf.accept_ra < 2)
++	if (in6_dev->cnf.forwarding < 2 && in6_dev->cnf.accept_ra < 2)
+ 		return 0;
+ 
+ 	return in6_dev->cnf.accept_ra;

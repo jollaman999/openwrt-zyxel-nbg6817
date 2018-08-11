@@ -1,0 +1,82 @@
+#!/bin/sh
+
+name=$(uci get system.main.product_name)
+
+PSK_PATH="/tmp/tmppsk"
+SSID24G_PATH="/tmp/tmpSSID24G"
+SSID5G_PATH="/tmp/tmpSSID5G"
+# RATE24G_PATH="/tmp/WiFi24Grate"
+# RATE5G_PATH="/tmp/WiFi5Grate"
+
+PSK_INIT(){
+	serial_num=$(cat /tmp/Serial_num)
+
+	psk=$(gen_psk ra0 $serial_num | grep sharedKey_final | grep "TRANSFER" -v | awk -F"=" '{print $2}')
+
+	echo -n $psk > $PSK_PATH
+}
+
+SSID_INIT(){
+	##set WiFi default SSID
+	LAN_MAC="$1"
+#	name=$(uci get system.main.product_name)
+
+	###SSID 24G:ZyXEL112233  5G:ZyXEL112233.speed
+	mac_ssid=$(echo $LAN_MAC | cut -c 7-12)
+	ssid=ZyXEL$mac_ssid
+
+	echo -n $ssid > $SSID24G_PATH
+	if [ "$name" == "NBG6816" ]; then
+		echo -n $ssid > $SSID5G_PATH
+	else
+		echo -n "$ssid.speed" > $SSID5G_PATH
+	fi
+}
+
+RATE_INIT(){
+	/bin/get_WiFi_rate
+}
+
+BOARD_DATA(){
+	## for NBG6817 NBG6617
+	/sbin/set_boardData
+}
+
+QCA_INSMOD(){
+	atfEnable24G=$(uci get atf.atf.enable)
+	atfEnable5G=$(uci get atf.atf5G.enable)
+	[ "$atfEnable24G" == "1" -o "$atfEnable5G" == "1" ] && atf_mode=1 || atf_mode=0
+
+	##For WiFi SPF3.0 - NBG6617
+	insmod mem_manager
+	
+	insmod asf
+	insmod adf
+	insmod ath_hal
+	insmod ath_rate_atheros
+	insmod ath_dfs
+	insmod ath_spectral
+	insmod hst_tx99
+	insmod ath_dev
+	insmod umac atf_mode=$atf_mode
+	insmod ath_pktlog
+	insmod smart_antenna
+}
+
+case "$1" in
+	PSK)
+		PSK_INIT
+	;;
+	SSID)
+		SSID_INIT $2
+	;;
+	RATE)
+		RATE_INIT
+	;;
+	BOARD_DATA)
+		BOARD_DATA
+	;;
+	QCA_INSMOD)
+		QCA_INSMOD
+	;;
+esac

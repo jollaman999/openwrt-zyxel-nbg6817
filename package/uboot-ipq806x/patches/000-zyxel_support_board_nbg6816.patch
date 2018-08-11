@@ -1,0 +1,109 @@
+Index: u-boot-2012.07/boards.cfg
+===================================================================
+--- u-boot-2012.07.orig/boards.cfg	2014-09-02 09:02:13.589409993 +0800
++++ u-boot-2012.07/boards.cfg	2014-09-04 19:28:12.656739858 +0800
+@@ -206,6 +206,7 @@
+ integratorap_cm946es         arm         arm946es    integrator          armltd         -               integratorap:CM946ES
+ integratorcp_cm946es         arm         arm946es    integrator          armltd         -               integratorcp:CM946ES
+ ipq806x_cdp                  arm         armv7       ipq806x_cdp         qcom           ipq
++nbg6816                      arm         armv7       ipq806x_cdp         qcom           ipq
+ ca9x4_ct_vxp                 arm         armv7       vexpress            armltd
+ am335x_evm                   arm         armv7       am335x              ti             am33xx
+ highbank                     arm         armv7       highbank            -              highbank
+Index: u-boot-2012.07/include/configs/ipq806x_cdp.h
+===================================================================
+--- u-boot-2012.07.orig/include/configs/ipq806x_cdp.h	2014-09-02 09:02:14.017190612 +0800
++++ u-boot-2012.07/include/configs/ipq806x_cdp.h	2014-09-04 19:28:12.656739858 +0800
+@@ -45,7 +45,7 @@
+ #define CONFIG_MSM_PCOMM
+ #define CONFIG_ARCH_CPU_INIT
+ 
+-#define CONFIG_ENV_SIZE                 (256 << 10) /* 256 KB */
++#define CONFIG_ENV_SIZE                 (64 << 10) /* 64 KB */
+ #define CONFIG_SYS_MALLOC_LEN           (4 << 20)
+ 
+ /*
+Index: u-boot-2012.07/mkconfig
+===================================================================
+--- u-boot-2012.07.orig/mkconfig	2014-09-05 13:57:21.861941726 +0800
++++ u-boot-2012.07/mkconfig	2014-09-05 14:09:16.080962777 +0800
+@@ -169,6 +169,10 @@
+ 
+ [ "${soc}"    ] && echo "#define CONFIG_SYS_SOC    \"${soc}\""    >> config.h
+ 
++TMP_NAME=`echo ${CONFIG_NAME} | sed 's/./\U&/g'`
++echo "#define CONFIG_BOARD_${TMP_NAME} 1" >> config.h
++echo "#define CONFIG_BOARD_NAME \"${TMP_NAME}\"" >> config.h
++
+ cat << EOF >> config.h
+ #define CONFIG_BOARDDIR board/$BOARDDIR
+ #include <config_cmd_defaults.h>
+Index: u-boot-2012.07/arch/arm/include/asm/mach-types.h
+===================================================================
+--- u-boot-2012.07.orig/arch/arm/include/asm/mach-types.h	2014-08-19 13:15:04.669469947 +0800
++++ u-boot-2012.07/arch/arm/include/asm/mach-types.h	2014-09-10 13:33:35.471017808 +0800
+@@ -1116,6 +1116,7 @@
+ #define MACH_TYPE_IPQ806X_AP148_1XX    4913
+ #define MACH_TYPE_IPQ806X_DB149_2XX    4917
+ #define MACH_TYPE_OMAP5_SEVM           3777
++#define MACH_TYPE_IPQ806X_NBG6816      4705
+ 
+ #ifdef CONFIG_ARCH_EBSA110
+ # ifdef machine_arch_type
+Index: u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_board_param.h
+===================================================================
+--- u-boot-2012.07.orig/board/qcom/ipq806x_cdp/ipq806x_board_param.h	2014-09-10 16:39:28.543031951 +0800
++++ u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_board_param.h	2014-09-10 16:41:23.676230559 +0800
+@@ -640,6 +640,52 @@
+ 		}
+ 
+ 	},
++	{
++		.machid = MACH_TYPE_IPQ806X_NBG6816,
++		.ddr_size = (256 << 20),
++		.uart_gsbi = GSBI_4,
++		.uart_gsbi_base = UART_GSBI4_BASE,
++		.uart_dm_base = UART4_DM_BASE,
++		.uart_mnd_value = { 12, 625, 313 },
++		.usb_core_mnd_value = { 1, 5, 32 },
++		.usb_utmi_mnd_value = { 1, 40, 1 },
++		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
++		.gmac_gpio = gmac1_gpio,
++		.gmac_cfg = {
++			gmac_board_cfg(1, 1, RGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 1, 4),
++			gmac_board_cfg(2, 1, SGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 4, 0, 1, 2, 3),
++			gmac_board_cfg_invalid(),
++			gmac_board_cfg_invalid(),
++		},
++		.flashdesc = NAND_NOR,
++		.flash_param = {
++			.mode =	NOR_SPI_MODE_0,
++			.bus_number = GSBI_BUS_5,
++			.chip_select = SPI_CS_0,
++			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
++		},
++		.dbg_uart_gpio = {
++			{
++				.gpio = 10,
++				.func = 1,
++				.dir = GPIO_OUTPUT,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.enable = GPIO_DISABLE
++			},
++			{
++				.gpio = 11,
++				.func = 1,
++				.dir = GPIO_INPUT,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.enable = GPIO_DISABLE
++			},
++		}
++
++	},
+ 
+ };
+ 

@@ -1,0 +1,87 @@
+Source-Makefile: feeds/qca/utils/qcmbr/Makefile
+Package: qcmbr-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libpthread +librt
+Menu-Depends: 
+Provides: 
+Section: QCA
+Category: QCA Proprietary software
+Title: - QCA ART Driver & tools
+Maintainer: Qualcomm Atheros
+Source: qcmbr-10.4.tar.bz2
+Type: ipkg
+Description: - QCA ART Driver & tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qcmbr
+		bool "Use custom source directory"
+		default n
+	config qcmbr-10.4_CUSTOM_SOURCE_DIR
+		depends on qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qcmbr
+		bool "Use custom package version"
+		default n
+
+	config qcmbr-10.4_CUSTOM_VERSION
+		depends on qcmbr-10.4_USE_CUSTOM_VERSION
+		string "qcmbr-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+Package: qcmbr-10.4-netlink
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libpthread +librt +libnl-tiny
+Menu-Depends: 
+Provides: 
+Build-Variant: netlink
+Section: QCA
+Category: QCA Proprietary software
+Title: netlink - QCA ART Driver & tools
+Maintainer: Qualcomm Atheros
+Source: qcmbr-10.4.tar.bz2
+Type: ipkg
+Description: netlink - QCA ART Driver & tools
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+  	menu "custom source directory"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qcmbr
+		bool "Use custom source directory"
+		default n
+	config qcmbr-10.4_CUSTOM_SOURCE_DIR
+		depends on qcmbr-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qcmbr
+	config qcmbr-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qcmbr
+		bool "Use custom package version"
+		default n
+
+	config qcmbr-10.4_CUSTOM_VERSION
+		depends on qcmbr-10.4_USE_CUSTOM_VERSION
+		string "qcmbr-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+

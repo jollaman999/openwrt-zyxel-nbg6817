@@ -1,0 +1,15 @@
+#!/bin/sh
+
+
+#For NBG6817 WiFi
+##5G
+thermaltool -i wifi0 -set -dc 10 -lo0 -100 -hi0 130 -off0 0 
+thermaltool -i wifi0 -set -dc 10 -lo1 120 -hi1 135 -off1 50 
+thermaltool -i wifi0 -set -dc 10 -lo2 125 -hi2 137 -off2 90 
+thermaltool -i wifi0 -set -dc 10 -lo3 127 -hi3 140 -off3 100
+
+##2.4G
+thermaltool -i wifi1 -set -dc 10 -lo0 -100 -hi0 130 -off0 0 
+thermaltool -i wifi1 -set -dc 10 -lo1 120 -hi1 135 -off1 50 
+thermaltool -i wifi1 -set -dc 10 -lo2 125 -hi2 137 -off2 90 
+thermaltool -i wifi1 -set -dc 10 -lo3 127 -hi3 140 -off3 100 

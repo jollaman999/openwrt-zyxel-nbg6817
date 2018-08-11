@@ -1,0 +1,307 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+--require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("application/xhtml+xml")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+function convertMsg2Display( msg )
+	local result = msg
+	result = result:gsub( [=[&]=], [=[&amp;]=] )
+	result = result:gsub( [=["]=], [=[&quot;]=] )
+	result = result:gsub( [=[<]=], [=[&lt;]=] )
+	result = result:gsub( [=[>]=], [=[&gt;]=] )
+	result = result:gsub( [=[']=], [=[&apos;]=] )
+	return result
+end
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::<%:welcome_to_nbg6716%>::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+</head>
+<%
+   local logList = {}
+   local display = "AllLogs"
+
+   -- wen-hsiang 2011/09/16 -- 
+   -- logList[ "SysMaintenance" ] = { ["name"] = i18n.translate("log_list1") }  -- for hide message, NBG6816, wen-hsiang, 2011/11/03 , log_list1 = System Maintenance --
+   logList[ "SysErrs" ]        = { ["name"] = i18n.translate("log_list2") }  -- log_list2 = System Error --
+   logList[ "AccessCtrl" ]     = { ["name"] = i18n.translate("log_list3") }  -- log_list3 = Access Control --
+   logList[ "Firmware"]        = { ["name"] = i18n.translate("log_list4") }  -- log_list4 = On-line Firmware upgrade --
+   -- wen-hsiang 2011/09/16 --
+
+   for name, item in pairs(logList) do
+      value = uci:get( "syslogd", "setting", "log" .. name )
+      if not ( nill == value ) and tonumber(value) > 0 then
+         item["enabled"] = true
+         if tonumber(value) > 1 then
+            display = name
+         end
+      else
+         item["enabled"] = false
+      end
+   end
+     
+   local logMsgFileNane = "/tmp/logMsgs"
+   local luaLogMsgs = {}
+   local msgFile = io.open( logMsgFileNane, "r" )
+   local viewLvType;
+   
+   if not ( nill == msgFile ) then
+	for msgLine in msgFile:lines() do
+		table.insert( luaLogMsgs, {
+		[ "Date" ] = os.date("%Y ") .. msgLine:sub( 1, 15 ),
+		[ "Msg"  ] = msgLine:sub( 16, msgLine:len() )
+		} )
+	end		
+   end
+%>
+<%
+local logList1 = {}; alertList = {}
+
+--table.insert( logList1, { i18n.translate("log_list1"), "SysMaintenance" } ) -- for hide message, NBG6716, wen-hsiang, 2011/11/03
+--table.insert( logList1, { i18n.translate("log_list2"),      "SysErrs" } )
+table.insert( logList1, { i18n.translate("log_list4"),     "Firmware" } ) -- wen-hsiang 2011/09/16. --
+table.insert( logList1, { i18n.translate("log_list3"), "AccessCtrl"} )
+--table.insert( logList1, { "Upnp",               "Upnp" } )
+--table.insert( logList1, { "Forward Web Sites",  "FwdWebSites" } )
+--table.insert( logList1, { "Blocked Web Sites",  "BlkedWebSites" } )
+--table.insert( logList1, { "Attacks",            "Attacks" } )
+--table.insert( logList1, { "Any IP",             "AnyIP" } )
+--table.insert( logList1, { "802.1X",             "802_1X" } )
+
+--table.insert( alertList, { "System Erroes",     "SysErrs" } )
+--table.insert( alertList, { "Access Control",    "AccessCtrl" } )
+--table.insert( alertList, { "Blocked Web Sites", "BlkedWebSites" } )
+--table.insert( alertList, { "Blocked Java Etc.", "BlkedJavaEtc" } )
+--table.insert( alertList, { "Attacks",           "Attacks" } )
+--table.insert( alertList, { "IPSec",             "IPSec" } )
+--table.insert( alertList, { "IKE",               "IKE" } )
+%>
+<script type="text/javascript">
+//<![CDATA[
+
+function init()
+{
+   var display = "<%= display %>";
+   var viewType = document.getElementsByName( "ViewLogType" )[0];
+   
+   for( var i = 0; i < viewType.length; i++ )
+   {
+      if ( display == viewType.options[i].value )
+      {
+         viewType.selectedIndex = i;
+         return;
+      }
+   }
+}
+
+window.onload = init;
+
+function submitData()
+{
+   <!-- showWebMessage( 2, '<%:Message%>', '<%:msg_config%>' ); -->
+   skm_LockScreen();
+   return true;
+}
+
+//]]>
+
+</script>
+<body>
+
+
+<form  method="post" name="ViewLogForm" action="<%=controller%>/expert/monitor/log">
+  <div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:log%></div></td>
+    <td>&nbsp;</td>	
+	  <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" onclick="return submitData()" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:Cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+  <div id="table">
+    <ul>
+    
+      <li class="table_content">
+        <div class="data">
+          <ul>
+            <div class="title"><%:active_log_alert%></div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><b><%:log%></b></li>
+                <li class="right_table"><b><!--Send Immediate Alert--></b> </li>
+              </ul>
+            </div>
+          <%
+          for row = 1, math.max( #logList1, #alertList ) do
+          %>
+            <div class="w_text">
+              <ul>
+                <li class="left_table">
+                <%
+                if not ( logList1[row] == nil ) then
+                %>
+                  <input name="Log<%= logList1[row][2] %>" type="checkbox" <% local value = uci:get( "syslogd", "setting", "log" .. logList1[row][2] ) if "1" == value or "2" == value then %>checked="checked"<% end %> />
+                  &nbsp;<%= logList1[row][1] %>
+                <%
+                else
+                %>
+                  &nbsp;
+                <%
+                end
+                %>
+                </li>
+                <li class="right_table">
+                  <span class="left_table">
+                  <%
+                  if not ( alertList[row] == nil ) then
+                  %>
+                    <input name="Alert<%= alertList[row][2] %>" type="checkbox" <% local value = uci:get( "syslogd", "setting", "alert" .. alertList[row][2] ) if "1" == value or "2" == value then %>checked="checked"<% end %> />
+                  &nbsp;<%= alertList[row][1] %>
+                  <%
+                  else
+                  %>
+                    &nbsp;
+                  <%
+                  end
+                  %>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          <%
+          end
+          %>
+            <div class="spaceair"></div>
+          </ul>
+<!-- 		  <ul>
+         <li class="left_table">
+        
+          <input name="apply" value="<%:Apply%>" type="submit" onclick="return submitData()" />
+          &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+          <input name="Cancel" value="<%:Cancel%>" type="reset" />
+     
+        </li>		
+			</ul> -->
+		  <ul>		
+		    <div class="space"></div>
+			<div class="spaceair"></div>
+            <div class="w_text">
+              <ul>
+                <li class="left_table"><%:log_display%> :
+                  <select name="ViewLogType" onchange="document.forms[0].submit();" size="1" >
+                    <option value="AllLogs"><%:all_logs%></option>
+                    <%
+                    for token, item in pairs(logList) do
+              	    	if item.enabled then
+                                    
+                    %>
+                    <option value="<%= token %>"><%= item.name %></option>
+                    <%     
+                      	end
+                    end
+                    %>
+                  </select>
+                </li>
+                <li class="right_table">
+                  <input name="ViewLogSubmitType" value="<%:log_refresh%>" onclick="return submitData();" type="submit" />
+                  <input name="ViewLogSubmitType" value="<%:log_clear%>" onclick="return submitData();" type="submit" />
+                </li>
+              </ul>
+            </div>
+            <div class="tableframe" >
+              <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+                <tr>
+                  <td>
+                    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td>
+                                <table name="ViewLogTable" width="100%" cellpadding="0" cellspacing="0" >
+                                  <tr>
+                                    <td height="26" colspan="7">
+                                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                        <tr>
+                                          <td height="26" class="table_title"> <%:log_summary%> </td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+                                  <tr class="top_font" align="center">
+                                    <td width="5%"><a href="#" class="sort">#</a></td>
+                                    <td width="15%">
+                                      <a href="#" class="sort"><%:log_summary_time%><img src="<%= media %>/admin/images/down0.gif" name="Image32" width="13" height="13" border="0" align="absmiddle" id="Image32" /></a>
+                                    </td>
+                                    <td width="80%"><a href="#" class="sort"><%:log_summary_msg%></a></td>
+                                  </tr>
+                                  <%
+                                  for i = #luaLogMsgs, 1, -1 do
+                                  %>
+                                  <tr class="table_font" align="center">
+                                    <td><%= #luaLogMsgs - i + 1 %></td>
+                                    <td><%= luaLogMsgs[i].Date %></td>
+                                    <td align="left"><%= convertMsg2Display( luaLogMsgs[i].Msg ) %></td>
+                                  </tr>
+                                  <%
+                                  end
+                                  %>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="spaceair"></div>
+          </ul>
+        </div>
+      </li>
+<!--       <li class="table_button">
+        <div class="button" align="center">
+        &nbsp;
+        </div>
+      </li> -->
+    </ul>
+  </div>
+  </div>
+</form>
+
+</body>
+
+</html>

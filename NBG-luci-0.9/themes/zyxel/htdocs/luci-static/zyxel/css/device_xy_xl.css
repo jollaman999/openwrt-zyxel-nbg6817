@@ -1,0 +1,857 @@
+.tab_container div{
+	visibility:hidden;
+}
+
+.tab_container div[id^="Device_"]{
+	/* visibility: visible; */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
+	
+}
+
+.tab_container div[id^="Device_"]:hover{
+	/* visibility: visible; */
+	
+	position:absolute;
+	z-index:999;
+	width: 100%; 
+	overflow: "";
+	word-break:break-all;
+	
+}
+
+.tab_container div .signal0{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_1a.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signal1{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_1b.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signal2{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_1c.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signal3{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_1d.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signal0:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_2a.png");
+}
+
+.tab_container div .signal1:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_2b.png");
+}
+
+.tab_container div .signal2:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_2c.png");
+}
+
+.tab_container div .signal3:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_2d.png");
+
+}
+
+.tab_container div .signalhover0{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_2a.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signalhover1{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_2b.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signalhover2{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_2c.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signalhover3{
+	z-index: 10;
+	position: absolute;
+	top: 8%;
+	left: 33%;
+	height: 30%;
+	background-image: url("../images/devices_icon/signal/device_wifi_2d.png");
+	background-repeat: no-repeat;
+	width: 30px;
+	visibility: visible;
+	background-size: 110%;
+}
+
+.tab_container div .signalhover0:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_1a.png");
+}
+
+.tab_container div .signalhover1:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_1b.png");
+}
+
+.tab_container div .signalhover2:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_1c.png");
+}
+
+.tab_container div .signalhover3:hover{
+	background-image: url("../images/devices_icon/signal/device_wifi_1d.png");
+
+}
+
+.desktop{
+	
+	background-image: url(../images/devices_icon/wired/pc_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.desktop:hover{
+	
+	background-image: url(../images/devices_icon/wired/pc_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+
+.Tablet{
+	
+	background-image: url(../images/devices_icon/wired/tablet_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Tablet:hover{
+	
+	background-image: url(../images/devices_icon/wired/tablet_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Laptop{
+	
+	background-image: url(../images/devices_icon/wired/lattop_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Laptop:hover{
+	
+	background-image: url(../images/devices_icon/wired/lattop_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+	
+
+.AP{
+	
+	background-image: url(../images/devices_icon/wired/ap_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.AP:hover{
+	
+	background-image: url(../images/devices_icon/wired/ap_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+	
+
+.NAS{
+	
+	background-image: url(../images/devices_icon/wired/nas_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.NAS:hover{
+	
+	background-image: url(../images/devices_icon/wired/nas_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Power_Line{
+	
+	background-image: url(../images/devices_icon/wired/pla_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Power_Line:hover{
+	
+	background-image: url(../images/devices_icon/wired/pla_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Repeater{
+	
+	background-image: url(../images/devices_icon/wired/repeater_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Repeater:hover{
+	
+	background-image: url(../images/devices_icon/wired/repeater_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+	
+
+.Smart_Phone{
+	
+	background-image: url(../images/devices_icon/wired/smartphone_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Smart_Phone:hover{
+	
+	background-image: url(../images/devices_icon/wired/smartphone_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+
+.Camera{
+	
+	background-image: url(../images/devices_icon/wired/camera_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Camera:hover{
+	
+	background-image: url(../images/devices_icon/wired/camera_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Game{
+	
+	background-image: url(../images/devices_icon/wired/game_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Game:hover{
+	
+	background-image: url(../images/devices_icon/wired/game_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Router{
+	
+	background-image: url(../images/devices_icon/wired/router_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Router:hover{
+	
+	background-image: url(../images/devices_icon/wired/router_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.Watch{
+	
+	background-image: url(../images/devices_icon/wired/watch_n1.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+.Watch:hover{
+	
+	background-image: url(../images/devices_icon/wired/watch_n2.png);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+#Device_all 
+{
+	height: 480px;
+	width: 1140px;
+	position: relative;
+	margin:0 auto;
+}
+
+#Device_logo
+{
+	height: 110px;
+	width: 110px;
+	font-size: 12px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 510px;
+	top: -96px
+}
+
+
+
+
+#Deviceonly
+{
+	height: 106px;
+	width: 100px;
+	font-size: 12px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 520px;
+	top: 155px;
+
+}
+
+
+#Device1
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 570px;
+	top: 155px;
+	word-break: break-all;
+}
+#Device2
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 460px;	top: 155px;
+	word-break: break-all;
+}
+
+#Device3
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 510px;
+	top: 25px;
+	word-break: break-all;
+}
+
+
+
+#Device4
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 510px;	top: 285px;
+	word-break: break-all;
+}
+
+#Device5
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 620px;	top: 285px;
+	word-break: break-all;
+}
+
+#Device6
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 400px;	top: 285px;
+	word-break: break-all;
+}
+
+#Device7
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 620px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device8
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 400px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device9
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 680px;	top: 155px;
+	word-break: break-all;
+}
+#Device10
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 350px;	top: 155px;
+	word-break: break-all;
+}
+#Device11
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 730px;	top: 285px;
+	
+	word-break: break-all;
+}
+#Device12
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 290px;	top: 285px;
+	
+	word-break: break-all;
+}
+#Device13
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 730px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device14
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 290px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device15
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 790px;	top: 155px;
+	word-break: break-all;
+}
+#Device16
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 240px;	top: 155px;
+	word-break: break-all;
+}
+#Device17
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 840px;	top: 285px;
+	word-break: break-all;
+}
+#Device18
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 180px;	top: 285px;
+	word-break: break-all;
+}
+#Device19
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 840px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device20
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 180px;
+	top: 25px;
+	word-break: break-all;
+}
+#Device21
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 900px;	top: 155px;
+	word-break: break-all;
+}
+#Device22
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 130px;	top: 155px;
+	word-break: break-all;
+}
+
+#Device23
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 950px;	top: 285px;
+	word-break: break-all;
+}
+
+#Device24
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 70px;	top: 285px;
+	word-break: break-all;
+}
+
+#Device25
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 950px;
+	top: 25px;
+	word-break: break-all;
+}
+
+#Device26
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 70px;
+	top: 25px;
+	
+	word-break: break-all;
+}
+
+#Device27
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 1010px;	top: 155px;
+	word-break: break-all;
+}
+
+#Device28
+{	height: 106px;
+	width: 100px;
+	font-size: 16px;
+	color: #0075c9;
+	text-align: center;
+	position: absolute;
+	left: 20px;
+	top: 155px;
+	word-break: break-all;
+}
+
+
+
+#Device_lv {
+	position: absolute;
+	height: 25px;
+	width: 25px;
+	margin-top: 10px;
+	margin-left: 80px;
+	
+	
+}
+
+
+.menu1,.menu2,.menu3,.menu4,.menu5,.menu6,.menu7,.menu8,.menu9,.menu10,.menu11,.menu12,.menu13,.menu14,.menu15,.menu16,.menu17,.menu18,.menu19,.menu20,.menu21,.menu22,.menu23,.menu24,.menu25,.menu26,.menu27,.menu28{
+	width: 135px;
+	background: #fff;
+	border: 1px solid #0075C9;
+	border-radius: 3px;
+	display: block;
+	margin: auto;
+	opacity: 0;
+	padding: 0;
+	position: absolute;
+	left: 90px;
+	top: -10000px;
+	-webkit-transition: opacity 0.01s ease-in-out, top 0.01s ease-in-out;
+	-moz-transition: opacity 0.01s ease-in-out, top 0.01s ease-in-out;
+	transition: opacity 0.01s ease-in-out, top 0.01s ease-in-out;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	text-decoration: none;
+	color: #D6D6D6;
+	text-align: left;
+}
+.menu1:after ,.menu2:after ,.menu3:after ,.menu4:after, .menu5:after ,.menu6:after ,.menu7:after ,.menu8:after ,.menu9:after ,.menu10:after ,.menu11:after ,.menu12:after ,.menu13:after ,.menu14:after,.menu15:after ,.menu16:after,.menu17:after ,.menu18:after,.menu19:after ,.menu20:after ,.menu21:after ,.menu22:after ,.menu23:after ,.menu24:after,.menu25:after ,.menu26:after,.menu27:after ,.menu28:after{
+	border-color: rgba(0,102,102,0) rgba(0,138,2021,1) rgba(0,102,102,0) rgba(0,102,102,0);
+	content: '';
+	margin: auto;
+	position: absolute;
+    width: 0;
+    height: 0;
+	top: 7px;
+	right: 135px;
+	border-style: solid;
+	border-width: 7px;
+}	
+	
+
+.menu1 li ,.menu2 li ,.menu3 li ,.menu4 li ,.menu5 li ,.menu6 li ,.menu7 li ,.menu8 li ,.menu9 li ,.menu10 li ,.menu11 li ,.menu12 li ,.menu13 li ,.menu14 li ,.menu15 li ,.menu16 li ,.menu17 li ,.menu18 li ,.menu19 li ,.menu20 li ,.menu21 li ,.menu22 li ,.menu23 li ,.menu24 li ,.menu25 li ,.menu26 li ,.menu27 li ,.menu28 li{
+	list-style-type: none;
+	margin: 0px;
+	padding: 0px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+	display: block;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #007AC4;
+	border-top-width: 1px;
+}
+
+.menu1 li:hover ,.menu2 li:hover ,.menu3 li:hover ,.menu4 li:hover ,.menu5 li:hover ,.menu6 li:hover ,.menu7 li:hover,.menu8 li:hover ,.menu9 li:hover,.menu10 li:hover ,.menu11 li:hover ,.menu12 li:hover ,.menu13 li:hover ,.menu14 li:hover ,.menu15 li:hover ,.menu16 li:hover ,.menu17 li:hover,.menu18 li:hover ,.menu19 li:hover,.menu20 li:hover ,.menu21 li:hover ,.menu22 li:hover ,.menu23 li:hover ,.menu24 li:hover ,.menu25 li:hover ,.menu26 li:hover ,.menu27 li:hover,.menu28 li:hover{
+	background-color: #ffffff;
+	text-decoration: none;
+
+}
+
+.menu1 li:last-child,.menu2 li:last-child,.menu3 li:last-child,.menu4 li:last-child,.menu5 li:last-child,.menu6 li:last-child,.menu7 li:last-child,.menu8 li:last-child,.menu9 li:last-child,.menu10 li:last-child,.menu11 li:last-child,.menu12 li:last-child,.menu13 li:last-child,.menu14 li:last-child,.menu15 li:last-child,.menu16 li:last-child,.menu17 li:last-child,.menu18 li:last-child,.menu19 li:last-child,.menu20 li:last-child,.menu21 li:last-child,.menu22 li:last-child,.menu23 li:last-child,.menu24 li:last-child,.menu25 li:last-child,.menu26 li:last-child,.menu27 li:last-child,.menu28 li:last-child {
+  border-bottom: none;
+}
+
+.menu1 li a,.menu2 li a,.menu3 li a,.menu4 li a,.menu5 li a,.menu6 li a,.menu7 li a,.menu8 li a,.menu9 li a,.menu10 li a,.menu11 li a,.menu12 li a,.menu13 li a,.menu14 li a,.menu15 li a,.menu16 li a,.menu17 li a,.menu18 li a,.menu19 li a,.menu20 li a,.menu21 li a,.menu22 li a,.menu23 li a,.menu24 li a,.menu25 li a,.menu26 li a,.menu27 li a,.menu28 li a {
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color:#008ADD;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	border-top-width: 1px;
+}
+
+.menu1 li a:hover,.menu2 li a:hover,.menu3 li a:hover,.menu4 li a:hover,.menu5 li a:hover,.menu6 li a:hover,.menu7 li a:hover,.menu8 li a:hover,.menu9 li a:hover,.menu10 li a:hover,.menu11 li a:hover,.menu12 li a:hover,.menu13 li a:hover,.menu14 li a:hover,.menu15 li a:hover,.menu16 li a:hover,.menu17 li a:hover,.menu18 li a:hover,.menu19 li a:hover,.menu20 li a:hover,.menu21 li a:hover,.menu22 li a:hover,.menu23 li a:hover,.menu24 li a:hover,.menu25 li a:hover,.menu26 li a:hover,.menu27 li a:hover,.menu28 li a:hover{
+	
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #0066a6;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	border-top-width: 1px;
+}
+
+.menu1 li a:active,.menu2 li a:active,.menu3 li a:active,.menu4 li a:active,.menu5 li a:active,.menu6 li a:active,.menu7 li a:active,.menu8 li a:active,.menu9 li a:active,.menu10 li a:active,.menu11 li a:active,.menu12 li a:active,.menu13 li a:active,.menu14 li a:active,.menu15 li a:active,.menu16 li a:active,.menu17 li a:active,.menu18 li a:active,.menu19 li a:active,.menu20 li a:active,.menu21 li a:active,.menu22 li a:active,.menu23 li a:active,.menu24 li a:active,.menu25 li a:active,.menu26 li a:active,.menu27 li a:active,.menu28 li a:active{
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #004B79;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #0C4540;
+}
+
+.menu1.visible ,.menu2.visible ,.menu3.visible ,.menu4.visible ,.menu5.visible ,.menu6.visible ,.menu7.visible ,.menu8.visible ,.menu9.visible ,.menu10.visible ,.menu11.visible ,.menu12.visible ,.menu13.visible ,.menu14.visible ,.menu15.visible ,.menu16.visible ,.menu17.visible ,.menu18.visible ,.menu19.visible ,.menu20.visible ,.menu21.visible ,.menu22.visible ,.menu23.visible ,.menu24.visible ,.menu25.visible ,.menu26.visible ,.menu27.visible ,.menu28.visible {
+	opacity: 1;
+	top: 30px;
+	left: 90px;
+	z-index: 999;
+}

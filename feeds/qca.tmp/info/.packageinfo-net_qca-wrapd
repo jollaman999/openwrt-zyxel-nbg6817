@@ -1,0 +1,45 @@
+Source-Makefile: feeds/qca/net/qca-wrapd/Makefile
+Package: qca-wrapd-10.4
+Version: 1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread qca-hostap-10.4 @(!(PACKAGE_hostapd))
+Menu-Depends: 
+Provides: 
+Build-Depends: qca-hostap-10.4
+Section: QCA
+Category: QCA Proprietary software
+Title: QCA wrapd daemon
+Maintainer: Qualcomm Atheros
+Source: qca-wrapd-10.4.tar.bz2
+Type: ipkg
+Description:   User Space application to support QWRAP feature
+http://www.qca.qualcomm.com
+Qualcomm Atheros
+@@
+Config:
+	menu "custom source directory"
+		depends on PACKAGE_qca-wrapd
+	config qca-wrapd-10.4_USE_CUSTOM_SOURCE_DIR
+		depends on PACKAGE_qca-wrapd
+		bool "Use custom source directory"
+		default n
+	config qca-wrapd-10.4_CUSTOM_SOURCE_DIR
+		depends on qca-wrapd-10.4_USE_CUSTOM_SOURCE_DIR
+		string "Custom source directory"
+		default ""
+	endmenu
+	menu "overwrite package version"
+		depends on PACKAGE_qca-wrapd
+	config qca-wrapd-10.4_USE_CUSTOM_VERSION
+		depends on PACKAGE_qca-wrapd
+		bool "Use custom package version"
+		default n
+
+	config qca-wrapd-10.4_CUSTOM_VERSION
+		depends on qca-wrapd-10.4_USE_CUSTOM_VERSION
+		string "qca-wrapd-10.4 version as string (default version: )"
+		default ""
+
+	endmenu
+@@
+
+

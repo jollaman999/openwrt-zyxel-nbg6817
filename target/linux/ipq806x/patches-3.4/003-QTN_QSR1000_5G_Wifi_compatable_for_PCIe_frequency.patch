@@ -1,0 +1,25 @@
+From 2bfebb93e3350c4d2fa9df251cf43550b73631b3 Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Fri, 4 Sep 2015 16:48:34 +0800
+Subject: [PATCH 3/8] QTN_QSR1000_5G_Wifi_compatable_for_PCIe_frequency
+
+---
+ arch/arm/mach-msm/pcie.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/pcie.c b/arch/arm/mach-msm/pcie.c
+index 8921ccd..089353a 100644
+--- a/arch/arm/mach-msm/pcie.c
++++ b/arch/arm/mach-msm/pcie.c
+@@ -698,7 +698,7 @@ static int msm_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	/* poll for link to come up for upto 100ms */
+ 	rc = readl_poll_timeout(
+ 			(dev->pcie20 + PCIE20_CAP_LINKCTRLSTATUS),
+-			val, (val & BIT(29)), 10000, 100000);
++			val, (val & BIT(29)), 10000, 2000000);
+ 	if (rc) {
+ 		pr_err("link initialization failed\n");
+ 		dev->bus = -1;
+-- 
+1.9.1
+

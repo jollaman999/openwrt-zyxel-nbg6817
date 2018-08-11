@@ -1,0 +1,115 @@
+body {
+	margin-left: 0px;
+	margin-top: 0px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	background-size: cover;
+	background-attachment: fixed;
+	background-image: url(../img/menubar.jpg);
+	background-repeat: round;
+		}
+
+#memubar_t_bg {
+	position: absolute;
+	height: 70px;
+	width: auto;
+	/* margin: auto; */
+	top: 18px;
+	left: 0px;
+	right: 0px;
+	background-color: rgba(255, 255, 255,0.1);
+	bottom: 0px;
+}
+
+
+.memubar {
+	position: absolute;
+	height: 70px;
+	width: 920px;
+	margin: auto;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+}
+
+.memubar li {
+    float: left;
+    list-style: none; }
+
+.memubar li.back {
+    background: url("../img/lava.png") ;
+    width: 120px; height: 100%;
+    z-index: 9;
+    position: absolute;
+    margin: auto}
+
+.memubar li:hover{
+	background: rgba(51, 0, 0, 0.1);
+	height: 100%;
+}
+
+.memubar li.disabled {
+  pointer-events:none;
+  opacity:0.6;
+}
+
+.memubar li a {
+	height: 70px;
+	font-size: 14px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #fff;
+	outline: none;
+	text-align: center;
+	letter-spacing: 1px;
+	z-index: 10;
+	display: block;
+	position:relative;
+	overflow: auto;
+	padding-top: 25px;
+	margin-top: auto;
+	margin-right: 20px;
+	margin-bottom: auto;
+	margin-left: 20px;
+                    }
+.memubar li a:hover{
+	height: auto;
+	font-size: 14px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #FEF267;
+	outline: none;
+	text-align: center;
+	letter-spacing: 1;
+	z-index: 10;
+	display: block;
+	position: relative;
+	overflow: hidden;
+	padding-top: 23px;
+	margin-top: auto;
+	margin-right: 20px;
+	margin-bottom: auto;
+	margin-left: 20px;
+}
+
+
+
+.memubar li a:active{
+	height: 70px;
+	font-size: 14px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #FEF267;
+	outline: none;
+	text-align: center;
+	letter-spacing: 1;
+	z-index: 10;
+	display: block;
+	position: relative;
+	overflow: hidden;
+	padding-top: 25px;
+	margin-top: auto;
+	margin-right: 20px;
+	margin-bottom: auto;
+	margin-left: 20px;
+ }

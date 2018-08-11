@@ -1,0 +1,225 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local i18n = require("luci.i18n")
+uci=require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local now_timestamp=luci.sys.exec("date +%s")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<title>Parental Control</title>
+<script type="text/javascript" src="<%=media%>/easy/js/jquery-1.2.6.js"></script>
+<script type="text/javascript" src="<%=media%>/easy/js/parental_control.js"></script>
+<link rel="stylesheet" href="<%=media%>/css/popup.css" media="screen" type="text/css" />
+
+<style type="text/css">
+
+</style>
+
+<%
+   local luaSRules = {}
+   
+   uci:foreach( "parental_ex", "parental_rule", function( section )
+      if not ( nil == section.name ) then
+         local tmp = section
+         
+         tmp.id = section[ '.name' ]
+         table.insert( luaSRules, tmp )
+      end
+   end )
+   
+%>
+<script language="JavaScript" type="text/javascript">
+	var rulesnum = <%=#luaSRules%>;
+	var reItems = new Array(rulesnum);
+	
+	for (i = 0 ; i < rulesnum  ; i++){
+		reItems[0] = 0 ;
+	}	
+
+
+function buffer_action(entryNo){
+	var reward_min = prompt("<%:PC_text1%>", "");
+	
+	if ((!checkMin(reward_min))||(reward_min > 1440)|| (reward_min < 0)){
+		alert("<%:PC_text2%>");
+		return false;
+	}
+	else{
+
+		if (reward_min){
+			var easymode = "1";		
+			var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","security","ParentalControl")%>';		
+			var loc = submit_url + '?buffer=' + entryNo +'&reward_min=' + reward_min +'&easymode='+ easymode;
+			var code = 'location="' + loc + '"';		
+			eval(code);
+		}
+	}
+	
+	return false;
+}
+
+function checkMin(value){
+	var re = /[0-9]{1,4}/ ;
+  return re.test(value);
+}
+
+function remaining_timer(){
+<%
+	
+		local count = uci:get("parental_ex", "general", "count")
+		
+		for i = 1,count do
+			local rmin = uci:get("parental_ex", "rule" ..i, "reward_min")
+			if rmin ~= nil then 
+				local timestamp = uci:get("parental_ex", "rule" ..i , "timestamp")
+%>
+
+	var now_timestamp = <%=now_timestamp%>;
+	var Endtimestamp = <%=timestamp%>;
+	
+	if ( now_timestamp < Endtimestamp ){
+		var prule = <%=i%>;
+		
+		reItems[prule-1] = Endtimestamp - now_timestamp;
+	}
+	 <!-- document.getElementById("show_rem["+ prule +"]").innerHTML = countdown(reItems[prule-1],prule);  -->
+<%
+			end
+		end
+%>	
+	countdown();
+}
+
+function countdown(){
+	var schedule_show;
+	for (i = 0 ; i < rulesnum ; i++){
+		j = i + 1;
+		schedule_show = document.getElementById("schedule_show["+ j +"]");
+		
+	     if (reItems[i] > 0){
+                
+                        if (schedule_show.innerHTML.match("<%:Block%>") == "<%:Block%>"){
+                                
+                                var rema_totalsec = reItems[i];
+                                var re_hour = Math.floor(rema_totalsec/60/60);
+                                var re_min = Math.floor(rema_totalsec/60%60);
+                                var re_sec = rema_totalsec - re_hour*60*60 - re_min*60;
+                                document.getElementById("show_rem["+ j +"]").innerHTML = re_hour + ":" + re_min + ":" + re_sec;
+                        }
+         }
+		else{
+			document.getElementById("show_rem["+ j +"]").innerHTML = "<%:None%>";
+		}	
+	}
+	
+	for (i = 0 ; i < rulesnum ; i++){
+		if ( reItems[i] > 0 ){
+		reItems[i] = reItems[i] - 1;
+		}
+	}
+	
+	setTimeout("countdown()", 1000);
+}
+</script>
+</head>
+
+<body onload="remaining_timer()" style="visibility:visible !important">
+ 
+  <div id="easy123_w">
+    <div id="popup_t"><%:parental_control%></div>
+    <div id="popup" class="popup" ><a class="close" href="<%=controller%>/easy/networkmap" target="_top">&times;</a></div >
+
+   
+<div id="pc_d">
+<table width="100%" height="25" border="0" cellpadding="6" cellspacing="1" bgcolor="#E4E4E4" id="list_table">
+    <tbody>
+	<tr><p><%:easy_mode_glan_note%></p></tr>
+      <tr align="center">
+        <td width="115" bgcolor="#F0F0F0" ><%:Status%></td>
+        <td width="178" bgcolor="#F0F0F0"><%:children_name%></td>
+        <td width="299" bgcolor="#F0F0F0"><%:scheduling%></td>
+        <td width="198" bgcolor="#F0F0F0"><%:Bonus%></td>
+		<td width="198" bgcolor="#F0F0F0"><%:Remaining_time%></td>
+      </tr>
+	 <%
+		for i = 1, #luaSRules do
+		
+		local Parental_enable = uci:get("parental_ex","general","enable")
+		local bulb_pic
+		local bulb_status
+        if not ( nil == luaSRules[i].enable ) and not ( "0" == luaSRules[i].enable ) and (  "1" == Parental_enable ) then
+			bulb_pic = "i_active_on.gif"
+			bulb_status = "On" 
+		else
+			bulb_pic = "i_active_off.gif"
+			bulb_status = "Off"
+		end
+		
+		local schedules 
+		if ( "1" == luaSRules[i].schedule ) then 
+			schedules = "Allow"
+		else
+			schedules = "Block"
+		end
+	%>
+      <tr align="center">
+        <td bgcolor="#FFFFFF" >
+			<img src="<%=media%>/admin/images/<%=bulb_pic%>" width="18" height="18"  title="<%if (bulb_status == "On") then%><%:On%><%else%><%:Off%><%end%>"/>
+		</td>
+        <td bgcolor="#FFFFFF">
+			<%=luaSRules[i].name%>
+		</td>
+        <td id="schedule_show[<%=i%>]" bgcolor="#FFFFFF">
+			<%if (schedules == "Allow") then%><%:Allow%><%else%><%:Block%><%end%>
+		</td>
+        <td bgcolor="#FFFFFF">
+			<input name="buffer_click" type="button"<%if ( "1" == luaSRules[i].schedule or ( "0" == luaSRules[i].enable ) or ( "0" == Parental_enable )) then%>disabled="disabled"<%end%> value="<%:Bonus%>" onclick="buffer_action(<%= i %>)" />
+		</td>
+		<td bgcolor="#FFFFFF" >
+			<div id="show_rem[<%=i%>]"></div>
+		</td> 
+      </tr>
+	<%	  
+		end 
+ 
+	%>  
+    </tbody>
+  </table>
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

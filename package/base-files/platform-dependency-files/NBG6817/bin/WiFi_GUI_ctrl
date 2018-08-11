@@ -1,0 +1,1921 @@
+#!/bin/sh
+##for NBG6817
+chk_iface=$(uci get wireless.iface.wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+#DEBUG_FLAG=2
+DEBUG(){
+	[ "$DEBUG_FLAG" == "1" ] && echo "###WiFi GUI Debug log######/// $@ ////////"
+	[ "$DEBUG_FLAG" == "2" ] && echo "###WiFi GUI Debug log######/// $@ ////////" > /dev/console
+	[ "$DEBUG_FLAG" == "3" ] && echo "###WiFi GUI Debug log######/// $@ ////////" > /tmp/WiFi_debug_log
+}
+
+########################################################################
+get_ucitrack_list(){
+	init_list=$(uci show ucitrack.@$1[0] |awk -F"init=" '{print $2}' | tr -d '\n')
+	affects_list=$(uci show ucitrack.@$1[0] |awk -F"affects=" '{print $2}' | tr -d '\n')
+
+	DEBUG "get_ucitrack_list -- $init_list $affects_list"
+	echo "$init_list $affects_list"
+}
+
+easyMOD_main_wifi_Apply(){
+	DEBUG "$@"
+	wlanRadio="$2"
+	wlanSSID="$3"
+	wlanPwd="$4"
+	wlanSec="$5"
+
+	if [ "$wlanRadio" == "both" ]; then
+		wlan_val="2.4G 5G"
+	else
+		wlan_val="$wlanRadio"
+		DEV="$DEV24G"
+		if [ "$wlanRadio" == "5G" ]; then
+			DEV="$DEV5G"
+		fi
+		echo $DEV > /tmp/WirelessDev
+	fi
+
+	cfg="wireless"
+	for dev in $wlan_val
+	do
+		DEV="$DEV24G"
+		DEV_FIRSTNAME="$DEV24G_FIRSTNAME"0
+		wpscfg="wps"
+		iface="24G"
+		if [ "$dev" == "5G" ]; then
+			DEV="$DEV5G"
+			DEV_FIRSTNAME="$DEV5G_FIRSTNAME"0
+			wpscfg="wps5G"
+			iface="5G"
+		fi
+
+		kill $(ps | grep "watch -tn 1 wps_conf_$iface" | grep 'grep' -v | awk '{print $1}')
+
+		##SSID
+		uci set $cfg."$DEV_FIRSTNAME".ssid="$wlanSSID"
+
+		if [ "$wlanSec" == "none" ]; then
+			uci set $cfg."$DEV".auth="$OPEN"
+			uci set $cfg."$DEV_FIRSTNAME".auth="NONE"
+			uci set $cfg."$DEV_FIRSTNAME".encryption="NONE"
+
+		elif [ "$wlanSec" == "WPA-PSK" ]; then
+			uci set $cfg."$DEV_FIRSTNAME".auth="WPAPSK"
+			uci set $cfg."$DEV_FIRSTNAME".encryption="WPAPSK"
+			uci set $cfg."$DEV_FIRSTNAME".WPAPSKkey="$wlanPwd"
+
+		elif [ "$wlanSec" == "WPA2-PSK" ]; then
+			uci set $cfg."$DEV_FIRSTNAME".auth="WPA2PSK"
+			uci set $cfg."$DEV_FIRSTNAME".encryption="WPA2PSK"
+			uci set $cfg."$DEV_FIRSTNAME".WPAPSKkey="$wlanPwd"
+		fi
+
+		uci set $wpscfg.wps.conf="1"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+		uci commit $cfg
+		sync #This command is for emmc and ext4 filesystem
+	done
+
+	list=$(get_ucitrack_list "$cfg")
+	luci-reload "$list" > /dev/null
+}
+
+easyMOD_main_wifi_get_val(){
+	ssid_24G=$(uci get wireless."$DEV24G_FIRSTNAME"0.ssid)
+	ssid_5G=$(uci get wireless."$DEV5G_FIRSTNAME"0.ssid)
+	psk_24G=$(uci get wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey)
+	psk_5G=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey)
+
+	if [ -z "$ssid_24G" ];then
+		ssid_24G=$(cat /tmp/tmpSSID24G)
+	fi
+
+	if [ -z "$ssid_5G" ];then
+		ssid_5G=$(cat /tmp/tmpSSID5G)
+	fi
+
+	if [ -z "$psk_24G" ];then
+		psk_24G=$(cat /tmp/tmppsk)
+	fi
+
+	if [ -z "$psk_5G" ];then
+		psk_5G=$(cat /tmp/tmppsk)
+	fi
+
+	encryption_24G=$(uci get wireless."$DEV24G_FIRSTNAME"0.encryption)
+	security_24G="NONE"
+
+	if [ "$encryption_24G" == "wep-mixed" ] || [ "$encryption_24G" == "wep-shared" ]; then
+		security_24G="WEP"
+	elif [ "$encryption_24G" == "WPAPSK" ] || [ "$encryption_24G" == "WPA" ] || [ "$encryption_24G" == "WPA2PSK" ] ||[ "$encryption_24G" == "WPA2" ]; then
+		security_24G="$encryption_24G"
+	fi
+
+	encryption_5G=$(uci get wireless."$DEV5G_FIRSTNAME"0.encryption)
+	security_5G="NONE"
+
+	if [ "$encryption_5G" == "wep-mixed" ] || [ "$encryption_5G" == "wep-shared" ]; then
+		security_5G="WEP"
+	elif [ "$encryption_5G" == "WPAPSK" ] || [ "$encryption_5G" == "WPA" ] || [ "$encryption_5G" == "WPA2PSK" ] ||[ "$encryption_5G" == "WPA2" ]; then
+		security_5G="$encryption_5G"
+	fi
+
+	show_val="$ssid_24G<;;>$ssid_5G<;;>$psk_24G<;;>$psk_5G<;;>$security_24G<;;>$security_5G"
+	echo -n "$show_val"
+}
+
+easyMOD_guest_wifi_Apply(){
+	DEBUG "$@"
+	wlanRadio="$2"
+	wlanSSID="$3"
+	wlanPwd="$4"
+	wlanSec="$5"
+
+	cfg="wireless"
+
+	DEV="$DEV24G"
+	DEV_FIRSTNAME="$DEV24G_FIRSTNAME"3
+	wpscfg="wps"
+	iface="24G"
+	if [ "$wlanRadio" == "5G" ]; then
+		DEV="$DEV5G"
+		DEV_FIRSTNAME="$DEV5G_FIRSTNAME"3
+		wpscfg="wps5G"
+		iface="5G"
+	fi
+
+	kill $(ps | grep "watch -tn 1 wps_conf_$iface" | grep 'grep' -v | awk '{print $1}')
+	echo $DEV > /tmp/WirelessDev
+	echo $DEV_FIRSTNAME > /tmp/wifi"$iface"_Apply
+
+	##SSID
+	uci set $cfg."$DEV_FIRSTNAME".ssid="$wlanSSID"
+
+	if [ "$wlanSec" == "none" ]; then
+		uci set $cfg."$DEV".auth="$OPEN"
+		uci set $cfg."$DEV_FIRSTNAME".auth="NONE"
+		uci set $cfg."$DEV_FIRSTNAME".encryption="NONE"
+
+	elif [ "$wlanSec" == "WPA-PSK" ]; then
+		uci set $cfg."$DEV_FIRSTNAME".auth="WPAPSK"
+		uci set $cfg."$DEV_FIRSTNAME".encryption="WPAPSK"
+		uci set $cfg."$DEV_FIRSTNAME".WPAPSKkey="$wlanPwd"
+
+	elif [ "$wlanSec" == "WPA2-PSK" ]; then
+		uci set $cfg."$DEV_FIRSTNAME".auth="WPA2PSK"
+		uci set $cfg."$DEV_FIRSTNAME".encryption="WPA2PSK"
+		uci set $cfg."$DEV_FIRSTNAME".WPAPSKkey="$wlanPwd"
+	fi
+
+	uci set $wpscfg.wps.conf="1"
+	uci commit $wpscfg
+	sync #This command is for emmc and ext4 filesystem
+	uci commit $cfg
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "$cfg")
+	luci-reload "$list" > /dev/null
+}
+
+easyMOD_guest_wifi_get_val(){
+	ssid_24G=$(uci get wireless."$DEV24G_FIRSTNAME"3.ssid)
+	ssid_5G=$(uci get wireless."$DEV5G_FIRSTNAME"3.ssid)
+	psk_24G=$(uci get wireless."$DEV24G_FIRSTNAME"3.WPAPSKkey)
+	psk_5G=$(uci get wireless."$DEV5G_FIRSTNAME"3.WPAPSKkey)
+
+	encryption_24G=$(uci get wireless."$DEV24G_FIRSTNAME"3.encryption)
+	security_24G="NONE"
+
+	if [ "$encryption_24G" == "wep-mixed" ] || [ "$encryption_24G" == "wep-shared" ]; then
+		security_24G="WEP"
+	elif [ "$encryption_24G" == "WPAPSK" ] || [ "$encryption_24G" == "WPA" ] || [ "$encryption_24G" == "WPA2PSK" ] ||[ "$encryption_24G" == "WPA2" ]; then
+		security_24G="$encryption_24G"
+	fi
+
+	encryption_5G=$(uci get wireless."$DEV5G_FIRSTNAME"3.encryption)
+	security_5G="NONE"
+
+	if [ "$encryption_5G" == "wep-mixed" ] || [ "$encryption_5G" == "wep-shared" ]; then
+		security_5G="WEP"
+	elif [ "$encryption_5G" == "WPAPSK" ] || [ "$encryption_5G" == "WPA" ] || [ "$encryption_5G" == "WPA2PSK" ] ||[ "$encryption_5G" == "WPA2" ]; then
+		security_5G="$encryption_5G"
+	fi
+
+	show_val="$ssid_24G<;;>$ssid_5G<;;>$psk_24G<;;>$psk_5G<;;>$security_24G<;;>$security_5G"
+	echo -n "$show_val"
+}
+
+main_24G_get_val(){
+	wireless_enable=$(uci get wireless."$DEV24G".disabled)
+	ssid=$(uci get wireless."$DEV24G_FIRSTNAME"0.ssid)
+	hide_ssid=$(uci get wireless."$DEV24G_FIRSTNAME"0.hidden)
+
+	if [ -z "$ssid" ];then
+		ssid=$(cat /tmp/tmpSSID24G)
+	fi
+
+	Auto_Channel_chk=$(uci get wireless."$DEV24G".AutoChannelSelect)
+	select_channel=$(uci get wireless."$DEV24G".channel)
+	channel=$(iwlist "$DEV24G_FIRSTNAME"0 channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+	if [ "$Auto_Channel_chk" == "1" ];then
+		uci set wireless."$DEV24G".channel="$channel"
+		uci commit wireless
+		sync #This command is for emmc and ext4 filesystem
+	fi
+
+	bandwidth=$(uci get wireless."$DEV24G".channel_width)
+	mode=$(uci get wireless."$DEV24G".hwmode)
+	auth=$(uci get wireless."$DEV24G_FIRSTNAME"0.auth)
+
+	encryption=$(uci get wireless."$DEV24G_FIRSTNAME"0.encryption)
+	security="NONE"
+
+	if [ "$encryption" == "wep-mixed" ] || [ "$encryption" == "wep-shared" ]; then
+		security="WEP"
+	elif [ "$encryption" == "WPAPSK" ] || [ "$encryption" == "WPA" ] || [ "$encryption" == "WPA2PSK" ] ||[ "$encryption" == "WPA2" ]; then
+		security="$encryption"
+	fi
+
+	wps_enabled=$(uci get wps.wps.enabled)
+	WPAPSKCompatible=$(uci get wireless."$DEV24G_FIRSTNAME"0.WPAPSKCompatible)
+	WPACompatible=$(uci get wireless."$DEV24G_FIRSTNAME"0.WPACompatible)
+	chk_PMF=$(uci get wireless."$DEV24G_FIRSTNAME"0.PMF)
+
+	psk=$(uci get wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey)
+
+	if [ -z "$psk" ];then
+		psk=$(cat /tmp/tmppsk)
+	fi
+
+	keyRenewalInterval=$(uci get wireless."$DEV24G_FIRSTNAME"0.RekeyInterval)
+	RadiusServerIP=$(uci get wireless."$DEV24G_FIRSTNAME"0.RADIUS_Server)
+	RadiusServerPort=$(uci get wireless."$DEV24G_FIRSTNAME"0.RADIUS_Port)
+	RadiusServerSecret=$(uci get wireless."$DEV24G_FIRSTNAME"0.RADIUS_Key)
+	RadiusServerSessionTimeout=$(uci get wireless."$DEV24G_FIRSTNAME"0.session_timeout_interval)
+
+	countrycode=$(get_country_code)
+
+	show_val="$wireless_enable<;;>$ssid<;;>$hide_ssid<;;>$Auto_Channel_chk<;;>$channel<;;>$bandwidth<;;>$mode<;;>$security<;;>$auth<;;>$wps_enabled<;;>$WPAPSKCompatible<;;>$chk_PMF<;;>$psk<;;>$keyRenewalInterval<;;>$RadiusServerIP<;;>$RadiusServerPort<;;>$RadiusServerSecret<;;>$RadiusServerSessionTimeout<;;>$countrycode<;;>$select_channel<;;>$WPACompatible"
+	echo -n "$show_val"
+}
+
+main_24G_Apply(){
+	DEBUG "$@"
+
+	SSID="$2"
+	Wireless_enable="$3"
+	wireless_hidden="$4"
+	Channel_ID="$5"
+	Auto_Channel="$6"
+	Channel_Width="$7"
+	Wireless_Mode="$8"
+	Security_mode_val="$9"
+
+	echo "$DEV24G_FIRSTNAME"0 > /tmp/wifi24G_Apply
+	kill $(ps | grep 'watch -tn 1 wps_conf_24G' | grep 'grep' -v | awk '{print $1}')
+
+	##SSID
+	uci set wireless."$DEV24G_FIRSTNAME"0.ssid="$SSID"
+	##radioON
+	uci set wireless."$DEV24G".disabled="$Wireless_enable"
+	uci set wireless."$DEV24G_FIRSTNAME"0.disabled="$Wireless_enable"
+	##HideSSID
+	uci set wireless."$DEV24G_FIRSTNAME"0.hidden="$wireless_hidden"
+	##ChannelID
+	uci set wireless."$DEV24G".channel="$Channel_ID"
+	##AutoChSelect
+	uci set wireless."$DEV24G".AutoChannelSelect="$Auto_Channel"
+	##ChannelWidth
+	uci set wireless."$DEV24G".channel_width="$Channel_Width"
+	##WirelessMode
+	uci set wireless."$DEV24G".hwmode="$Wireless_Mode"
+	if [ "$Wireless_Mode" == "11gn" ] || [ "$Wireless_Mode" == "11n" ] || [ "$Wireless_Mode" == "11bgn" ];then
+		uci set wireless."$DEV24G_FIRSTNAME"0.wmm="1"
+		uci set wireless."$DEV24G_FIRSTNAME"1.wmm="1"
+		uci set wireless."$DEV24G_FIRSTNAME"2.wmm="1"
+		uci set wireless."$DEV24G_FIRSTNAME"3.wmm="1"
+	fi
+	##Security_mode
+	security_mode=$(echo $Security_mode_val | awk -F"<;;>" '{print $1}')
+	if [ "$security_mode" == "NONE" ]; then
+		uci set wireless."$DEV24G".auth="OPEN"
+		uci set wireless."$DEV24G_FIRSTNAME"0.auth="NONE"
+		uci set wireless."$DEV24G_FIRSTNAME"0.encryption="NONE"
+
+	elif [ "$security_mode" == "WEP" ]; then
+		EncrypAuto_shared_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wep_passphrase_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		WEP64_128_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		WEPKey_Code_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		DefWEPKey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		wepkey1_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		wepkey2_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		wepkey3_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		wepkey4_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		if [ "$EncrypAuto_shared_val" == "WEPAUTO" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.encryption="wep-mixed"
+			uci set wireless."$DEV24G_FIRSTNAME"0.auth="$EncrypAuto_shared_val"
+		elif [ "$EncrypAuto_shared_val" == "SHARED" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.encryption="wep-shared"
+			uci set wireless."$DEV24G_FIRSTNAME"0.auth="$EncrypAuto_shared_val"
+		fi
+
+		if [ "$wep_passphrase_val" == "wep_passphrase" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.PassPhrase=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.PassPhrase="$wep_passphrase_val"
+		fi
+
+		if [ "$WEP64_128_val" == "0" ] || [ "$WEP64_128_val" == "1" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.wepencryp128="$WEP64_128_val"
+		fi
+
+		if [ "$WEPKey_Code_val" == "0" ] || [ "$WEPKey_Code_val" == "1" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.keytype="$WEPKey_Code_val"
+		fi
+
+		if [ "$DefWEPKey_val" != "DefWEPKey" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.key="$DefWEPKey_val"
+		fi
+
+		if [ "$wepkey1_val" == "wepkey1" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.key1=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.key1="$wepkey1_val"
+		fi
+
+		if [ "$wepkey2_val" == "wepkey2" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.key2=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.key2="$wepkey2_val"
+		fi
+
+		if [ "$wepkey3_val" == "wepkey3" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.key3=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.key3="$wepkey3_val"
+		fi
+
+		if [ "$wepkey4_val" == "wepkey4" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.key4=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.key4="$wepkey4_val"
+		fi
+
+	elif [ "$security_mode" == "WPA" ]; then
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.auth="WPA"
+		uci set wireless."$DEV24G_FIRSTNAME"0.encryption="WPA"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RadiusServerIP_val="$RadiusServerIP_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RadiusServerPort_val="$RadiusServerPort_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RadiusServerSecret_val="$RadiusServerSecret_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RadiusServerSessionTimeout_val="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPAPSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.auth="WPAPSK"
+		uci set wireless."$DEV24G_FIRSTNAME"0.encryption="WPAPSK"
+
+		if [ "$WPAPSKkey_val" == "WPAPSKkey" ]; then
+			uci set wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey=""
+		else
+			uci set wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey="$WPAPSKkey_val"
+		fi
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+
+	elif [ "$security_mode" == "WPA2" ]; then
+		WPACompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wpa2_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		PMKCachePeriod_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		PreAuthentication_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.auth="WPA2"
+		uci set wireless."$DEV24G_FIRSTNAME"0.encryption="WPA2"
+		uci set wireless."$DEV24G_FIRSTNAME"0.WPACompatible="$WPACompatible_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.PMF="$wpa2_pmf_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.PMKCachePeriod="$PMKCachePeriod_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.PreAuth="$PreAuthentication_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RADIUS_Server="$RadiusServerIP_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RADIUS_Port="$RadiusServerPort_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RADIUS_Key="$RadiusServerSecret_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.session_timeout_interval="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPA2PSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		WPAPSKCompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		wpa2psk_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.auth="WPA2PSK"
+		uci set wireless."$DEV24G_FIRSTNAME"0.encryption="WPA2PSK"
+
+		uci set wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey="$WPAPSKkey_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.WPAPSKCompatible="$WPAPSKCompatible_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV24G_FIRSTNAME"0.PMF="$wpa2psk_pmf_val"
+	fi
+
+	if [ "$wireless_hidden" == "1" ]; then
+		uci set wps.wps.enabled="0"
+	fi
+
+	uci set wps.wps.conf="1"
+	uci commit wps
+	sync #This command is for emmc and ext4 filesystem
+	uci commit wireless
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "wireless")
+	echo "$DEV24G" > /tmp/WirelessDev
+	luci-reload "$list"
+}
+
+guestWlan24G_get_val(){
+	val=$(uci get wireless."$DEV24G".disabled)
+
+	for dev in "$DEV24G_FIRSTNAME"1 "$DEV24G_FIRSTNAME"2 "$DEV24G_FIRSTNAME"3
+	do
+		wifi_enable=$(uci get wireless."$dev".disabled)
+		ssid=$(uci get wireless."$dev".ssid)
+		security=$(uci get wireless."$dev".auth)
+		WPAPSKCompatible=$(uci get wireless."$dev".WPAPSKCompatible)
+		WPACompatible=$(uci get wireless."$dev".WPACompatible)
+
+		security_val="No Security"
+		if [ "$security" == "WPAPSK" ];then
+			security_val="WPA-PSK"
+		elif [ "$security" == "WPA2PSK" ];then
+			security_val="WPA2-PSK"
+			if [ "$WPAPSKCompatible" == "1" ];then
+				security_val="WPA-PSK/WPA2-PSK"
+			fi
+		elif [ "$security" == "WPA2" ];then
+			security_val="WPA2"
+			if [ "$WPACompatible" == "1" ];then
+				security_val="WPA/WPA2"
+			fi
+		elif [ "$security" == "WEPAUTO" ] || [ "$security" == "SHARED" ];then
+			security_val="WEP"
+		fi
+		timer=$(/bin/guestWifiTimer.sh get_time_GUI_ctrl $dev)
+		val="$val<;;>$wifi_enable'$ssid'$security_val'$timer"
+	done
+
+	echo -n "$val"
+}
+
+guestWlan24G_edit_Apply(){
+	DEBUG "$@"
+	interface="$2"
+	Wireless_disable="$3"
+	SSID="$4"
+	wireless_hidden="$5"
+	intra_bss="$6"
+	wmm_qos="$7"
+	band_manage="$8"
+	max_band="$9"
+	Security_mode_val="$10"
+
+	iface="$interface"
+	if [ "$interface" == "$DEV24G_FIRSTNAME"1 ];then
+		GUEST_NUMBER=1
+	elif [ "$interface" == "$DEV24G_FIRSTNAME"2 ];then
+		GUEST_NUMBER=2
+	elif [ "$interface" == "$DEV24G_FIRSTNAME"3 ];then
+		GUEST_NUMBER=3
+	fi
+
+	Wireless_Mode=$(uci get wireless."$DEV24G".hwmode)
+
+	if [ "$Wireless_disable" == "1" ];then
+		/bin/guestWifiTimer.sh remove_rule "$GUEST_NUMBER" 24G
+	fi
+
+	##SSID
+	uci set wireless.$iface.ssid="$SSID"
+	##Wireless_disable
+	uci set wireless.$iface.disabled="$Wireless_disable"
+	##HideSSID
+	uci set wireless.$iface.hidden="$wireless_hidden"
+	##IntraBSS
+	uci set wireless.$iface.IntraBSS="$intra_bss"
+	##WMM
+	if [ "$Wireless_Mode" == "11gn" ] || [ "$Wireless_Mode" == "11n" ] || [ "$Wireless_Mode" == "11bgn" ];then
+		uci set wireless.$iface.wmm="1"
+	else
+		uci set wireless.$iface.wmm="$wmm_qos"
+	fi
+	##Guest WLAN
+	uci set wireless.$iface.guest_bandwidth_enable="$band_manage"
+	uci set wireless.$iface.guest_max_bandwidth="$max_band"
+
+	##Security_mode
+	security_mode=$(echo $Security_mode_val | awk -F"<;;>" '{print $1}')
+	if [ "$security_mode" == "NONE" ]; then
+		uci set wireless.$iface.auth="OPEN"
+		uci set wireless.$iface.encryption="NONE"
+
+	elif [ "$security_mode" == "WEP" ]; then
+		EncrypAuto_shared_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wep_passphrase_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		WEP64_128_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		WEPKey_Code_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		DefWEPKey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		wepkey1_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		wepkey2_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		wepkey3_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		wepkey4_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		if [ "$EncrypAuto_shared_val" == "WEPAUTO" ]; then
+			uci set wireless.$iface.encryption="wep-mixed"
+			uci set wireless.$iface.auth="$EncrypAuto_shared_val"
+		elif [ "$EncrypAuto_shared_val" == "SHARED" ]; then
+			uci set wireless.$iface.encryption="wep-shared"
+			uci set wireless.$iface.auth="$EncrypAuto_shared_val"
+		fi
+
+		if [ "$wep_passphrase_val" == "wep_passphrase" ]; then
+			uci set wireless.$iface.PassPhrase=""
+		else
+			uci set wireless.$iface.PassPhrase="$wep_passphrase_val"
+		fi
+
+		if [ "$WEP64_128_val" == "0" ] || [ "$WEP64_128_val" == "1" ]; then
+			uci set wireless.$iface.wepencryp128="$WEP64_128_val"
+		fi
+
+		if [ "$WEPKey_Code_val" == "0" ] || [ "$WEPKey_Code_val" == "1" ]; then
+			uci set wireless.$iface.keytype="$WEPKey_Code_val"
+		fi
+
+		if [ "$DefWEPKey_val" != "DefWEPKey" ]; then
+			uci set wireless.$iface.key="$DefWEPKey_val"
+		fi
+
+		if [ "$wepkey1_val" == "wepkey1" ]; then
+			uci set wireless.$iface.key1=""
+		else
+			uci set wireless.$iface.key1="$wepkey1_val"
+		fi
+
+		if [ "$wepkey2_val" == "wepkey2" ]; then
+			uci set wireless.$iface.key2=""
+		else
+			uci set wireless.$iface.key2="$wepkey2_val"
+		fi
+
+		if [ "$wepkey3_val" == "wepkey3" ]; then
+			uci set wireless.$iface.key3=""
+		else
+			uci set wireless.$iface.key3="$wepkey3_val"
+		fi
+
+		if [ "$wepkey4_val" == "wepkey4" ]; then
+			uci set wireless.$iface.key4=""
+		else
+			uci set wireless.$iface.key4="$wepkey4_val"
+		fi
+
+	elif [ "$security_mode" == "WPA" ]; then
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+
+		uci set wireless.$iface.auth="WPA"
+		uci set wireless.$iface.encryption="WPA"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.RadiusServerIP_val="$RadiusServerIP_val"
+		uci set wireless.$iface.RadiusServerPort_val="$RadiusServerPort_val"
+		uci set wireless.$iface.RadiusServerSecret_val="$RadiusServerSecret_val"
+		uci set wireless.$iface.RadiusServerSessionTimeout_val="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPAPSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+
+		uci set wireless.$iface.auth="WPAPSK"
+		uci set wireless.$iface.encryption="WPAPSK"
+
+		if [ "$WPAPSKkey_val" == "WPAPSKkey" ]; then
+			uci set wireless.$iface.WPAPSKkey=""
+		else
+			uci set wireless.$iface.WPAPSKkey="$WPAPSKkey_val"
+		fi
+
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+
+	elif [ "$security_mode" == "WPA2" ]; then
+		WPACompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wpa2_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		PMKCachePeriod_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		PreAuthentication_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		uci set wireless.$iface.auth="WPA2"
+		uci set wireless.$iface.encryption="WPA2"
+		uci set wireless.$iface.WPACompatible="$WPACompatible_val"
+		uci set wireless.$iface.PMF="$wpa2_pmf_val"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.PMKCachePeriod="$PMKCachePeriod_val"
+		uci set wireless.$iface.PreAuth="$PreAuthentication_val"
+		uci set wireless.$iface.RADIUS_Server="$RadiusServerIP_val"
+		uci set wireless.$iface.RADIUS_Port="$RadiusServerPort_val"
+		uci set wireless.$iface.RADIUS_Key="$RadiusServerSecret_val"
+		uci set wireless.$iface.session_timeout_interval="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPA2PSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		WPAPSKCompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		wpa2psk_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+
+		uci set wireless.$iface.auth="WPA2PSK"
+		uci set wireless.$iface.encryption="WPA2PSK"
+
+		uci set wireless.$iface.WPAPSKkey="$WPAPSKkey_val"
+		uci set wireless.$iface.WPAPSKCompatible="$WPAPSKCompatible_val"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.PMF="$wpa2psk_pmf_val"
+	fi
+
+	uci commit wireless
+	sync #This command is for emmc and ext4 filesystem
+
+	echo $iface >> /tmp/moreAP
+	echo $iface > /tmp/wifi24G_Apply
+	echo "$DEV24G" > /tmp/WirelessDev
+
+	list=$(get_ucitrack_list "wireless")
+	luci-reload "$list"
+}
+
+guestWlan24G_edit_get_val(){
+	DEBUG "$@"
+	interface="$2"
+
+	iface="$interface"
+	if [ "$interface" == "1" ];then
+		iface="$DEV24G_FIRSTNAME"1
+	elif [ "$interface" == "2" ];then
+		iface="$DEV24G_FIRSTNAME"2
+	elif [ "$interface" == "3" ];then
+		iface="$DEV24G_FIRSTNAME"3
+	fi
+
+	wireless_disable=$(uci get wireless.$iface.disabled)
+	ssid=$(uci get wireless.$iface.ssid)
+	hide_ssid=$(uci get wireless.$iface.hidden)
+	IntraBSS=$(uci get wireless.$iface.IntraBSS)
+	wmm=$(uci get wireless.$iface.wmm)
+
+	Wireless_Mode=$(uci get wireless."$DEV24G".hwmode)
+	if [ "$Wireless_Mode" == "11gn" ] || [ "$Wireless_Mode" == "11n" ] || [ "$Wireless_Mode" == "11bgn" ];then
+		WMM_Choose="disabled"
+	fi
+
+	enabel_bandwidth=$(uci get wireless.$iface.guest_bandwidth_enable)
+	guest_max_bandwidth=$(uci get wireless.$iface.guest_max_bandwidth)
+
+	auth=$(uci get wireless.$iface.auth)
+	encryption=$(uci get wireless.$iface.encryption)
+	security="NONE"
+
+	if [ "$encryption" == "wep-mixed" ] || [ "$encryption" == "wep-shared" ]; then
+		security="WEP"
+	elif [ "$encryption" == "WPAPSK" ] || [ "$encryption" == "WPA" ] || [ "$encryption" == "WPA2PSK" ] ||[ "$encryption" == "WPA2" ]; then
+		security="$encryption"
+	fi
+
+	wps_enabled=$(uci get wps.wps.enabled)
+	WPAPSKCompatible=$(uci get wireless.$iface.WPAPSKCompatible)
+	WPACompatible=$(uci get wireless.$iface.WPACompatible)
+	chk_PMF=$(uci get wireless.$iface.PMF)
+
+	psk=$(uci get wireless.$iface.WPAPSKkey)
+
+	if [ -z "$psk" ];then
+		psk=$(cat /tmp/tmppsk)
+	fi
+
+	keyRenewalInterval=$(uci get wireless.$iface.RekeyInterval)
+	RadiusServerIP=$(uci get wireless.$iface.RADIUS_Server)
+	RadiusServerPort=$(uci get wireless.$iface.RADIUS_Port)
+	RadiusServerSecret=$(uci get wireless.$iface.RADIUS_Key)
+	RadiusServerSessionTimeout=$(uci get wireless.$iface.session_timeout_interval)
+
+	show_val="$iface<;;>$wireless_disable<;;>$ssid<;;>$hide_ssid<;;>$IntraBSS<;;>$wmm<;;>$WMM_Choose<;;>$enabel_bandwidth<;;>$guest_max_bandwidth<;;>$auth<;;>$security<;;>$wps_enabled<;;>$WPAPSKCompatible<;;>$chk_PMF<;;>$psk<;;>$keyRenewalInterval<;;>$RadiusServerIP<;;>$RadiusServerPort<;;>$RadiusServerSecret<;;>$RadiusServerSessionTimeout<;;>$WPACompatible"
+	echo -n "$show_val"
+}
+
+macfilter24G_Apply(){
+	DEBUG "$@"
+	cfg="wireless_macfilter"
+	MACfilter_ON="$2"
+	filter_act="$3"
+	MacAddrs_val="$4"
+
+	uci set "$cfg".general0.reset="1"
+	uci set "$cfg".general0.mac_state="$MACfilter_ON"
+	uci set "$cfg".general0.filter_action="$filter_act"
+
+	for i in `seq 1 1 64`
+	do
+		MacAddr="MacAddr$i"
+		uci set "$cfg".general0.$MacAddr=""
+	done
+
+	if [ "$MacAddrs_val" != "None" ];then
+		i=1
+		for MAC in $(echo -n "$MacAddrs_val" | tr -s "<;;>" " ")
+		do
+			if [ "$MAC" != "00:00:00:00:00:00" ];then
+				MacAddr="MacAddr$i"
+				uci set "$cfg".general0.$MacAddr="$MAC"
+				i=`expr $i + 1`
+			fi
+		done
+	fi
+	uci commit "$cfg"
+	sync #This command is for emmc and ext4 filesystem
+
+	##for WPS2.0 WiFi logo
+	if [ "$MACfilter_ON" == "1" ];then
+		uci set wps.wps.enabled="0"
+		uci commit wps
+		sync #This command is for emmc and ext4 filesystem
+		echo "$DEV24G" > /tmp/WirelessDev
+
+		list=$(get_ucitrack_list "wireless")
+		luci-reload "$list"
+	fi
+
+	list=$(get_ucitrack_list "$cfg")
+	luci-reload "$list"
+}
+
+macfilter24G_get_val(){
+	cfg="wireless_macfilter"
+	mac_val=""
+
+	for i in `seq 1 1 64`
+	do
+		MacAddr="MacAddr$i"
+		MAC=$(uci get "$cfg".general0.$MacAddr)
+
+
+		if [ -z "$MAC" ] || [ "$MAC" == "00:00:00:00:00:00" ]; then
+			break
+		fi
+
+		if [ "$i" == "1" ];then
+			mac_val="$MAC"
+		else
+			mac_val="$mac_val'$MAC"
+		fi
+	done
+
+	ssid=$(uci get wireless."$DEV24G_FIRSTNAME"0.ssid)
+
+	if [ -z "$ssid" ];then
+		ssid=$(cat /tmp/tmpSSID24G)
+	fi
+
+	MacFilter_enable=$(uci get "$cfg".general0.mac_state)
+	MacFilter_Action=$(uci get "$cfg".general0.filter_action)
+
+	show_val="$mac_val<;;>$ssid<;;>$MacFilter_enable<;;>$MacFilter_Action"
+	echo -n "$show_val"
+}
+
+advanced24G_Apply(){
+	DEBUG "$@"
+	cfg="wireless"
+	rts_Threshold_val="$2"
+	fr_threshold_val="$3"
+	IntraBSS_state_val="$4"
+	txPower_val="$5"
+	wmm_enable_val="$6"
+
+	uci set "$cfg"."$DEV24G_FIRSTNAME"0.rts="$rts_Threshold_val"
+	uci set "$cfg"."$DEV24G_FIRSTNAME"0.frag="$fr_threshold_val"
+	uci set "$cfg"."$DEV24G_FIRSTNAME"0.IntraBSS="$IntraBSS_state_val"
+	uci set "$cfg"."$DEV24G".txpower="$txPower_val"
+
+	if [ "$wmm_enable_val" != "WMM" ];then
+		uci set "$cfg"."$DEV24G_FIRSTNAME"0.wmm="$wmm_enable_val"
+	fi
+
+	uci commit "$cfg"
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "wireless")
+	echo "$DEV24G" > /tmp/WirelessDev
+	luci-reload "$list"
+}
+
+advanced24G_get_val(){
+	mode=$(uci get wireless."$DEV24G".hwmode)
+
+	if [ "$mode" == "11gn" ] || [ "$mode" == "11n" ] || [ "$mode" == "11bgn" ];then
+		rts_Threshold="2346"
+		fr_threshold="2346"
+		WMM_QoS="1"
+		rts_frag_WMM_choice="disabled"
+	else
+		rts_Threshold=$(uci get wireless."$DEV24G_FIRSTNAME"0.rts)
+		fr_threshold=$(uci get wireless."$DEV24G_FIRSTNAME"0.frag)
+		WMM_QoS=$(uci get wireless."$DEV24G_FIRSTNAME"0.wmm)
+	fi
+
+	IntraBSS=$(uci get wireless."$DEV24G_FIRSTNAME"0.IntraBSS)
+	TxPower=$(uci get wireless."$DEV24G".txpower)
+
+
+	show_val="$rts_frag_WMM_choice<;;>$rts_Threshold<;;>$fr_threshold<;;>$WMM_QoS<;;>$IntraBSS<;;>$TxPower"
+	echo -n "$show_val"
+}
+
+main_5G_get_val(){
+	wireless_enable=$(uci get wireless."$DEV5G".disabled)
+	ssid=$(uci get wireless."$DEV5G_FIRSTNAME"0.ssid)
+	hide_ssid=$(uci get wireless."$DEV5G_FIRSTNAME"0.hidden)
+
+	if [ -z "$ssid" ];then
+		ssid=$(cat /tmp/tmpSSID5G)
+	fi
+
+	Auto_Channel_chk=$(uci get wireless."$DEV5G".AutoChannelSelect)
+	select_channel=$(uci get wireless."$DEV5G".channel)
+	channel=$(iwlist "$DEV5G_FIRSTNAME"0 channel | grep 'Current Frequency'| awk -F 'Channel ' '{print $2}'| awk -F ')' '{print $1}'|sed 's/\"//g')
+	if [ "$Auto_Channel_chk" == "1" ];then
+		uci set wireless."$DEV5G".channel="$channel"
+		uci commit wireless
+		sync #This command is for emmc and ext4 filesystem
+	fi
+
+	bandwidth=$(uci get wireless."$DEV5G".channel_width)
+	mode=$(uci get wireless."$DEV5G".hwmode)
+	auth=$(uci get wireless."$DEV5G_FIRSTNAME"0.auth)
+
+	encryption=$(uci get wireless."$DEV5G_FIRSTNAME"0.encryption)
+	security="NONE"
+
+	if [ "$encryption" == "wep-mixed" ] || [ "$encryption" == "wep-shared" ]; then
+		security="WEP"
+	elif [ "$encryption" == "WPAPSK" ] || [ "$encryption" == "WPA" ] || [ "$encryption" == "WPA2PSK" ] ||[ "$encryption" == "WPA2" ]; then
+		security="$encryption"
+	fi
+
+	wps_enabled=$(uci get wps5G.wps.enabled)
+	WPAPSKCompatible=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPAPSKCompatible)
+	WPACompatible=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPACompatible)
+	chk_PMF=$(uci get wireless."$DEV5G_FIRSTNAME"0.PMF)
+
+	psk=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey)
+
+	if [ -z "$psk" ];then
+		psk=$(cat /tmp/tmppsk)
+	fi
+
+	keyRenewalInterval=$(uci get wireless."$DEV5G_FIRSTNAME"0.RekeyInterval)
+	RadiusServerIP=$(uci get wireless."$DEV5G_FIRSTNAME"0.RADIUS_Server)
+	RadiusServerPort=$(uci get wireless."$DEV5G_FIRSTNAME"0.RADIUS_Port)
+	RadiusServerSecret=$(uci get wireless."$DEV5G_FIRSTNAME"0.RADIUS_Key)
+	RadiusServerSessionTimeout=$(uci get wireless."$DEV5G_FIRSTNAME"0.session_timeout_interval)
+
+	countrycode=$(get_country_code)
+	dfs=$(uci get wireless."$DEV5G_FIRSTNAME"0.DFS)
+
+	show_val="$wireless_enable<;;>$ssid<;;>$hide_ssid<;;>$Auto_Channel_chk<;;>$channel<;;>$bandwidth<;;>$mode<;;>$security<;;>$auth<;;>$wps_enabled<;;>$WPAPSKCompatible<;;>$chk_PMF<;;>$psk<;;>$keyRenewalInterval<;;>$RadiusServerIP<;;>$RadiusServerPort<;;>$RadiusServerSecret<;;>$RadiusServerSessionTimeout<;;>$countrycode<;;>$dfs<;;>$select_channel<;;>$WPACompatible"
+	echo -n "$show_val"
+}
+
+guestWlan5G_get_val(){
+	val=$(uci get wireless."$DEV5G".disabled)
+
+	for dev in "$DEV5G_FIRSTNAME"1 "$DEV5G_FIRSTNAME"2 "$DEV5G_FIRSTNAME"3
+	do
+		wifi_enable=$(uci get wireless."$dev".disabled)
+		ssid=$(uci get wireless."$dev".ssid)
+		security=$(uci get wireless."$dev".auth)
+		WPAPSKCompatible=$(uci get wireless."$dev".WPAPSKCompatible)
+		WPACompatible=$(uci get wireless."$dev".WPACompatible)
+
+		security_val="No Security"
+		if [ "$security" == "WPAPSK" ];then
+			security_val="WPA-PSK"
+		elif [ "$security" == "WPA2PSK" ];then
+			security_val="WPA2-PSK"
+			if [ "$WPAPSKCompatible" == "1" ];then
+				security_val="WPA-PSK/WPA2-PSK"
+			fi
+		elif [ "$security" == "WPA2" ];then
+			security_val="WPA2"
+			if [ "$WPACompatible" == "1" ];then
+				security_val="WPA/WPA2"
+			fi
+		elif [ "$security" == "WEPAUTO" ] || [ "$security" == "SHARED" ];then
+			security_val="WEP"
+		fi
+
+		timer=$(/bin/guestWifiTimer.sh get_time_GUI_ctrl $dev)
+		val="$val<;;>$wifi_enable'$ssid'$security_val'$timer"
+	done
+
+	echo -n "$val"
+}
+
+main_5G_Apply(){
+	DEBUG "$@"
+	SSID="$2"
+	Wireless_enable="$3"
+	wireless_hidden="$4"
+	Channel_ID="$5"
+	Auto_Channel="$6"
+	Channel_Width="$7"
+	Wireless_Mode="$8"
+	Security_mode_val="$9"
+
+	echo "$DEV5G_FIRSTNAME"0 > /tmp/wifi5G_macfilter_Apply			##Apply 5G ath0
+	echo "$DEV5G_FIRSTNAME"0 > /tmp/wifi5G_Apply 					##Apply 5G ath0
+	kill $(ps | grep 'watch -tn 1 wps_conf_5G' | grep 'grep' -v | awk '{print $1}')
+
+	##SSID
+	uci set wireless."$DEV5G_FIRSTNAME"0.ssid="$SSID"
+	##radioON
+	uci set wireless."$DEV5G".disabled="$Wireless_enable"
+	uci set wireless."$DEV5G_FIRSTNAME"0.disabled="$Wireless_enable"
+	##HideSSID
+	uci set wireless."$DEV5G_FIRSTNAME"0.hidden="$wireless_hidden"
+	##ChannelID
+	uci set wireless."$DEV5G".channel="$Channel_ID"
+	##AutoChSelect
+	uci set wireless."$DEV5G".AutoChannelSelect="$Auto_Channel"
+	##ChannelWidth
+	uci set wireless."$DEV5G".channel_width="$Channel_Width"
+	##WirelessMode
+	uci set wireless."$DEV5G".hwmode="$Wireless_Mode"
+	if [ "$Wireless_Mode" == "11an" ] || [ "$Wireless_Mode" == "11ac" ];then
+		uci set wireless."$DEV5G_FIRSTNAME"0.wmm="1"
+		uci set wireless."$DEV5G_FIRSTNAME"1.wmm="1"
+		uci set wireless."$DEV5G_FIRSTNAME"2.wmm="1"
+		uci set wireless."$DEV5G_FIRSTNAME"3.wmm="1"
+	fi
+	##Security_mode
+	security_mode=$(echo $Security_mode_val | awk -F"<;;>" '{print $1}')
+	if [ "$security_mode" == "NONE" ]; then
+		uci set wireless."$DEV5G".auth="OPEN"
+		uci set wireless."$DEV5G_FIRSTNAME"0.auth="NONE"
+		uci set wireless."$DEV5G_FIRSTNAME"0.encryption="NONE"
+
+	elif [ "$security_mode" == "WEP" ]; then
+		EncrypAuto_shared_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wep_passphrase_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		WEP64_128_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		WEPKey_Code_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		DefWEPKey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		wepkey1_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		wepkey2_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		wepkey3_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		wepkey4_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		if [ "$EncrypAuto_shared_val" == "WEPAUTO" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.encryption="wep-mixed"
+			uci set wireless."$DEV5G_FIRSTNAME"0.auth="$EncrypAuto_shared_val"
+		elif [ "$EncrypAuto_shared_val" == "SHARED" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.encryption="wep-shared"
+			uci set wireless."$DEV5G_FIRSTNAME"0.auth="$EncrypAuto_shared_val"
+		fi
+
+		if [ "$wep_passphrase_val" == "wep_passphrase" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.PassPhrase=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.PassPhrase="$wep_passphrase_val"
+		fi
+
+		if [ "$WEP64_128_val" == "0" ] || [ "$WEP64_128_val" == "1" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.wepencryp128="$WEP64_128_val"
+		fi
+
+		if [ "$WEPKey_Code_val" == "0" ] || [ "$WEPKey_Code_val" == "1" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.keytype="$WEPKey_Code_val"
+		fi
+
+		if [ "$DefWEPKey_val" != "DefWEPKey" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.key="$DefWEPKey_val"
+		fi
+
+		if [ "$wepkey1_val" == "wepkey1" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.key1=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.key1="$wepkey1_val"
+		fi
+
+		if [ "$wepkey2_val" == "wepkey2" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.key2=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.key2="$wepkey2_val"
+		fi
+
+		if [ "$wepkey3_val" == "wepkey3" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.key3=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.key3="$wepkey3_val"
+		fi
+
+		if [ "$wepkey4_val" == "wepkey4" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.key4=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.key4="$wepkey4_val"
+		fi
+
+	elif [ "$security_mode" == "WPA" ]; then
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.auth="WPA"
+		uci set wireless."$DEV5G_FIRSTNAME"0.encryption="WPA"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RadiusServerIP_val="$RadiusServerIP_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RadiusServerPort_val="$RadiusServerPort_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RadiusServerSecret_val="$RadiusServerSecret_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RadiusServerSessionTimeout_val="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPAPSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.auth="WPAPSK"
+		uci set wireless."$DEV5G_FIRSTNAME"0.encryption="WPAPSK"
+
+		if [ "$WPAPSKkey_val" == "WPAPSKkey" ]; then
+			uci set wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey=""
+		else
+			uci set wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey="$WPAPSKkey_val"
+		fi
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+
+	elif [ "$security_mode" == "WPA2" ]; then
+		WPACompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wpa2_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		PMKCachePeriod_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		PreAuthentication_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.auth="WPA2"
+		uci set wireless."$DEV5G_FIRSTNAME"0.encryption="WPA2"
+		uci set wireless."$DEV5G_FIRSTNAME"0.WPACompatible="$WPACompatible_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.PMF="$wpa2_pmf_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.PMKCachePeriod="$PMKCachePeriod_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.PreAuth="$PreAuthentication_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RADIUS_Server="$RadiusServerIP_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RADIUS_Port="$RadiusServerPort_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RADIUS_Key="$RadiusServerSecret_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.session_timeout_interval="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPA2PSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		WPAPSKCompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		wpa2psk_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.auth="WPA2PSK"
+		uci set wireless."$DEV5G_FIRSTNAME"0.encryption="WPA2PSK"
+
+		uci set wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey="$WPAPSKkey_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.WPAPSKCompatible="$WPAPSKCompatible_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.RekeyInterval="$RekeyInterval_val"
+		uci set wireless."$DEV5G_FIRSTNAME"0.PMF="$wpa2psk_pmf_val"
+	fi
+
+	if [ "$wireless_hidden" == "1" ]; then
+		uci set wps5G.wps.enabled="0"
+	fi
+
+	uci set wps5G.wps.conf="1"
+	uci commit wps5G
+	sync #This command is for emmc and ext4 filesystem
+	uci commit wireless
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "wireless")
+	echo "$DEV5G" > /tmp/WirelessDev
+	luci-reload "$list"
+}
+
+guestWlan5G_edit_Apply(){
+	DEBUG "$@"
+	interface="$2"
+	Wireless_disable="$3"
+	SSID="$4"
+	wireless_hidden="$5"
+	intra_bss="$6"
+	wmm_qos="$7"
+	band_manage="$8"
+	max_band="$9"
+	Security_mode_val="$10"
+
+	iface="$interface"
+	if [ "$interface" == "$DEV5G_FIRSTNAME"1 ];then
+		GUEST_NUMBER=1
+	elif [ "$interface" == "$DEV5G_FIRSTNAME"2 ];then
+		GUEST_NUMBER=2
+	elif [ "$interface" == "$DEV5G_FIRSTNAME"3 ];then
+		GUEST_NUMBER=3
+	fi
+
+	Wireless_Mode=$(uci get wireless."$DEV5G".hwmode)
+
+	if [ "$Wireless_disable" == "1" ];then
+		/bin/guestWifiTimer.sh remove_rule "$GUEST_NUMBER" 5G
+	fi
+
+	##SSID
+	uci set wireless.$iface.ssid="$SSID"
+	##Wireless_disable
+	uci set wireless.$iface.disabled="$Wireless_disable"
+	##HideSSID
+	uci set wireless.$iface.hidden="$wireless_hidden"
+	##IntraBSS
+	uci set wireless.$iface.IntraBSS="$intra_bss"
+	##WMM
+	if [ "$Wireless_Mode" == "11an" ] || [ "$Wireless_Mode" == "11ac" ];then
+		uci set wireless.$iface.wmm="1"
+	else
+		uci set wireless.$iface.wmm="$wmm_qos"
+	fi
+	##Guest WLAN
+	uci set wireless.$iface.guest_bandwidth_enable="$band_manage"
+	uci set wireless.$iface.guest_max_bandwidth="$max_band"
+
+	##Security_mode
+	security_mode=$(echo $Security_mode_val | awk -F"<;;>" '{print $1}')
+	if [ "$security_mode" == "NONE" ]; then
+		uci set wireless.$iface.auth="OPEN"
+		uci set wireless.$iface.encryption="NONE"
+
+	elif [ "$security_mode" == "WEP" ]; then
+		EncrypAuto_shared_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wep_passphrase_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		WEP64_128_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		WEPKey_Code_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		DefWEPKey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		wepkey1_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		wepkey2_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		wepkey3_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		wepkey4_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		if [ "$EncrypAuto_shared_val" == "WEPAUTO" ]; then
+			uci set wireless.$iface.encryption="wep-mixed"
+			uci set wireless.$iface.auth="$EncrypAuto_shared_val"
+		elif [ "$EncrypAuto_shared_val" == "SHARED" ]; then
+			uci set wireless.$iface.encryption="wep-shared"
+			uci set wireless.$iface.auth="$EncrypAuto_shared_val"
+		fi
+
+		if [ "$wep_passphrase_val" == "wep_passphrase" ]; then
+			uci set wireless.$iface.PassPhrase=""
+		else
+			uci set wireless.$iface.PassPhrase="$wep_passphrase_val"
+		fi
+
+		if [ "$WEP64_128_val" == "0" ] || [ "$WEP64_128_val" == "1" ]; then
+			uci set wireless.$iface.wepencryp128="$WEP64_128_val"
+		fi
+
+		if [ "$WEPKey_Code_val" == "0" ] || [ "$WEPKey_Code_val" == "1" ]; then
+			uci set wireless.$iface.keytype="$WEPKey_Code_val"
+		fi
+
+		if [ "$DefWEPKey_val" != "DefWEPKey" ]; then
+			uci set wireless.$iface.key="$DefWEPKey_val"
+		fi
+
+		if [ "$wepkey1_val" == "wepkey1" ]; then
+			uci set wireless.$iface.key1=""
+		else
+			uci set wireless.$iface.key1="$wepkey1_val"
+		fi
+
+		if [ "$wepkey2_val" == "wepkey2" ]; then
+			uci set wireless.$iface.key2=""
+		else
+			uci set wireless.$iface.key2="$wepkey2_val"
+		fi
+
+		if [ "$wepkey3_val" == "wepkey3" ]; then
+			uci set wireless.$iface.key3=""
+		else
+			uci set wireless.$iface.key3="$wepkey3_val"
+		fi
+
+		if [ "$wepkey4_val" == "wepkey4" ]; then
+			uci set wireless.$iface.key4=""
+		else
+			uci set wireless.$iface.key4="$wepkey4_val"
+		fi
+
+	elif [ "$security_mode" == "WPA" ]; then
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+
+		uci set wireless.$iface.auth="WPA"
+		uci set wireless.$iface.encryption="WPA"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.RadiusServerIP_val="$RadiusServerIP_val"
+		uci set wireless.$iface.RadiusServerPort_val="$RadiusServerPort_val"
+		uci set wireless.$iface.RadiusServerSecret_val="$RadiusServerSecret_val"
+		uci set wireless.$iface.RadiusServerSessionTimeout_val="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPAPSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+
+		uci set wireless.$iface.auth="WPAPSK"
+		uci set wireless.$iface.encryption="WPAPSK"
+
+		if [ "$WPAPSKkey_val" == "WPAPSKkey" ]; then
+			uci set wireless.$iface.WPAPSKkey=""
+		else
+			uci set wireless.$iface.WPAPSKkey="$WPAPSKkey_val"
+		fi
+
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+
+	elif [ "$security_mode" == "WPA2" ]; then
+		WPACompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		wpa2_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		PMKCachePeriod_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+		PreAuthentication_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $6}')
+		RadiusServerIP_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $7}')
+		RadiusServerPort_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $8}')
+		RadiusServerSecret_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $9}')
+		RadiusServerSessionTimeout_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $10}')
+
+		uci set wireless.$iface.auth="WPA2"
+		uci set wireless.$iface.encryption="WPA2"
+		uci set wireless.$iface.WPACompatible="$WPACompatible_val"
+		uci set wireless.$iface.PMF="$wpa2_pmf_val"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.PMKCachePeriod="$PMKCachePeriod_val"
+		uci set wireless.$iface.PreAuth="$PreAuthentication_val"
+		uci set wireless.$iface.RADIUS_Server="$RadiusServerIP_val"
+		uci set wireless.$iface.RADIUS_Port="$RadiusServerPort_val"
+		uci set wireless.$iface.RADIUS_Key="$RadiusServerSecret_val"
+		uci set wireless.$iface.session_timeout_interval="$RadiusServerSessionTimeout_val"
+
+	elif [ "$security_mode" == "WPA2PSK" ]; then
+		WPAPSKkey_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $2}')
+		WPAPSKCompatible_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $3}')
+		RekeyInterval_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $4}')
+		wpa2psk_pmf_val=$(echo $Security_mode_val | awk -F"<;;>" '{print $5}')
+
+		uci set wireless.$iface.auth="WPA2PSK"
+		uci set wireless.$iface.encryption="WPA2PSK"
+
+		uci set wireless.$iface.WPAPSKkey="$WPAPSKkey_val"
+		uci set wireless.$iface.WPAPSKCompatible="$WPAPSKCompatible_val"
+		uci set wireless.$iface.RekeyInterval="$RekeyInterval_val"
+		uci set wireless.$iface.PMF="$wpa2psk_pmf_val"
+	fi
+
+	uci commit wireless
+	sync #This command is for emmc and ext4 filesystem
+
+	echo $iface >> /tmp/moreAP
+	echo $iface > /tmp/wifi5G_Apply
+	echo "$DEV5G" > /tmp/WirelessDev
+
+	list=$(get_ucitrack_list "wireless")
+	luci-reload "$list"
+}
+
+guestWlan5G_edit_get_val(){
+	DEBUG "$@"
+	interface="$2"
+
+	iface="$interface"
+	if [ "$interface" == "1" ];then
+		iface="$DEV5G_FIRSTNAME"1
+	elif [ "$interface" == "2" ];then
+		iface="$DEV5G_FIRSTNAME"2
+	elif [ "$interface" == "3" ];then
+		iface="$DEV5G_FIRSTNAME"3
+	fi
+
+	wireless_disable=$(uci get wireless.$iface.disabled)
+	ssid=$(uci get wireless.$iface.ssid)
+	hide_ssid=$(uci get wireless.$iface.hidden)
+	IntraBSS=$(uci get wireless.$iface.IntraBSS)
+	wmm=$(uci get wireless.$iface.wmm)
+
+	Wireless_Mode=$(uci get wireless."$DEV5G".hwmode)
+	if [ "$Wireless_Mode" == "11an" ] || [ "$Wireless_Mode" == "11ac" ];then
+		WMM_Choose="disabled"
+	fi
+
+	enabel_bandwidth=$(uci get wireless.$iface.guest_bandwidth_enable)
+	guest_max_bandwidth=$(uci get wireless.$iface.guest_max_bandwidth)
+
+	auth=$(uci get wireless.$iface.auth)
+	encryption=$(uci get wireless.$iface.encryption)
+	security="NONE"
+
+	if [ "$encryption" == "wep-mixed" ] || [ "$encryption" == "wep-shared" ]; then
+		security="WEP"
+	elif [ "$encryption" == "WPAPSK" ] || [ "$encryption" == "WPA" ] || [ "$encryption" == "WPA2PSK" ] ||[ "$encryption" == "WPA2" ]; then
+		security="$encryption"
+	fi
+
+	wps_enabled=$(uci get wps5G.wps.enabled)
+	WPAPSKCompatible=$(uci get wireless.$iface.WPAPSKCompatible)
+	WPACompatible=$(uci get wireless.$iface.WPACompatible)
+	chk_PMF=$(uci get wireless.$iface.PMF)
+
+	psk=$(uci get wireless.$iface.WPAPSKkey)
+
+	if [ -z "$psk" ];then
+		psk=$(cat /tmp/tmppsk)
+	fi
+
+	keyRenewalInterval=$(uci get wireless.$iface.RekeyInterval)
+	RadiusServerIP=$(uci get wireless.$iface.RADIUS_Server)
+	RadiusServerPort=$(uci get wireless.$iface.RADIUS_Port)
+	RadiusServerSecret=$(uci get wireless.$iface.RADIUS_Key)
+	RadiusServerSessionTimeout=$(uci get wireless.$iface.session_timeout_interval)
+
+	show_val="$iface<;;>$wireless_disable<;;>$ssid<;;>$hide_ssid<;;>$IntraBSS<;;>$wmm<;;>$WMM_Choose<;;>$enabel_bandwidth<;;>$guest_max_bandwidth<;;>$auth<;;>$security<;;>$wps_enabled<;;>$WPAPSKCompatible<;;>$chk_PMF<;;>$psk<;;>$keyRenewalInterval<;;>$RadiusServerIP<;;>$RadiusServerPort<;;>$RadiusServerSecret<;;>$RadiusServerSessionTimeout<;;>$WPACompatible"
+	echo -n "$show_val"
+}
+
+macfilter5G_Apply(){
+	DEBUG "$@"
+	cfg="wireless5G_macfilter"
+	MACfilter_ON="$2"
+	filter_act="$3"
+	MacAddrs_val="$4"
+
+	uci set "$cfg".general0.reset="1"
+	uci set "$cfg".general0.mac_state="$MACfilter_ON"
+	uci set "$cfg".general0.filter_action="$filter_act"
+
+	for i in `seq 1 1 64`
+	do
+		MacAddr="MacAddr$i"
+		uci set "$cfg".general0.$MacAddr=""
+	done
+
+	if [ "$MacAddrs_val" != "None" ];then
+		i=1
+		for MAC in $(echo -n "$MacAddrs_val" | tr -s "<;;>" " ")
+		do
+			if [ "$MAC" != "00:00:00:00:00:00" ];then
+				MacAddr="MacAddr$i"
+				uci set "$cfg".general0.$MacAddr="$MAC"
+				i=`expr $i + 1`
+			fi
+		done
+	fi
+	uci commit "$cfg"
+	sync #This command is for emmc and ext4 filesystem
+
+	##for WPS2.0 WiFi logo
+	if [ "$MACfilter_ON" == "1" ];then
+		uci set wps5G.wps.enabled="0"
+		uci commit wps5G
+		sync #This command is for emmc and ext4 filesystem
+
+		echo "wifi0" > /tmp/wifi5G_macfilter_Apply
+		echo "$DEV5G" > /tmp/WirelessDev
+
+		list=$(get_ucitrack_list "wireless")
+		luci-reload "$list"
+	fi
+
+	list=$(get_ucitrack_list "$cfg")
+	luci-reload "$list"
+}
+
+macfilter5G_get_val(){
+	cfg="wireless5G_macfilter"
+	mac_val=""
+
+	for i in `seq 1 1 64`
+	do
+		MacAddr="MacAddr$i"
+		MAC=$(uci get "$cfg".general0.$MacAddr)
+
+		if [ -z "$MAC" ] || [ "$MAC" == "00:00:00:00:00:00" ]; then
+			break
+		fi
+
+		if [ "$i" == "1" ];then
+			mac_val="$MAC"
+		else
+			mac_val="$mac_val'$MAC"
+		fi
+	done
+
+	ssid=$(uci get wireless."$DEV5G_FIRSTNAME"0.ssid)
+
+	if [ -z "$ssid" ];then
+		ssid=$(cat /tmp/tmpSSID5G)
+	fi
+
+	MacFilter_enable=$(uci get "$cfg".general0.mac_state)
+	MacFilter_Action=$(uci get "$cfg".general0.filter_action)
+
+	show_val="$mac_val<;;>$ssid<;;>$MacFilter_enable<;;>$MacFilter_Action"
+	echo -n "$show_val"
+}
+
+advanced5G_Apply(){
+	DEBUG "$@"
+	cfg="wireless"
+	rts_Threshold_val="$2"
+	fr_threshold_val="$3"
+	IntraBSS_state_val="$4"
+	txPower_val="$5"
+	wmm_enable_val="$6"
+
+	uci set "$cfg"."$DEV5G_FIRSTNAME"0.rts="$rts_Threshold_val"
+	uci set "$cfg"."$DEV5G_FIRSTNAME"0.frag="$fr_threshold_val"
+	uci set "$cfg"."$DEV5G_FIRSTNAME"0.IntraBSS="$IntraBSS_state_val"
+	uci set "$cfg"."$DEV5G".txpower="$txPower_val"
+
+	if [ "$wmm_enable_val" != "WMM" ];then
+		uci set "$cfg"."$DEV5G_FIRSTNAME"0.wmm="$wmm_enable_val"
+	fi
+
+	uci commit "$cfg"
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "wireless")
+	echo "$DEV5G" > /tmp/WirelessDev
+	luci-reload "$list"
+}
+
+advanced5G_get_val(){
+	mode=$(uci get wireless."$DEV5G".hwmode)
+
+	if [ "$mode" == "11an" ] || [ "$mode" == "11ac" ];then
+		rts_Threshold="2346"
+		fr_threshold="2346"
+		WMM_QoS="1"
+		rts_frag_WMM_choice="disabled"
+	else
+		rts_Threshold=$(uci get wireless."$DEV5G_FIRSTNAME"0.rts)
+		fr_threshold=$(uci get wireless."$DEV5G_FIRSTNAME"0.frag)
+		WMM_QoS=$(uci get wireless."$DEV5G_FIRSTNAME"0.wmm)
+	fi
+
+	IntraBSS=$(uci get wireless."$DEV5G_FIRSTNAME"0.IntraBSS)
+	TxPower=$(uci get wireless."$DEV5G".txpower)
+
+	show_val="$rts_frag_WMM_choice<;;>$rts_Threshold<;;>$fr_threshold<;;>$WMM_QoS<;;>$IntraBSS<;;>$TxPower"
+	echo -n "$show_val"
+}
+
+get_country_code(){
+	countrycode=$(cat /var/countrycode |tr -d '\n')
+	echo -n "$countrycode"
+}
+
+wps_get_val(){
+	DEBUG "$@"
+	iface="$2"
+	genPin_val="$3"
+	enable_wps_btn="$4"
+	enable_wps_pin="$5"
+	pincode="$6"
+	releaseConf="$7"
+
+	DEV="$DEV24G"
+	DEV_FIRSTNAME="$DEV24G_FIRSTNAME"0
+	wpscfg="wps"
+	macfiltercfg="wireless_macfilter"
+	if [ "$iface" == "5G" ]; then
+		DEV="$DEV5G"
+		DEV_FIRSTNAME="$DEV5G_FIRSTNAME"0
+		wpscfg="wps5G"
+		macfiltercfg="wireless5G_macfilter"
+	fi
+
+	if [ "$genPin_val" == "genPin" ]; then
+		uci set $wpscfg.wps.enabled="1"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+
+		uci set $wpscfg.wps.PinEnable="1"
+
+		pincode=$(hostapd_cli -p /tmp/run/hostapd-$DEV/ -i "$DEV_FIRSTNAME" wps_ap_pin random)
+		uci set $wpscfg.wps.appin="$pincode"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+		/bin/$wpscfg "$DEV_FIRSTNAME" on > /dev/null
+	fi
+
+	wps_btn_pin_status="0"
+	if [ "$enable_wps_btn" == "enable" ]; then
+		uci set $wpscfg.wps.enabled="1"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+
+		zyxel_WPS_ctrl WPS"$iface"_GUI > /dev/null
+	fi
+
+	if [ "$enable_wps_pin" == "enable" ]; then
+		uci set $wpscfg.wps.enabled="1"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+
+		zyxel_WPS_ctrl WPS"$iface"_pin_GUI $pincode > /dev/null
+
+		pin_verify=$(hostapd_cli -p /tmp/run/hostapd-$DEV/ -i "$DEV_FIRSTNAME" wps_check_pin $pincode)
+		if [ "$pin_verify" != "$pincode" ]; then
+			wps_btn_pin_status="1"
+		fi
+	fi
+
+	if [ "$releaseConf" == "enable" ]; then
+		uci set $wpscfg.wps.conf="0"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+
+		list=$(get_ucitrack_list "wireless")
+		echo "$DEV" > /tmp/WirelessDev
+		luci-reload "$list" > /dev/null
+
+		pincode_enable=$(uci get $wpscfg.wps.PinEnable)
+		if [ "$pincode_enable" == "1" ]; then
+			pincode=$(hostapd_cli -p /tmp/run/hostapd-$DEV/ -i "$DEV_FIRSTNAME" wps_ap_pin random)
+			uci set $wpscfg.wps.appin="$pincode"
+			uci commit $wpscfg
+			sync #This command is for emmc and ext4 filesystem
+			/bin/$wpscfg "$DEV_FIRSTNAME" on > /dev/null
+		fi
+	fi
+
+	configured=$(hostapd_cli -p /tmp/run/hostapd-$DEV/ -i $DEV_FIRSTNAME get_config | grep "wps_state=" |awk -F"=" '{print $2}')
+	config_status="Unconfigured"
+	if [ "$configured" == "configured" ]; then
+		uci set $wpscfg.wps.conf="1"
+		uci commit $wpscfg
+		sync #This command is for emmc and ext4 filesystem
+
+		config_status="Configured"
+		ssid=$(uci get wireless."$DEV_FIRSTNAME".ssid)
+		if [ -z "$ssid" ];then
+			ssid=$(cat /tmp/tmpSSID$iface)
+		fi
+
+		hwmode=$(uci get wireless."$DEV".hwmode)
+		case "$hwmode" in
+			"11an")
+				hwmode="11a/n"
+			;;
+			"11ac")
+				hwmode="11a/n/ac"
+			;;
+		esac
+		mode="802.$hwmode"
+
+		encryption=$(uci get wireless."$DEV_FIRSTNAME".encryption)
+		WPAPSKCompatible=$(uci get wireless."$DEV_FIRSTNAME".WPAPSKCompatible)
+		WPACompatible=$(uci get wireless."$DEV_FIRSTNAME".WPACompatible)
+
+		security_val="$encryption"
+		if [ "$encryption" == "WPAPSK" ]; then
+			security_val="WPA-PSK"
+
+		elif [ "$encryption" == "WPA2PSK" ]; then
+			security_val="WPA-PSK / WPA2-PSK"
+			if [ "$WPAPSKCompatible" == "0" ]; then
+				security_val="WPA2-PSK"
+			fi
+
+		elif [ "$encryption" == "WEPAUTO" ] || [ "$encryption" == "SHARED" ]; then
+			security_val="WEP"
+
+		elif [ "$encryption" == "WPAPSKWPA2PSK" ]; then
+			security_val="WPA2-PSK"
+
+		elif [ "$encryption" == "WPA2" ]; then
+			security_val="WPA / WPA2"
+			if [ "$WPACompatible" == "0" ]; then
+				security_val="WPA2"
+			fi
+
+		elif [ "$encryption" == "NONE" ]; then
+			security_val="No Security"
+		fi
+	fi
+
+	wireless_status=$(iwconfig "$DEV_FIRSTNAME" | grep "Access Point")
+	wireless_disabled=$(uci get wireless."$DEV".disabled)
+	security_mode=$(uci get wireless."$DEV_FIRSTNAME".auth)
+	wireless_hidden=$(uci get wireless."$DEV_FIRSTNAME".hidden)
+	macFilter_chk=$(uci get "$macfiltercfg".general0.mac_state)
+	WPS_set="YES"
+	if [ -z "$wireless_status" ] || [ "$macFilter_chk" == "1" ] || [ "$wireless_hidden" == "1" ] || [ "$wireless_disabled" == "1" ] || [ "$security_mode" == "WEPAUTO" ] || [ "$security_mode" == "SHARED" ] || [ "$security_mode" == "WPA" ] || [ "$security_mode" == "WPA2" ];then
+		WPS_set="NO"
+	fi
+
+	WPS_Enabled=$(uci get $wpscfg.wps.enabled)
+	WPS_PinEnable=$(uci get $wpscfg.wps.PinEnable)
+	WPS_PinNum=$(uci get $wpscfg.wps.appin)
+
+	show_val="$WPS_set<;;>$WPS_Enabled<;;>$WPS_PinEnable<;;>$WPS_PinNum<;;>$wps_btn_pin_status<;;>$config_status<;;>$ssid<;;>$mode<;;>$security_val"
+	echo -n "$show_val"
+}
+
+wps_Apply(){
+	DEBUG "$@"
+	iface="$2"
+	wps_enable="$3"
+	pincode_choice="$4"
+
+	DEV="$DEV24G"
+	DEV_FIRSTNAME="$DEV24G_FIRSTNAME"0
+	wpscfg="wps"
+	if [ "$iface" == "5G" ]; then
+		DEV="$DEV5G"
+		DEV_FIRSTNAME="$DEV5G_FIRSTNAME"0
+		wpscfg="wps5G"
+	fi
+
+	uci set $wpscfg.wps.enabled="$wps_enable"
+
+#	if [ "$pincode_choice" != "None" ]; then
+	uci set $wpscfg.wps.PinEnable="$pincode_choice"
+
+	if [ "$pincode_choice" == "0" ] || [ "$pincode_choice" == "None" ]; then
+		uci set $wpscfg.wps.appin=""
+	fi
+#	fi
+
+	uci commit $wpscfg
+	sync #This command is for emmc and ext4 filesystem
+
+	list=$(get_ucitrack_list "wireless")
+	echo "$DEV" > /tmp/WirelessDev
+	luci-reload "$list" > /dev/null
+}
+
+easy123_wifi_Apply(){
+	DEBUG "$@"
+	wifiSSID="$2"
+	wifiPASSWORD="$3"
+	wifiSSID5G="$4"
+	wifiPASSWORD5G="$5"
+
+	uci set wireless."$DEV24G_FIRSTNAME"0.ssid="$wifiSSID"
+	uci set wireless."$DEV5G_FIRSTNAME"0.ssid="$wifiSSID5G"
+
+	uci set wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey="$wifiPASSWORD"
+	uci set wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey="$wifiPASSWORD5G"
+
+	uci commit wireless
+	sync #This command is for emmc and ext4 filesystem
+}
+
+easy123_wifi_get_val(){
+	ssid_24G=$(uci get wireless."$DEV24G_FIRSTNAME"0.ssid)
+	psk_24G=$(uci get wireless."$DEV24G_FIRSTNAME"0.WPAPSKkey)
+	ssid_5G=$(uci get wireless."$DEV5G_FIRSTNAME"0.ssid)
+	psk_5G=$(uci get wireless."$DEV5G_FIRSTNAME"0.WPAPSKkey)
+
+	if [ -z "$ssid_24G" ];then
+		ssid_24G=$(cat /tmp/tmpSSID24G)
+	fi
+
+	if [ -z "$psk_24G" ];then
+		psk_24G=$(cat /tmp/tmppsk)
+	fi
+
+	if [ -z "$ssid_5G" ];then
+		ssid_5G=$(cat /tmp/tmpSSID5G)
+	fi
+
+	if [ -z "$psk_5G" ];then
+		psk_5G=$(cat /tmp/tmppsk)
+	fi
+
+	show_val="$ssid_24G<;;>$psk_24G<;;>$ssid_5G<;;>$psk_5G"
+	echo -n "$show_val"
+}
+
+wifi_schedule_Apply() {
+	iface="$2"
+	enabled="$3"
+	sun="$4"
+	mon="$5"
+	tue="$6"
+	wed="$7"
+	thu="$8"
+	fri="$9"
+	sat="$10"
+
+	DEV=""
+	if [ "$iface" == "5G" ];then
+		DEV="5G"
+	fi
+	uci set wifi_schedule$DEV.schedule.enabled="$enabled"
+	uci set wifi_schedule$DEV.sun.times="$sun"
+	uci set wifi_schedule$DEV.mon.times="$mon"
+	uci set wifi_schedule$DEV.tue.times="$tue"
+	uci set wifi_schedule$DEV.wed.times="$wed"
+	uci set wifi_schedule$DEV.thu.times="$thu"
+	uci set wifi_schedule$DEV.fri.times="$fri"
+	uci set wifi_schedule$DEV.sat.times="$sat"
+	uci commit wifi_schedule$DEV
+	sync #This command is for emmc and ext4 filesystem
+	luci-reload wifi_schedule$DEV
+}
+
+wifi_schedule() {
+	iface="$2"
+
+	DEV=""
+	if [ "$iface" == "5G" ];then
+		DEV="5G"
+	fi
+
+	local enabled=$(uci get wifi_schedule$DEV.schedule.enabled)
+	local sun=$(uci get wifi_schedule$DEV.sun.times)
+	local mon=$(uci get wifi_schedule$DEV.mon.times)
+	local tue=$(uci get wifi_schedule$DEV.tue.times)
+	local wed=$(uci get wifi_schedule$DEV.wed.times)
+	local thu=$(uci get wifi_schedule$DEV.thu.times)
+	local fri=$(uci get wifi_schedule$DEV.fri.times)
+	local sat=$(uci get wifi_schedule$DEV.sat.times)
+
+	show_val="$enabled<;;>$sun<;;>$mon<;;>$tue<;;>$wed<;;>$thu<;;>$fri<;;>$sat"
+	echo -n "$show_val"
+}
+
+wifiATF_get_val(){
+	atfenable=$(uci get atf.atf.enable)
+
+	show_val="$atfenable"
+	echo -n "$show_val"
+}
+
+wifiATF_Apply(){
+	atfenable="$2"
+
+	uci set atf.atf.enable="$atfenable"
+	uci set atf.atf5G.enable="$atfenable"
+
+	uci commit atf
+	
+	list=$(get_ucitrack_list "atf")
+	luci-reload "$list" > /dev/null
+}
+
+case $1 in
+	main_24G)
+		main_24G_Apply "$@"
+	;;
+	main_24G_get_val)
+		main_24G_get_val
+	;;
+	GuestWlan24G_get_val)
+		guestWlan24G_get_val
+	;;
+	GuestWlan24G_edit)
+		guestWlan24G_edit_Apply "$@"
+	;;
+	GuestWlan24G_edit_get_val)
+		guestWlan24G_edit_get_val "$@"
+	;;
+	macfilter24G)
+		macfilter24G_Apply "$@"
+	;;
+	macfilter24G_get_val)
+		macfilter24G_get_val
+	;;
+	advanced24G)
+		advanced24G_Apply "$@"
+	;;
+	advanced24G_get_val)
+		advanced24G_get_val
+	;;
+	easyMOD_main_wifi)
+		easyMOD_main_wifi_Apply "$@"
+	;;
+	easyMOD_main_wifi_get_val)
+		easyMOD_main_wifi_get_val
+	;;
+	easyMOD_guest_wifi)
+		easyMOD_guest_wifi_Apply "$@"
+	;;
+	easyMOD_guest_wifi_get_val)
+		easyMOD_guest_wifi_get_val
+	;;
+	easy123_wifi)
+		easy123_wifi_Apply "$@"
+	;;
+	easy123_wifi_get_val)
+		easy123_wifi_get_val
+	;;
+
+################################ WiFi 5G ####################################
+	main_5G)
+		main_5G_Apply "$@"
+	;;
+	main_5G_get_val)
+		main_5G_get_val
+	;;
+	GuestWlan5G_get_val)
+		guestWlan5G_get_val
+	;;
+	GuestWlan5G_edit)
+		guestWlan5G_edit_Apply "$@"
+	;;
+	GuestWlan5G_edit_get_val)
+		guestWlan5G_edit_get_val "$@"
+	;;
+	macfilter5G)
+		macfilter5G_Apply "$@"
+	;;
+	macfilter5G_get_val)
+		macfilter5G_get_val
+	;;
+	advanced5G)
+		advanced5G_Apply "$@"
+	;;
+	advanced5G_get_val)
+		advanced5G_get_val
+	;;
+	wps_get_val)
+		wps_get_val "$@"
+	;;
+	wps_Apply)
+		wps_Apply "$@"
+	;;
+	wifi_schedule_Apply)
+		wifi_schedule_Apply "$@"
+	;;
+	wifi_schedule)
+		wifi_schedule "$@"
+	;;
+	wifiATF_get_val)
+		wifiATF_get_val
+	;;
+	wifiATF_Apply)
+		wifiATF_Apply "$@"
+	;;
+	country_code)
+		get_country_code
+	;;
+esac
+exit 0

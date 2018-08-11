@@ -1,0 +1,126 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci=require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<title><%:Parental_Notification%></title>
+<script type="text/javascript" src="<%=media%>/easy/js/jquery-1.2.6.js"></script>
+<script type="text/javascript" src="<%=media%>/easy/js/parental_control.js"></script>
+<link rel="stylesheet" href="<%=media%>/css/popup.css" media="screen" type="text/css" />
+
+<style type="text/css">
+
+</style>
+
+<%
+   local luaSRules = {}
+   
+   uci:foreach( "parental_monitor", "parental_rule", function( section )
+      if not ( nil == section.mac_list ) then
+         local tmp = section
+         
+         tmp.id = section[ '.mac_list' ]
+         table.insert( luaSRules, tmp )
+      end
+   end )
+   
+%>
+<script language="JavaScript" type="text/javascript">
+
+</script>
+</head>
+
+<body style="visibility:visible !important">
+ 
+  <div id="easy123_w">
+    <div id="popup_t"><%:notification%></div>
+    <div id="popup" class="popup" ><a class="close" href="<%=controller%>/easy/networkmap" target="_top">&times;</a></div >
+
+   
+<div id="pc_d">
+<table width="100%" height="25" border="0" cellpadding="6" cellspacing="1" bgcolor="#E4E4E4" id="list_table">
+    <tbody>
+      <tr align="center">
+        <td width="115" bgcolor="#F0F0F0" ><%:Status%></td>
+        <td width="178" bgcolor="#F0F0F0"><%:children_name%></td>
+        <td width="299" bgcolor="#F0F0F0"><%:notification%></td>
+        
+		<!-- <td width="198" bgcolor="#F0F0F0">Remaing Time</td> -->
+      </tr>
+	 <%
+		for i = 1, #luaSRules do
+		
+		local Parental_enable = uci:get("parental_monitor","general","enable")
+		local bulb_pic
+		local bulb_status
+        if not ( nil == luaSRules[i].enable ) and not ( "0" == luaSRules[i].enable ) and (  "1" == Parental_enable ) then
+			bulb_pic = "i_active_on.gif"
+			bulb_status = "On" 
+		else
+			bulb_pic = "i_active_off.gif"
+			bulb_status = "Off"
+		end
+		
+		
+	%>
+      <tr align="center">
+        <td bgcolor="#FFFFFF" >
+			<img src="<%=media%>/admin/images/<%=bulb_pic%>" width="18" height="18"  title="<%if (bulb_status == "On") then%><%:On%><%else%><%:Off%><%end%>"/>
+		</td>
+        <td bgcolor="#FFFFFF">
+			<%=luaSRules[i].mac_list%>
+		</td>
+        <td bgcolor="#FFFFFF">
+			<%=luaSRules[i].email%>
+		</td>
+        
+<!-- 		<td bgcolor="#FFFFFF" >
+			<div id="show_rem[<%=i%>]"></div>
+		</td> -->
+      </tr>
+	<%	  
+		end 
+ 
+	%>  
+    </tbody>
+  </table>
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

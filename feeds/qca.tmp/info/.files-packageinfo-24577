@@ -1,0 +1,12 @@
+net/qca-hostap
+net/qca-wifi
+net/qca-wpc
+net/qca-wifi-fw
+net/qca-acfg
+net/qca-wrapd
+utils/qca-mcs/qca-mcs-apps
+utils/qca-mcs/qca-mcs-lkm
+utils/qca-spectral
+utils/qcmbr
+utils/qca-thermald
+utils/qca-lib/libqcacommon

@@ -1,0 +1,174 @@
+Index: u-boot-2012.07/boards.cfg
+===================================================================
+--- u-boot-2012.07.orig/boards.cfg
++++ u-boot-2012.07/boards.cfg
+@@ -206,6 +206,8 @@ versatileqemu                arm
+ integratorap_cm946es         arm         arm946es    integrator          armltd         -               integratorap:CM946ES
+ integratorcp_cm946es         arm         arm946es    integrator          armltd         -               integratorcp:CM946ES
+ ipq806x_cdp                  arm         armv7       ipq806x_cdp         qcom           ipq
++nbg6816                      arm         armv7       ipq806x_cdp         qcom           ipq
++nbg6817                      arm         armv7       ipq806x_cdp         qcom           ipq
+ ca9x4_ct_vxp                 arm         armv7       vexpress            armltd
+ am335x_evm                   arm         armv7       am335x              ti             am33xx
+ highbank                     arm         armv7       highbank            -              highbank
+Index: u-boot-2012.07/mkconfig
+===================================================================
+--- u-boot-2012.07.orig/mkconfig
++++ u-boot-2012.07/mkconfig
+@@ -169,6 +169,10 @@ echo "#define CONFIG_SYS_BOARD \"${board
+ 
+ [ "${soc}"    ] && echo "#define CONFIG_SYS_SOC    \"${soc}\""    >> config.h
+ 
++TMP_NAME=`echo ${CONFIG_NAME} | sed 's/./\U&/g'`
++echo "#define CONFIG_BOARD_${TMP_NAME} 1" >> config.h
++echo "#define CONFIG_BOARD_NAME \"${TMP_NAME}\"" >> config.h
++
+ cat << EOF >> config.h
+ #define CONFIG_BOARDDIR board/$BOARDDIR
+ #include <config_cmd_defaults.h>
+Index: u-boot-2012.07/arch/arm/include/asm/mach-types.h
+===================================================================
+--- u-boot-2012.07.orig/arch/arm/include/asm/mach-types.h
++++ u-boot-2012.07/arch/arm/include/asm/mach-types.h
+@@ -1121,6 +1121,8 @@ extern unsigned int __machine_arch_type;
+ #define MACH_TYPE_IPQ806X_AP161        4972
+ #define MACH_TYPE_IPQ806X_AK01_1XX     5020
+ #define MACH_TYPE_OMAP5_SEVM           3777
++#define MACH_TYPE_IPQ806X_NBG6816      4705
++#define MACH_TYPE_IPQ806X_NBG6817      4973
+ 
+ #ifdef CONFIG_ARCH_EBSA110
+ # ifdef machine_arch_type
+Index: u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_board_param.h
+===================================================================
+--- u-boot-2012.07.orig/board/qcom/ipq806x_cdp/ipq806x_board_param.h
++++ u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_board_param.h
+@@ -1307,6 +1307,115 @@ board_ipq806x_params_t board_params[] =
+ 		},
+ 		.console_uart_cfg = &gsbi4_console_uart,
+ 	},
++	{
++		.machid = MACH_TYPE_IPQ806X_NBG6816,
++		.ddr_size = (256 << 20),
++		.usb_core_mnd_value = { 1, 5, 32 },
++		.usb_utmi_mnd_value = { 1, 40, 1 },
++		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
++		.gmac_gpio = gmac1_gpio,
++		.gmac_cfg = {
++			gmac_board_cfg(1, 1, RGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 1, 4),
++			gmac_board_cfg(2, 1, SGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 4, 0, 1, 2, 3),
++			gmac_board_cfg_invalid(),
++			gmac_board_cfg_invalid(),
++		},
++		.console_uart_cfg = &gsbi4_console_uart,
++		.flashdesc = NAND_NOR,
++		.reset_switch_gpio = &reset_s17_gpio,
++		.flash_param = {
++			.mode =	NOR_SPI_MODE_0,
++			.bus_number = GSBI_BUS_5,
++			.chip_select = SPI_CS_0,
++			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
++		},
++#ifdef CONFIG_IPQ806X_I2C
++		.i2c_gsbi = GSBI_4,
++		.i2c_gsbi_base = I2C_GSBI4_BASE,
++		.i2c_mnd_value = { 1, 4, 2 },
++		.i2c_gpio = {
++			{
++				.gpio = 13,
++				.func = 1,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.oe = GPIO_OE_ENABLE
++			},
++			{
++				.gpio = 12,
++				.func = 1,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.oe = GPIO_OE_ENABLE
++			},
++		},
++#endif
++#ifdef CONFIG_IPQ806X_PCI
++		.pcie_cfg = {
++			pcie_board_cfg(0),
++			pcie_board_cfg(1),
++		},
++		.dtb_config_name[1] = "#config@1",
++		.dtb_config_name[2] = "#config@2",
++		.dtb_config_name[3] = "#config@3",
++#endif /* CONFIG_IPQ806X_PCI */
++	},
++	{
++		.machid = MACH_TYPE_IPQ806X_NBG6817,
++		.ddr_size = (256 << 20),
++		.usb_core_mnd_value = { 1, 5, 32 },
++		.usb_utmi_mnd_value = { 1, 40, 1 },
++		.gmac_gpio_count = ARRAY_SIZE(gmac1_gpio),
++		.gmac_gpio = gmac1_gpio,
++		.gmac_cfg = {
++			gmac_board_cfg(1, 1, RGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 1, 4),
++			gmac_board_cfg(2, 1, SGMII, S17_RGMII0_1_8V,
++					S17_RGMII1_1_8V, 0, 4, 0, 1, 2, 3),
++			gmac_board_cfg_invalid(),
++			gmac_board_cfg_invalid(),
++		},
++		.flashdesc = NOR_MMC,
++		.flash_param = {
++			.mode =	NOR_SPI_MODE_0,
++			.bus_number = GSBI_BUS_5,
++			.chip_select = SPI_CS_0,
++			.vendor = SPI_NOR_FLASH_VENDOR_SPANSION,
++		},
++		.console_uart_cfg = &gsbi4_console_uart,
++#ifdef CONFIG_IPQ806X_I2C
++		.i2c_gsbi = GSBI_4,
++		.i2c_gsbi_base = I2C_GSBI4_BASE,
++		.i2c_mnd_value = { 1, 4, 2 },
++		.i2c_gpio = {
++			{
++				.gpio = 13,
++				.func = 1,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.oe = GPIO_OE_ENABLE
++			},
++			{
++				.gpio = 12,
++				.func = 1,
++				.pull = GPIO_NO_PULL,
++				.drvstr = GPIO_12MA,
++				.oe = GPIO_OE_ENABLE
++			},
++		},
++#endif
++#ifdef CONFIG_IPQ806X_PCI
++		.pcie_cfg = {
++			pcie_board_cfg(0),
++			pcie_board_cfg(1),
++		},
++		.dtb_config_name[1] = "#config@16",
++		.dtb_config_name[2] = "#config@17",
++		.dtb_config_name[3] = "#config@18",
++#endif /* CONFIG_IPQ806X_PCI */
++	},
+ 
+ };
+ 
+Index: u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_cdp.c
+===================================================================
+--- u-boot-2012.07.orig/board/qcom/ipq806x_cdp/ipq806x_cdp.c
++++ u-boot-2012.07/board/qcom/ipq806x_cdp/ipq806x_cdp.c
+@@ -222,7 +222,7 @@ int board_init()
+ 	} else if (sfi->flash_type == SMEM_BOOT_SPI_FLASH) {
+ 		nand_env_device = CONFIG_IPQ_SPI_NAND_INFO_IDX;
+ #ifdef CONFIG_IPQ_MMC
+-		if (gd->bd->bi_arch_number == MACH_TYPE_IPQ806X_AP145_1XX ) {
++		if (gd->bd->bi_arch_number == MACH_TYPE_IPQ806X_AP145_1XX || gboard_param->flashdesc == NOR_MMC) {
+ 			gboard_param->emmc_gpio = emmc1_gpio;
+ 			gboard_param->emmc_gpio_count = ARRAY_SIZE(emmc1_gpio);
+ 		}

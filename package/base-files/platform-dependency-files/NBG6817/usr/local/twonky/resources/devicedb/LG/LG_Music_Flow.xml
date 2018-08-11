@@ -1,0 +1,15 @@
+<Client>
+	<DeviceId>
+		<DisplayName>LG Music Flow</DisplayName>
+		<DeviceDescriptionRecognition>
+			<DescriptionText>LG Music Flow</DescriptionText>
+		</DeviceDescriptionRecognition>
+		<MappingUpdatePolicy>FIX</MappingUpdatePolicy>
+		<DeviceGroup>MUSIC</DeviceGroup>
+	</DeviceId>
+	<Capabilities>
+		<MediaTypeList>
+			<MediaType>MUSIC</MediaType>
+		</MediaTypeList>
+	</Capabilities>
+</Client>

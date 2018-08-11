@@ -1,0 +1,411 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+local uci = require("luci.model.uci").cursor()
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+
+<script>
+$(document).ready(function(){
+	show_init();
+	$("#add").click(function(){
+		var rowCount = $('#show tr').length;
+		if(rowCount >= 36){
+			alert("<%:MAX_32_rules%>");
+			return false;
+		}
+		var name = $("[name=trigger_name]").val();
+		var inS = $("[name=inComing_port_start]").val();
+		var inE = $("[name=inComing_port_end]").val();
+		var trS = $("[name=trigger_port_start]").val();
+		var trE = $("[name=trigger_port_end]").val();
+		chk = formCheck(name,inS,inE,trS,trE);
+		if(chk == false){
+			return false;
+		}
+
+		html = rule_html(name,inS,inE,trS,trE);
+
+		$("#show").append(html);
+		set_rules_count();
+		set_default();
+	})
+});
+
+$(document).on('click', '#rm', function(event){
+	$(this).closest('tr').remove();
+	set_rules_count();
+});
+
+function show_init(){
+
+	<%local count = uci:get("portTrigger","general","rules_count")%>
+	<% for i=1,count do 
+
+			name = uci:get("portTrigger","rule"..i,"rules_name")
+			incomStart_port = uci:get("portTrigger","rule"..i,"inComing_port_start")
+			incomEnd_port = uci:get("portTrigger","rule"..i,"inComing_port_end")
+			trigStart_port = uci:get("portTrigger","rule"..i,"trigger_port_start")
+			trigEnd_port = uci:get("portTrigger","rule"..i,"trigger_port_end") 	%>
+
+			if("<%=name%>" != "general" && "<%=incomStart_port%>" != "" && "<%=incomEnd_port%>" != "" && "<%=trigStart_port%>" != "" && "<%=trigEnd_port%>" != ""){
+				html = rule_html("<%=name%>","<%=incomStart_port%>","<%=incomEnd_port%>","<%=trigStart_port%>","<%=trigEnd_port%>");
+				$("#show").append(html);
+			}
+	<% end %>
+	
+	set_rules_count();
+}
+
+function set_default(){
+	$("[name=trigger_name]").val("");
+	$("[name=inComing_port_start]").val("");
+	$("[name=inComing_port_end]").val("");
+	$("[name=trigger_port_start]").val("");
+	$("[name=trigger_port_end]").val("");
+}
+
+function rule_html(name,in_S,in_E,tr_S,tr_E){
+	html = '<tr class="table_font" align="center">';
+
+	html = html+'<td>▲</td>';
+	html = html+'<td>'+name+'</td>';
+	html = html+'<td>'+in_S+'</td>';
+	html = html+'<td>'+in_E+'</td>';
+	html = html+'<td>'+tr_S+'</td>';
+	html = html+'<td>'+tr_E+'</td>';
+	html = html+'<td><img id="rm" src="<%=media%>/images/delete-01.png" onMouseOver="this.src='+"'"+'<%=media%>/images/delete_hover-01.png'+"'"+'"  onMouseOut="this.src='+"'"+'<%=media%>/images/delete-01.png'+"'"+'" onMouseDown="this.src='+"'"+'<%=media%>/images/delete_active-01.png'+"'"+'" onMouseUp="this.src='+"'"+'<%=media%>/images/delete-01.png'+"'"+'" type="image" /></td>';
+
+	html = html+'</tr>';
+
+	return html;
+}
+
+function formCheck(name,inS,inE,trS,trE){
+	var ui_name = name;
+	var ui_inS = inS;
+	var ui_inE = inE;
+	var ui_trS = trS;
+	var ui_trE = trE;
+
+	
+	if(ui_name == ""){
+		alert("<%:NAT_Error_18%>");
+		return false;
+	}
+
+	if(!(checkInjection(ui_name))){
+		var Injection_alert="<%:Injection_alert%>";
+		alert(Injection_alert+' " ` > < ^ $ &'+" ' ");
+		return false;
+	}
+
+	if( ui_inS == "") {
+		alert("<%:NAT_Error_13%>");
+		return false;
+	}
+
+	if( ui_inE == "") {
+		alert("<%:NAT_Error_14%>");
+		return false;
+	}
+
+	if( ui_trS == "") {
+		alert("<%:NAT_Error_15%>");
+		return false;
+	}
+
+	if( ui_trE == "") {
+		alert("<%:NAT_Error_16%>");
+		return false;
+	}
+
+	if(ui_inS!=0){	
+		if(ui_inS > 65535 || ui_inS < 1){
+			alert("<%:Port_Error_2%>");
+			return false;
+		}
+			
+		if(ui_inE > 65535 || ui_inE < 1){
+			alert("<%:Port_Error_2%>");
+			return false;
+		}
+			
+		if(ui_trS > 65535 || ui_trS < 1){
+			alert("<%:Port_Error_2%>");
+			return false;
+		}
+			
+		if(ui_trE > 65535 || ui_trE < 1){
+			alert("<%:Port_Error_2%>");
+			return false;
+		}	        
+	        	   
+		if(ui_inE < ui_inS){
+			alert("<%:NAT_Error_6%>");
+			return false;
+		}	    	 	   
+		if(ui_trS==0){
+			alert("<%:NAT_Error_7%>");
+			return false;
+		} 	    		         
+		if(ui_trE < ui_trS){
+			alert("<%:NAT_Error_8%>");
+			return false;
+		}		    	
+	}   
+	//check duplicate rule
+	var rowCount = $('#show tr').length;
+	if(rowCount > 4){
+		for(i=4;i<rowCount;i++){
+			var inS = $("#show tr:eq("+i+") td:eq(2)").html();
+			var inE = $("#show tr:eq("+i+") td:eq(3)").html();
+			var trS = $("#show tr:eq("+i+") td:eq(4)").html();
+			var trE = $("#show tr:eq("+i+") td:eq(5)").html();
+			if (ui_inS == inS && ui_inE == inE && ui_trS == trS && ui_trE == trE ){
+				alert("<%:NAT_Error_17%>");
+				return false;
+			}
+		}
+	}
+/*old...
+	//check value
+	for(i=0;i<12;i++){	
+	   if(ui_inS[i]!=0){	
+	        if(ui_inS[i] > 65535 || ui_inS[i] < 1){
+				alert("<%:Port_Error_2%>");
+				return false;
+			}
+			
+			if(ui_inE[i] > 65535 || ui_inE[i] < 1){
+				alert("<%:Port_Error_2%>");
+				return false;
+			}
+			
+			if(ui_trS[i] > 65535 || ui_trS[i] < 1){
+				alert("<%:Port_Error_2%>");
+				return false;
+			}
+			
+			if(ui_trE[i] > 65535 || ui_trE[i] < 1){
+				alert("<%:Port_Error_2%>");
+				return false;
+			}	        
+	        	   
+	        if(ui_inE[i] < ui_inS[i]){
+	         	alert("<%:NAT_Error_6%>");
+	         	return false;
+	    	}	    	 	   
+	        if(ui_trS[i]==0){
+	    		alert("<%:NAT_Error_7%>");
+	         	return false;
+	    	} 	    		         
+	    	if(ui_trE[i] < ui_trS[i]){
+	         	alert("<%:NAT_Error_8%>");
+	         	return false;
+	    	}		    	
+	   }     
+	}	
+	//check range
+	for(i=1;i<12;i++){
+	    if(ui_inS[i]!=0){	          
+	         for(j=0;j < i;j++){	    
+	            if((ui_inS[i]>=ui_inS[j])&& (ui_inS[i]<=ui_inE[j])){
+	               alert("<%:NAT_Error_9%>");
+	               return false;
+	             }	             
+	             if((ui_inE[i]>=ui_inS[j])&& (ui_inE[i]<=ui_inE[j])){
+	               alert("<%:NAT_Error_10%>");
+	               return false;
+	             }	            
+	            if((ui_trS[i]>=ui_trS[j])&& (ui_trS[i]<=ui_trE[j])){
+	               alert("<%:NAT_Error_11%>");	             
+	               return false;   
+	               }            
+	            if((ui_trE[i]>=ui_trS[j])&& (ui_trE[i]<=ui_trE[j])){
+	               alert("<%:NAT_Error_12%>");	             
+	               return false;   
+	               }   
+	         }
+	    }
+	}
+*/
+	return true;	
+}
+
+function set_rules_count(){
+	var j=1;
+	var rowCount = $('#show tr').length;
+	if(rowCount > 4){
+		for(i=4;i<rowCount;i++){
+			$("#show tr:eq("+i+") td:eq(0)").html(j);
+			j=j+1;
+		}
+	}
+}
+
+function checkInjection(str)
+{
+	var len = str.length;
+		for (var i=0; i<str.length; i++) {
+			if ( str.charAt(i) == '"' || str.charAt(i) == "'" || str.charAt(i) == '`' || str.charAt(i) == '<' || str.charAt(i) == '>' || str.charAt(i) == '^' || str.charAt(i) == '$' || str.charAt(i) == '&'){
+				return false;
+			}else
+				continue;
+		}
+		return true;
+}
+
+function gotoApply(){
+	var rowCount = $('#show tr').length;
+	var data = "&rule=None";
+	if(rowCount > 4){
+		j = 1;
+		data = "";
+		for(i=4;i<rowCount;i++){
+			var name = $("#show tr:eq("+i+") td:eq(1)").html();
+			var inS = $("#show tr:eq("+i+") td:eq(2)").html();
+			var inE = $("#show tr:eq("+i+") td:eq(3)").html();
+			var trS = $("#show tr:eq("+i+") td:eq(4)").html();
+			var trE = $("#show tr:eq("+i+") td:eq(5)").html();
+			data = data+"&rule"+j+"="+encodeURIComponent(name)+"^"+inS+"^"+inE+"^"+trS+"^"+trE;
+			j = j+1;
+		}
+	}
+
+	relus_count = rowCount-4;
+	var loc = '<%=luci.dispatcher.build_url("expert", "configuration", "network", "nat","nat_advance")%>?apply=Apply&count='+relus_count+data;
+	skm_LockScreen();
+	var code = 'location="' + loc + '"';
+
+//	alert(code);
+	eval(code);
+}
+</script>
+
+</head>
+<body>
+<form method="post" name="NAT_ADV">
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Port_Trigger%></div></td>
+    <td>&nbsp;</td>
+    <td width="100" valign="top"><div class="apply"  ><input value=" <%:Apply%> " id="natApply" name="apply" type="button" onclick="skm_LockScreen();gotoApply()"> </div></td>
+    <td width="100" valign="top"><div class="cancel" ><input value=" <%:cancel%> " id="natReset" name="reset" onclick="window.location.reload()" type="reset"></div></td>
+  </tr>
+</table>
+</div>
+<div id="all_w">
+
+  <ul>
+     <li >
+		<div class="data">
+			<ul>
+				<div class="title" id="NatAdvanveAppRuleSum"><span class="cTitle"> <%:Application_Rules_Summary%> </span></div>
+					<div class="tableframe">
+						<table width="95%" align="center" border="0" cellpadding="0" cellspacing="0">	
+							<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+								<tr><td><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+									<tr><td><table width="100%" cellpadding="0" cellspacing="0" id="show">
+										<tr>
+											<td height="26" colspan="7"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+												<tr>
+													<td height="26"class="table_title" id="NatAdvanvePortTriggerRule"><span class="cTitle"> <%:Port_Trigger_Rules%> (<%:MAX_32_rules%>)</span></td>
+												</tr>
+											</table></td>
+										</tr>
+<!--Rules#################################################-->
+		<tr class="top_font" align="center">
+			<!--Rules Title#####################################-->
+			<td  valign="top" width="5%" align="center">
+				<center><span class="top_left3">#</span></center>
+			</td>
+			<td  align="center">
+				<font class="top_font3"><center><span id="NatAdvanveName"> <%:Name%> </span></center></font>
+			</td>
+			<td width="20%" align="center">
+				<font class="top_font"><center><span id="NatAdvanveIncoming"> <%:Incoming%> <%:Port%> </span></center></font>
+			</td>
+			<td width="20%" align="center">
+				<font class="top_font"><center><span id="NatAdvanveIncoming"> <%:End_Port%> </span></center></font>
+			</td>
+			<td width="20%" align="center">
+				<font class="top_right"><center><span id="NatAdvanveTrigger"> <%:Trigger%> <%:Port%> </span></center></font>
+			</td>
+			<td width="20%" align="center">
+				<font class="top_right"><center><span id="NatAdvanveTrigger"> <%:End_Port%>  </span></center></font>
+			</td>
+			<td width="20%" align="center">
+				<font class="top_right"><center><span id="NatAdvanveTrigger"></span></center></font>
+			</td>										
+		</tr>
+		<!--Add Rules#####################################-->
+		<tr class="table_font" align="center">
+			<td valign="top"></td>
+			<td>
+				<input name="trigger_name" size="15" maxlength="31" type="text">
+			</td>
+			<td>
+				<input name="inComing_port_start" onkeyup="value=value.replace(/[^\d]/g,'')" size="10" maxlength="31"type="text">
+			</td>
+			<td>
+				<input name="inComing_port_end" onkeyup="value=value.replace(/[^\d]/g,'')" size="10" maxlength="31" type="text">
+			</td>
+			<td>
+				<input name="trigger_port_start" onkeyup="value=value.replace(/[^\d]/g,'')" size="10" maxlength="31"  type="text">
+			</td>
+			<td>
+				<input name="trigger_port_end" onkeyup="value=value.replace(/[^\d]/g,'')" size="10" maxlength="31" type="text">
+			</td>
+			<td>
+				<img id="add" src="<%=media%>/images/add-01.png" onMouseOver="this.src='<%=media%>/images/add_hover-01.png'" onMouseOut="this.src='<%=media%>/images/add-01.png'" type="image" />
+			</td>
+		</tr>
+<!--Rules END#################################################-->				
+											</table></td>
+										</tr>
+									</table>
+								</tr>	
+							</table>
+						</table>
+					</div>
+				<div class="spaceair"> </div>	
+		   </ul>		   
+	     </div>									  	
+	</li>		
+   </ul>	
+</div>
+</div>
+</form>
+</div>
+</body>
+</html>

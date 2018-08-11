@@ -1,0 +1,656 @@
+From 4a5620640d222e75e4ba3bc7f46ef0c7ebeed529 Mon Sep 17 00:00:00 2001
+From: George Nash <georgen@qce.qualcomm.com>
+Date: Sat, 10 May 2014 19:21:09 -0700
+Subject: [PATCH 1/3] Address potential problems identified by static analysis.
+
+- Various NULL pointer checks
+- Various bounds checks
+
+Change-Id: Ibf96d6e89e379a9f0167d02954479906e377dd84
+Signed-off-by: Steve Kinneberg <stevek@qce.qualcomm.com>
+Signed-off-by: George Nash <georgen@qce.qualcomm.com>
+---
+ alljoyn_c/src/BusObjectC.cc                        |  9 ++-
+ alljoyn_core/router/DBusObj.cc                     |  5 +-
+ alljoyn_core/router/ns/IpNameServiceImpl.cc        |  2 +-
+ .../samples/secure/DeskTopSharedKSService.cc       | 87 +++++++++++-----------
+ alljoyn_core/src/AllJoynPeerObj.cc                 | 22 ++++--
+ alljoyn_core/src/Message_Gen.cc                    |  6 +-
+ alljoyn_core/src/ProxyBusObject.cc                 | 32 +++++---
+ alljoyn_core/src/XmlHelper.cc                      |  6 +-
+ common/crypto/openssl/CryptoAES.cc                 |  4 +-
+ common/crypto/openssl/CryptoRSA.cc                 | 12 ++-
+ common/crypto/openssl/CryptoRand.cc                |  7 +-
+ common/os/posix/SslSocket.cc                       |  3 +-
+ common/os/posix/time.cc                            | 19 ++---
+ common/src/BigNum.cc                               |  3 +-
+ common/src/String.cc                               |  9 ++-
+ 15 files changed, 142 insertions(+), 84 deletions(-)
+
+diff --git a/alljoyn_c/src/BusObjectC.cc b/alljoyn_c/src/BusObjectC.cc
+index 96af7d6..79de0db 100644
+--- a/alljoyn_c/src/BusObjectC.cc
++++ b/alljoyn_c/src/BusObjectC.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2013, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -333,11 +333,16 @@ QStatus alljoyn_busobject_signal(alljoyn_busobject bus,
+                                  alljoyn_message msg)
+ {
+     QCC_DbgTrace(("%s", __FUNCTION__));
++    const ajn::InterfaceDescription::Member* member = ((ajn::InterfaceDescription*)signal.iface)->GetMember(signal.name);
++    if (!member) {
++        return ER_BUS_INTERFACE_NO_SUCH_MEMBER;
++    }
++
+     /* must call the Signal Method through BusObjectC since Signal is a protected Method */
+     return ((ajn::BusObjectC*)bus)->SignalC(
+                destination,
+                sessionId,
+-               *((ajn::InterfaceDescription*)signal.iface)->GetMember(signal.name),
++               *member,
+                args,
+                numArgs,
+                timeToLive,
+diff --git a/alljoyn_core/router/DBusObj.cc b/alljoyn_core/router/DBusObj.cc
+index 73bef43..099c66a 100644
+--- a/alljoyn_core/router/DBusObj.cc
++++ b/alljoyn_core/router/DBusObj.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2012, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2012, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -506,6 +506,7 @@ void DBusObj::NameOwnerChanged(const qcc::String& alias, const qcc::String* oldO
+                                                                                shortGuidStr.c_str(),
+                                                                                shortGuidStr.size()))) {
+         const InterfaceDescription::Member* nameLost = dbusIntf->GetMember("NameLost");
++        assert(nameLost);
+         status = Signal(oldOwner->c_str(), 0, *nameLost, &aliasArg, 1);
+         if (ER_OK != status) {
+             QCC_DbgPrintf(("Failed to send NameLost signal for %s to %s (%s)", alias.c_str(), oldOwner->c_str(), QCC_StatusText(status)));
+@@ -516,6 +517,7 @@ void DBusObj::NameOwnerChanged(const qcc::String& alias, const qcc::String* oldO
+     if (newOwner && !newOwner->empty() && (0 == ::strncmp(newOwner->c_str() + 1, shortGuidStr.c_str(),
+                                                           shortGuidStr.size()))) {
+         const InterfaceDescription::Member* nameAcquired = dbusIntf->GetMember("NameAcquired");
++        assert(nameAcquired);
+         status = Signal(newOwner->c_str(), 0, *nameAcquired, &aliasArg, 1);
+         if (ER_OK != status) {
+             QCC_DbgPrintf(("Failed to send NameAcquired signal for %s to %s (%s)", alias.c_str(), newOwner->c_str(), QCC_StatusText(status)));
+@@ -528,6 +530,7 @@ void DBusObj::NameOwnerChanged(const qcc::String& alias, const qcc::String* oldO
+     MsgArg::Set(ownerChangedArgs, numArgs, "sss", alias.c_str(), oldOwner ? oldOwner->c_str() : "", newOwner ? newOwner->c_str() : "");
+ 
+     const InterfaceDescription::Member* nameOwnerChanged = dbusIntf->GetMember("NameOwnerChanged");
++    assert(nameOwnerChanged);
+     status = Signal(NULL, 0, *nameOwnerChanged, ownerChangedArgs, numArgs);
+     if (status != ER_OK) {
+         QCC_DbgPrintf(("Failed to send NameOwnerChanged signal for %s to %s (%s)", alias.c_str(), newOwner ? newOwner->c_str() : "", QCC_StatusText(status)));
+diff --git a/alljoyn_core/router/ns/IpNameServiceImpl.cc b/alljoyn_core/router/ns/IpNameServiceImpl.cc
+index 498cd8d..c01a381 100644
+--- a/alljoyn_core/router/ns/IpNameServiceImpl.cc
++++ b/alljoyn_core/router/ns/IpNameServiceImpl.cc
+@@ -2848,7 +2848,7 @@ bool IpNameServiceImpl::SameNetwork(uint32_t interfaceAddressPrefixLen, qcc::IPA
+             return false;
+         }
+ 
+-        if (interfaceAddressPrefixLen > 128) {
++        if (interfaceAddressPrefixLen >= 128) {
+             QCC_LogError(ER_FAIL, ("IpNameServiceImpl::SameNetwork(): Bad IPv6 network prefix"));
+             return false;
+         }
+diff --git a/alljoyn_core/samples/secure/DeskTopSharedKSService.cc b/alljoyn_core/samples/secure/DeskTopSharedKSService.cc
+index d751674..b415b42 100644
+--- a/alljoyn_core/samples/secure/DeskTopSharedKSService.cc
++++ b/alljoyn_core/samples/secure/DeskTopSharedKSService.cc
+@@ -7,7 +7,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2010-2011, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2010-2011, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -337,61 +337,62 @@ int main(int argc, char** argv, char** envArg)
+     /* Create message bus */
+     s_msgBus = new BusAttachment("SRPSecurityServiceA", true);
+ 
++    /* if we are unable to allocate a BusAttachment exit */
+     if (!s_msgBus) {
+         status = ER_OUT_OF_MEMORY;
+-    }
+-
+-    if (ER_OK == status) {
+-        status = CreateInterface();
+-    }
++    } else {
++        if (ER_OK == status) {
++            status = CreateInterface();
++        }
+ 
+-    if (ER_OK == status) {
+-        s_msgBus->RegisterBusListener(s_busListener);
+-    }
++        if (ER_OK == status) {
++            s_msgBus->RegisterBusListener(s_busListener);
++        }
+ 
+-    if (ER_OK == status) {
+-        status = StartMessageBus();
+-    }
++        if (ER_OK == status) {
++            status = StartMessageBus();
++        }
+ 
+-    BasicSampleObject testObj(*s_msgBus, SERVICE_PATH);
++        BasicSampleObject testObj(*s_msgBus, SERVICE_PATH);
+ 
+-    if (ER_OK == status) {
+-        status = RegisterBusObject(&testObj);
+-    }
++        if (ER_OK == status) {
++            status = RegisterBusObject(&testObj);
++        }
+ 
+-    if (ER_OK == status) {
+-        status = EnableSecurity();
+-    }
++        if (ER_OK == status) {
++            status = EnableSecurity();
++        }
+ 
+-    if (ER_OK == status) {
+-        status = Connect();
+-    }
++        if (ER_OK == status) {
++            status = Connect();
++        }
+ 
+-    /*
+-     * Advertise this service on the bus.
+-     * There are three steps to advertising this service on the bus.
+-     * 1) Request a well-known name that will be used by the client to discover
+-     *    this service.
+-     * 2) Create a session.
+-     * 3) Advertise the well-known name.
+-     */
+-    if (ER_OK == status) {
+-        status = RequestName();
+-    }
++        /*
++         * Advertise this service on the bus.
++         * There are three steps to advertising this service on the bus.
++         * 1) Request a well-known name that will be used by the client to discover
++         *    this service.
++         * 2) Create a session.
++         * 3) Advertise the well-known name.
++         */
++        if (ER_OK == status) {
++            status = RequestName();
++        }
+ 
+-    const TransportMask SERVICE_TRANSPORT_TYPE = TRANSPORT_ANY;
++        const TransportMask SERVICE_TRANSPORT_TYPE = TRANSPORT_ANY;
+ 
+-    if (ER_OK == status) {
+-        status = CreateSession(SERVICE_TRANSPORT_TYPE);
+-    }
++        if (ER_OK == status) {
++            status = CreateSession(SERVICE_TRANSPORT_TYPE);
++        }
+ 
+-    if (ER_OK == status) {
+-        status = AdvertiseName(SERVICE_TRANSPORT_TYPE);
+-    }
++        if (ER_OK == status) {
++            status = AdvertiseName(SERVICE_TRANSPORT_TYPE);
++        }
+ 
+-    /* Perform the service asynchronously until the user signals for an exit. */
+-    if (ER_OK == status) {
+-        WaitForSigInt();
++        /* Perform the service asynchronously until the user signals for an exit. */
++        if (ER_OK == status) {
++            WaitForSigInt();
++        }
+     }
+ 
+     /* Clean up msg bus */
+diff --git a/alljoyn_core/src/AllJoynPeerObj.cc b/alljoyn_core/src/AllJoynPeerObj.cc
+index afac8a7..00392cb 100644
+--- a/alljoyn_core/src/AllJoynPeerObj.cc
++++ b/alljoyn_core/src/AllJoynPeerObj.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2010-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2010-2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -297,7 +297,9 @@ void AllJoynPeerObj::ExpandHeader(Message& msg, const qcc::String& receivedFrom)
+         }
+         if (status == ER_OK) {
+             remotePeerObj.AddInterface(*ifc);
+-            status = remotePeerObj.MethodCall(*(ifc->GetMember("GetExpansion")), &arg, 1, replyMsg, EXPANSION_TIMEOUT);
++            const InterfaceDescription::Member* getExpansionMember = ifc->GetMember("GetExpansion");
++            assert(getExpansionMember);
++            status = remotePeerObj.MethodCall(*getExpansionMember, &arg, 1, replyMsg, EXPANSION_TIMEOUT);
+         }
+         if (status == ER_OK) {
+             status = replyMsg->AddExpansionRule(token, replyMsg->GetArg(0));
+@@ -732,7 +734,9 @@ QStatus AllJoynPeerObj::AuthenticatePeer(AllJoynMessageType msgType, const qcc::
+     args[0].Set("s", localGuidStr.c_str());
+     args[1].Set("u", PREFERRED_AUTH_VERSION);
+     Message replyMsg(*bus);
+-    status = remotePeerObj.MethodCall(*(ifc->GetMember("ExchangeGuids")), args, ArraySize(args), replyMsg, DEFAULT_TIMEOUT);
++    const InterfaceDescription::Member* exchangeGuidsMember = ifc->GetMember("ExchangeGuids");
++    assert(exchangeGuidsMember);
++    status = remotePeerObj.MethodCall(*exchangeGuidsMember, args, ArraySize(args), replyMsg, DEFAULT_TIMEOUT);
+     if (status != ER_OK) {
+         /*
+          * ER_BUS_REPLY_IS_ERROR_MESSAGE has a specific meaning in the public API and should not be
+@@ -870,7 +874,9 @@ QStatus AllJoynPeerObj::AuthenticatePeer(AllJoynMessageType msgType, const qcc::
+             args[0].Set("s", localGuidStr.c_str());
+             args[1].Set("s", remoteGuidStr.c_str());
+             args[2].Set("s", nonce.c_str());
+-            status = remotePeerObj.MethodCall(*(ifc->GetMember("GenSessionKey")), args, ArraySize(args), replyMsg, DEFAULT_TIMEOUT);
++            const InterfaceDescription::Member* genSessionKeyMember = ifc->GetMember("GenSessionKey");
++            assert(genSessionKeyMember);
++            status = remotePeerObj.MethodCall(*genSessionKeyMember, args, ArraySize(args), replyMsg, DEFAULT_TIMEOUT);
+             if (status == ER_OK) {
+                 qcc::String verifier;
+                 /*
+@@ -901,7 +907,9 @@ QStatus AllJoynPeerObj::AuthenticatePeer(AllJoynMessageType msgType, const qcc::
+         while (status == ER_OK) {
+             Message replyMsg(*bus);
+             MsgArg arg("s", outStr.c_str());
+-            status = remotePeerObj.MethodCall(*(ifc->GetMember("AuthChallenge")), &arg, 1, replyMsg, AUTH_TIMEOUT);
++            const InterfaceDescription::Member* authChallengeMember = ifc->GetMember("AuthChallenge");
++            assert(authChallengeMember);
++            status = remotePeerObj.MethodCall(*authChallengeMember, &arg, 1, replyMsg, AUTH_TIMEOUT);
+             if (status == ER_OK) {
+                 /*
+                  * This will let us know if we need to make an AuthenticationComplete callback below.
+@@ -952,7 +960,9 @@ QStatus AllJoynPeerObj::AuthenticatePeer(AllJoynMessageType msgType, const qcc::
+             assert(keyGenVersion == 1);
+             arg.Set("ay", key.GetSize(), key.GetData());
+         }
+-        status = remotePeerObj.MethodCall(*(ifc->GetMember("ExchangeGroupKeys")), &arg, 1, replyMsg, DEFAULT_TIMEOUT, ALLJOYN_FLAG_ENCRYPTED);
++        const InterfaceDescription::Member* exchangeGroupKeysMember = ifc->GetMember("ExchangeGroupKeys");
++        assert(exchangeGroupKeysMember);
++        status = remotePeerObj.MethodCall(*exchangeGroupKeysMember, &arg, 1, replyMsg, DEFAULT_TIMEOUT, ALLJOYN_FLAG_ENCRYPTED);
+         if (status == ER_OK) {
+             if (keyGenVersion == 0) {
+                 StringSource src(replyMsg->GetArg(0)->v_scalarArray.v_byte, replyMsg->GetArg(0)->v_scalarArray.numElements);
+diff --git a/alljoyn_core/src/Message_Gen.cc b/alljoyn_core/src/Message_Gen.cc
+index ecd8d5c..606a87d 100644
+--- a/alljoyn_core/src/Message_Gen.cc
++++ b/alljoyn_core/src/Message_Gen.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2012, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2012, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -787,6 +787,10 @@ QStatus _Message::MarshalMessage(const qcc::String& expectedSignature,
+ {
+     char signature[256];
+     QStatus status = ER_OK;
++    // if the MsgArg passed in is NULL force the numArgs to be zero.
++    if (args == NULL) {
++        numArgs == 0;
++    }
+     size_t argsLen = (numArgs == 0) ? 0 : SignatureUtils::GetSize(args, numArgs);
+     size_t hdrLen = 0;
+ 
+diff --git a/alljoyn_core/src/ProxyBusObject.cc b/alljoyn_core/src/ProxyBusObject.cc
+index cac313b..ae33654 100644
+--- a/alljoyn_core/src/ProxyBusObject.cc
++++ b/alljoyn_core/src/ProxyBusObject.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -112,7 +112,9 @@ QStatus ProxyBusObject::GetAllProperties(const char* iface, MsgArg& value, uint3
+         if (propIface == NULL) {
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+-            status = MethodCall(*(propIface->GetMember("GetAll")), &arg, 1, reply, timeout, flags);
++            const InterfaceDescription::Member* getAllProperties = propIface->GetMember("GetAll");
++            assert(getAllProperties);
++            status = MethodCall(*getAllProperties, &arg, 1, reply, timeout, flags);
+             if (ER_OK == status) {
+                 value = *(reply->GetArg(0));
+             }
+@@ -167,7 +169,9 @@ QStatus ProxyBusObject::GetAllPropertiesAsync(const char* iface,
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+             CBContext<Listener::GetAllPropertiesCB>* ctx = new CBContext<Listener::GetAllPropertiesCB>(this, listener, callback, context);
+-            status = MethodCallAsync(*(propIface->GetMember("GetAll")),
++            const InterfaceDescription::Member* getAllProperties = propIface->GetMember("GetAll");
++            assert(getAllProperties);
++            status = MethodCallAsync(*getAllProperties,
+                                      this,
+                                      static_cast<MessageReceiver::ReplyHandler>(&ProxyBusObject::GetAllPropsMethodCB),
+                                      &arg,
+@@ -205,7 +209,9 @@ QStatus ProxyBusObject::GetProperty(const char* iface, const char* property, Msg
+         if (propIface == NULL) {
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+-            status = MethodCall(*(propIface->GetMember("Get")), inArgs, numArgs, reply, timeout, flags);
++            const InterfaceDescription::Member* getProperty = propIface->GetMember("Get");
++            assert(getProperty);
++            status = MethodCall(*getProperty, inArgs, numArgs, reply, timeout, flags);
+             if (ER_OK == status) {
+                 value = *(reply->GetArg(0));
+             }
+@@ -260,7 +266,9 @@ QStatus ProxyBusObject::GetPropertyAsync(const char* iface,
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+             CBContext<Listener::GetPropertyCB>* ctx = new CBContext<Listener::GetPropertyCB>(this, listener, callback, context);
+-            status = MethodCallAsync(*(propIface->GetMember("Get")),
++            const InterfaceDescription::Member* getProperty = propIface->GetMember("Get");
++            assert(getProperty);
++            status = MethodCallAsync(*getProperty,
+                                      this,
+                                      static_cast<MessageReceiver::ReplyHandler>(&ProxyBusObject::GetPropMethodCB),
+                                      inArgs,
+@@ -298,7 +306,9 @@ QStatus ProxyBusObject::SetProperty(const char* iface, const char* property, Msg
+         if (propIface == NULL) {
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+-            status = MethodCall(*(propIface->GetMember("Set")),
++            const InterfaceDescription::Member* setProperty = propIface->GetMember("Set");
++            assert(setProperty);
++            status = MethodCall(*setProperty,
+                                 inArgs,
+                                 numArgs,
+                                 reply,
+@@ -354,7 +364,9 @@ QStatus ProxyBusObject::SetPropertyAsync(const char* iface,
+             status = ER_BUS_NO_SUCH_INTERFACE;
+         } else {
+             CBContext<Listener::SetPropertyCB>* ctx = new CBContext<Listener::SetPropertyCB>(this, listener, callback, context);
+-            status = MethodCallAsync(*(propIface->GetMember("Set")),
++            const InterfaceDescription::Member* setProperty = propIface->GetMember("Set");
++            assert(setProperty);
++            status = MethodCallAsync(*setProperty,
+                                      this,
+                                      static_cast<MessageReceiver::ReplyHandler>(&ProxyBusObject::SetPropMethodCB),
+                                      inArgs,
+@@ -400,7 +412,8 @@ QStatus ProxyBusObject::AddInterface(const InterfaceDescription& iface) {
+     StringMapKey key = iface.GetName();
+     pair<StringMapKey, const InterfaceDescription*> item(key, &iface);
+     lock->Lock(MUTEX_CONTEXT);
+-    if (!hasProperties && iface == *(bus->GetInterface(::ajn::org::freedesktop::DBus::Properties::InterfaceName))) {
++    const InterfaceDescription* propIntf = bus->GetInterface(::ajn::org::freedesktop::DBus::Properties::InterfaceName);
++    if (!hasProperties && propIntf && iface == *propIntf) {
+         hasProperties = true;
+     }
+     pair<map<StringMapKey, const InterfaceDescription*>::const_iterator, bool> ret = components->ifaces.insert(item);
+@@ -408,7 +421,6 @@ QStatus ProxyBusObject::AddInterface(const InterfaceDescription& iface) {
+ 
+     /* Add org.freedesktop.DBus.Properties interface implicitly if iface specified properties */
+     if ((status == ER_OK) && !hasProperties && (iface.GetProperties() > 0)) {
+-        const InterfaceDescription* propIntf = bus->GetInterface(::ajn::org::freedesktop::DBus::Properties::InterfaceName);
+         if (propIntf) {
+             hasProperties = true;
+             StringMapKey propKey = ::ajn::org::freedesktop::DBus::Properties::InterfaceName;
+@@ -585,7 +597,7 @@ QStatus ProxyBusObject::AddChild(const ProxyBusObject& child)
+                 const char* tempPath = item.c_str();
+                 _ProxyBusObject ro(*bus, tempServiceName, tempPath, sessionId);
+                 ch.push_back(ro);
+-                cur = ch.empty() ? NULL : &(*(ch.back()));
++                cur = &(*(ro));
+             }
+         }
+         idx = ((qcc::String::npos == end) || ((end + 1) == childPath.size())) ? qcc::String::npos : end + 1;
+diff --git a/alljoyn_core/src/XmlHelper.cc b/alljoyn_core/src/XmlHelper.cc
+index 9221546..f788488 100644
+--- a/alljoyn_core/src/XmlHelper.cc
++++ b/alljoyn_core/src/XmlHelper.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2013 AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2014 AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -244,7 +244,9 @@ QStatus XmlHelper::ParseNode(const XmlElement* root, ProxyBusObject* obj)
+     assert(root->GetName() == "node");
+ 
+     if (GetSecureAnnotation(root) == "true") {
+-        obj->isSecure = true;
++        if (obj) {
++            obj->isSecure = true;
++        }
+     }
+     /* Iterate over <interface> and <node> elements */
+     const vector<XmlElement*>& rootChildren = root->GetChildren();
+diff --git a/common/crypto/openssl/CryptoAES.cc b/common/crypto/openssl/CryptoAES.cc
+index 0cfe334..80c4260 100644
+--- a/common/crypto/openssl/CryptoAES.cc
++++ b/common/crypto/openssl/CryptoAES.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -201,7 +201,7 @@ static void Compute_CCM_AuthField(AES_KEY* key, Crypto_AES::Block& T, uint8_t M,
+     Crypto_AES::Block B_0(0);
+     B_0.data[0] = flags;
+     memset(&B_0.data[1], 0, 15 - L);
+-    memcpy(&B_0.data[1], nonce.GetData(), nonce.GetSize());
++    memcpy(&B_0.data[1], nonce.GetData(), min((size_t)15, nonce.GetSize()));
+     for (size_t i = 15, l = mLen; l != 0; i--) {
+         B_0.data[i] = (uint8_t)(l & 0xFF);
+         l >>= 8;
+diff --git a/common/crypto/openssl/CryptoRSA.cc b/common/crypto/openssl/CryptoRSA.cc
+index 79cf85e..3fe525a 100644
+--- a/common/crypto/openssl/CryptoRSA.cc
++++ b/common/crypto/openssl/CryptoRSA.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -148,6 +148,11 @@ QStatus Crypto_RSA::MakeSelfCertificate(const qcc::String& commonName, const qcc
+     X509_gmtime_adj(X509_get_notAfter(x509), EXPIRE_DAYS(365));
+ 
+     EVP_PKEY* evpk = EVP_PKEY_new();
++    if (!evpk) {
++        status = ER_OUT_OF_MEMORY;
++        QCC_LogError(status, ("Failed to allocate memory for EVP PKEY"));
++        return status;
++    }
+     Generate(512);
+     EVP_PKEY_set1_RSA(evpk, (RSA*)key);
+     X509_set_pubkey(x509, evpk);
+@@ -313,6 +318,11 @@ QStatus Crypto_RSA::ExportPrivateKey(qcc::KeyBlob& keyBlob, PassphraseListener*
+     QStatus status = ER_CRYPTO_ERROR;
+     BIO* bio = BIO_new(BIO_s_mem());
+     EVP_PKEY* evpk = EVP_PKEY_new();
++    if (!evpk) {
++        status = ER_OUT_OF_MEMORY;
++        QCC_LogError(status, ("Failed to allocate memory for EVP PKEY"));
++        return status;
++    }
+ 
+     EVP_PKEY_set1_RSA(evpk, (RSA*)key);
+     /* Load all ciphers and digests */
+diff --git a/common/crypto/openssl/CryptoRand.cc b/common/crypto/openssl/CryptoRand.cc
+index 6b8fa40..454e62a 100644
+--- a/common/crypto/openssl/CryptoRand.cc
++++ b/common/crypto/openssl/CryptoRand.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2010-2013, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2010-2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -38,6 +38,11 @@ QStatus qcc::Crypto_GetRandomBytes(uint8_t* data, size_t len)
+ 
+     QStatus status = ER_OK;
+     BIGNUM* rand = BN_new();
++    if (!rand) {
++        status = ER_OUT_OF_MEMORY;
++        QCC_LogError(status, ("Failed to allocate memory for EVP PKEY"));
++        return status;
++    }
+     if (BN_rand(rand, len * 8, -1, 0)) {
+         BN_bn2bin(rand, data);
+     } else {
+diff --git a/common/os/posix/SslSocket.cc b/common/os/posix/SslSocket.cc
+index dc4fb6c..e4f6c8f 100644
+--- a/common/os/posix/SslSocket.cc
++++ b/common/os/posix/SslSocket.cc
+@@ -6,7 +6,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009,2012-2013 AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009,2012-2014 AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -99,6 +99,7 @@ SslSocket::SslSocket(String host, const char* rootCert, const char* caCert) :
+ 
+             /* Set up our own trust store */
+             X509_STORE* store = X509_STORE_new();
++            assert(store);
+ 
+             /* Replace the certificate verification storage of sslCtx with store */
+             SSL_CTX_set_cert_store(sslCtx, store);
+diff --git a/common/os/posix/time.cc b/common/os/posix/time.cc
+index 459db5e..3c09892 100644
+--- a/common/os/posix/time.cc
++++ b/common/os/posix/time.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2009-2011, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2009-2011, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -107,15 +107,16 @@ qcc::String qcc::UTCTime()
+     char buf[32];
+     time_t t;
+     time(&t);
+-    struct tm* utc = gmtime(&t);
++    struct tm utc;
++    gmtime_r(&t, &utc);
+     snprintf(buf, 32, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+-             Day[utc->tm_wday],
+-             utc->tm_mday,
+-             Month[utc->tm_mon],
+-             1900 + utc->tm_year,
+-             utc->tm_hour,
+-             utc->tm_min,
+-             utc->tm_sec);
++             Day[utc.tm_wday],
++             utc.tm_mday,
++             Month[utc.tm_mon],
++             1900 + utc.tm_year,
++             utc.tm_hour,
++             utc.tm_min,
++             utc.tm_sec);
+ 
+     return buf;
+ }
+diff --git a/common/src/BigNum.cc b/common/src/BigNum.cc
+index 2bc9bac..8f5e9f5 100644
+--- a/common/src/BigNum.cc
++++ b/common/src/BigNum.cc
+@@ -1,5 +1,5 @@
+ /******************************************************************************
+- * Copyright (c) 2011, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2011, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -88,6 +88,7 @@ class BigNum::Storage {
+     {
+         size_t mallocSz = sizeof(Storage) + (sz + extra) * sizeof(uint32_t);
+         uint8_t* p = (uint8_t*)malloc(mallocSz);
++        assert(p);
+         Storage* s = new (p)Storage();
+         s->buffer = reinterpret_cast<uint32_t*>(p + sizeof(Storage));
+         s->size = sz + extra;
+diff --git a/common/src/String.cc b/common/src/String.cc
+index 6095854..99483c2 100644
+--- a/common/src/String.cc
++++ b/common/src/String.cc
+@@ -5,7 +5,7 @@
+  */
+ 
+ /******************************************************************************
+- * Copyright (c) 2010-2012, AllSeen Alliance. All rights reserved.
++ * Copyright (c) 2010-2012, 2014, AllSeen Alliance. All rights reserved.
+  *
+  *    Permission to use, copy, modify, and/or distribute this software for any
+  *    purpose with or without fee is hereby granted, provided that the above
+@@ -22,6 +22,7 @@
+ #include <qcc/platform.h>
+ #include <qcc/atomic.h>
+ #include <qcc/String.h>
++#include <assert.h>
+ #include <new>
+ 
+ #if defined(WIN32) || (defined(QCC_OS_DARWIN) && MAC_OS_X_VERSION_MAX_ALLOWED < 1070)
+@@ -384,7 +385,7 @@ size_t String::find(const String& str, size_t pos) const
+ 
+ size_t String::find_first_of(const char c, size_t pos) const
+ {
+-    if (context == &nullContext) {
++    if ((context == &nullContext) || (pos >= size())) {
+         return npos;
+     }
+ 
+@@ -525,7 +526,9 @@ void String::NewContext(const char* str, size_t strLen, size_t sizeHint)
+     }
+     size_t capacity = MAX(MinCapacity, MAX(strLen, sizeHint));
+     size_t mallocSz = capacity + 1 + sizeof(ManagedCtx) - MinCapacity;
+-    context = new (malloc(mallocSz))ManagedCtx();
++    void* newCtxMem = malloc(mallocSz);
++    assert(newCtxMem);
++    context = new (newCtxMem)ManagedCtx();
+     context->refCount = 1;
+ 
+     context->capacity = static_cast<uint32_t>(capacity);
+-- 
+1.9.1
+

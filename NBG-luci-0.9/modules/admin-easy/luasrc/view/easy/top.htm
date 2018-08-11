@@ -1,0 +1,119 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+sys = require("luci.sys")
+uci = require("luci.model.uci").cursor()
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+local easy123_title_1 = uci:get("system","main","product_typ_name")
+local product_name = uci:get("system","main","product_name")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>top</title>
+<!-- <link href="<%=media%>/css/top.css" rel="stylesheet" type="text/css" /> -->
+
+
+<style type="text/css">
+
+#bg {
+	position: fixed;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+	background-image: url(<%=media%>/images/bck/top.jpg);
+	background-repeat: round;
+	ont-size: 14px;
+	text-align: center;
+}
+body,td,th {
+	margin-left: 0px;
+	margin-top: 0px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	font-size: 20px;
+	color: #FFF;
+	font-family:Helvetica, sans-serif;
+}
+</style>
+
+<script type="text/javascript">
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+
+function MM_openBrWindow(theURL,winName,features) { //v2.0
+  window.open(theURL,winName,features);
+}
+	function MM_showHideLayers() { //v6.0
+				  var i,p,v,obj,args=MM_showHideLayers.arguments;
+				  for (i=0; i<(args.length-2); i+=3) if ((obj=MM_findObj(args[i]))!=null) { v=args[i+2];
+					if (obj.style) { obj=obj.style; v=(v=='show')?'visible':(v=='hide')?'hidden':v; }
+					obj.visibility=v; }
+				}
+</script>
+</head>
+
+<body onload="MM_preloadImages('<%=media%>/images/topbar/de2a042b.123_hover.png','<%=media%>/images/topbar/8f9ce158.user_name_hover.png','<%=media%>/images/topbar/a8a1f081.options_hover.png')">
+<div id="bg">
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="160" height="75" align="left"><img src="<%=media%>/images/2c9f5187.logo.png" alt="" width="142" height="60" /></td>
+    <td width="300" height="75" align="left"><%=product_name%></td>
+    <td><!-- 123 Button -->
+      <table width="220" border="0" align="right" cellpadding="0" cellspacing="0">
+        <tr>
+          
+		  <td width="60" valign="top"><a href="<%=controller%>/easy/eaZy123" target=top> <img src="<%=media%>/images/topbar/6dfe9b4b.123_active.png" alt="" width="40" height="48" id="Image1" onmouseover="MM_swapImage('Image1','','<%=media%>/images/topbar/de2a042b.123_hover.png',1)" onmouseout="MM_swapImgRestore()" /> </a></td>
+          
+		  <td width="60" valign="top"><a href="<%=controller%>/easy/logout"> <img src="<%=media%>/images/topbar/fa6c8598.user_name_active.png" alt="" width="40" height="48" id="Image2" onmouseover="MM_swapImage('Image2','','<%=media%>/images/topbar/8f9ce158.user_name_hover.png',1)" onmouseout="MM_swapImgRestore()" /></a></td>
+         
+		 <td width="60" valign="top"><a href="#" > <img src="<%=media%>/images/topbar/53487118.options_active.png" alt="" width="40" height="48" id="Image3" onmouseover="MM_swapImage('Image3','','<%=media%>/images/topbar/a8a1f081.options_hover.png',1)" onmouseout="MM_swapImgRestore()" onclick="MM_openBrWindow('<%=media%>/htm/about.htm','','width=410,height=165')""/></a></td>
+          <td width="100" valign="top">&nbsp;</td>
+        </tr>
+      </table></td>
+  </tr>
+</table>
+</div>
+</body>
+</html>

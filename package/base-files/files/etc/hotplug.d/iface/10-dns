@@ -1,0 +1,23 @@
+##check mode
+local sys_mode=$(get_sys_mode)
+[ "$sys_mode" == "2" -o "$sys_mode" == "3" ] && {
+
+if [ "$ACTION" = "ifup" -a "$INTERFACE" = "lan" ]; then
+	/sbin/update_sys_dns_apmode
+fi
+
+} || {
+
+if [ "$ACTION" = "ifup" -a "$INTERFACE" = "wan" ]; then
+	/sbin/update_sys_dns
+	/sbin/update_lan_dns
+
+	[ -f /tmp/Apply_dhcp_GUI ] || {
+	  /etc/init.d/dnsmasq stop
+	  /etc/init.d/dnsmasq start
+	}
+
+	/bin/dnsmasq_guest_lan "RESTART"
+fi
+
+}

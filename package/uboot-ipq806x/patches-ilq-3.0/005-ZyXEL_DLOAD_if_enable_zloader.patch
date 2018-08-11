@@ -1,0 +1,97 @@
+Index: u-boot-2012.07/common/main.c
+===================================================================
+--- u-boot-2012.07.orig/common/main.c
++++ u-boot-2012.07/common/main.c
+@@ -296,6 +296,35 @@ void fake_sys_halt(void)
+ }
+ #endif
+ 
++#ifdef CONFIG_ZLOADER_SUPPORTED
++#ifdef CONFIG_IPQ_APPSBL_DLOAD
++/**
++ * Inovke the dump routine and in case of failure, do not stop unless the user
++ * requested to stop
++ */
++static int inline do_dumpipq_data()
++{
++	uint64_t etime;
++
++	if (run_command("dumpipq_data", 0) != CMD_RET_SUCCESS) {
++		printf("\nAuto crashdump saving failed!"
++			"\nPress any key within 10s to take control of U-Boot...");
++
++		etime = get_timer_masked() + (10 * CONFIG_SYS_HZ);
++		while (get_timer_masked() < etime) {
++			if (tstc())
++				break;
++		}
++
++		if (get_timer_masked() < etime)
++			return CMD_RET_FAILURE;
++	}
++
++	return CMD_RET_SUCCESS;
++}
++#endif
++#endif
++
+ void main_loop (void)
+ {
+ #ifndef CONFIG_SYS_HUSH_PARSER
+@@ -318,6 +347,12 @@ void main_loop (void)
+ 	char *bcs;
+ 	char bcs_set[16];
+ #endif /* CONFIG_BOOTCOUNT_LIMIT */
++#ifdef CONFIG_ZLOADER_SUPPORTED
++#ifdef CONFIG_IPQ_APPSBL_DLOAD
++	unsigned long * dmagic1 = (unsigned long *) 0x2A03F000;
++	unsigned long * dmagic2 = (unsigned long *) 0x2A03F004;
++#endif
++#endif
+ 
+ #ifdef CONFIG_BOOTCOUNT_LIMIT
+ 	bootcount = bootcount_load();
+@@ -454,6 +489,43 @@ void main_loop (void)
+     #error "You should define 'CONFIG_ZLOADER_PART_SIZE'"
+     /* TODO: to calculate zloader partition size */
+   #endif
++  #ifdef CONFIG_IPQ_APPSBL_DLOAD
++	/* check if we are in download mode */
++	if (*dmagic1 == 0xE47B337D && *dmagic2 == 0x0501CAB0) {
++		/* clear the magic and run the dump command */
++		*dmagic1 = 0;
++		*dmagic2 = 0;
++
++		#if 0
++		/* original procedure in cmd_bootipq.c */
++		uint64_t etime = get_timer_masked() + (10 * CONFIG_SYS_HZ);
++		printf("\nCrashdump magic found."
++			"\nHit any key within 10s to stop dump activity...");
++		while (!tstc()) {       /* while no incoming data */
++			if (get_timer_masked() >= etime) {
++				if (do_dumpipq_data() == CMD_RET_FAILURE)
++					return CMD_RET_FAILURE;
++				break;
++			}
++		}
++		#else /* we may need a graceful method to save crashdump, not tftp method in do_dumpipq_data() */
++		printf("\nCrashdump magic found!!!\n");
++		if ( getenv("zyxelcrashdump") != NULL ) {
++			printf("variable zyxelcrashdump exists, start dump activity to tftpserver...");
++			if (do_dumpipq_data() == CMD_RET_FAILURE)
++				printf("crashdump action fail...\n");
++		} else {
++			printf("variable zyxelcrashdump not exists, dump activity will not start.\n");
++		}
++		#endif
++
++
++		/* reset the system, some images might not be loaded
++		 * when crashmagic is found
++		 */
++		run_command("reset", 0);
++	}
++  #endif
+   { DECLARE_GLOBAL_DATA_PTR;
+     gd->flags |= GD_FLG_DISABLE_CONSOLE;
+     setenv("boot_zld", CONFIG_BOOT_ZLOADER_CMD);

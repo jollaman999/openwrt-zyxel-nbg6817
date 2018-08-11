@@ -1,0 +1,47 @@
+#!/bin/sh
+
+switch2jffs_hook=
+jffs2reset_hook=
+no_fo_hook=
+
+. /lib/functions/boot.sh
+
+firstboot_skip_next=false
+
+for fb_source_file in /lib/firstboot/*; do
+    . $fb_source_file
+done
+
+set_mtd_part
+set_rom_part
+set_jffs_part
+
+# invoked as an executable
+if [ "${0##*/}" = "firstboot" ]; then
+    if [ "$1" = "switch2jffs" ]; then
+	boot_run_hook switch2jffs
+    elif [ -n "$jffs" ]; then
+	reset_has_fo=true
+	echo "firstboot has already been run"
+	echo "jffs2 partition is mounted, only resetting files"
+	boot_run_hook jffs2reset
+    elif [ "$mtdpart" = "/dev/mmcblk0p1" ]; then
+	rm -rf /overlay/*
+	mount -o remount /dev/mmcblk0p1
+
+	umount -l /dev/mmcblk0p10
+	mkfs.ext4 /dev/mmcblk0p10
+
+	firstbott_status=$( mount | grep "/dev/mmcblk0p1 " )
+	[ -z "$firstbott_status" ] && {
+	echo "firstboot has already been run"
+	echo "overlay partition is unmounted, only rebooting device"
+	}
+    else
+    echo "mtd erase and overlay with jffs2 partname: $partname, mtdpart: $mtdpart"
+	mtd erase "$partname"
+	mount "$mtdpart" /overlay -t jffs2
+	fopivot /overlay /rom 1
+    fi
+fi
+

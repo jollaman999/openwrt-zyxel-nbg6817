@@ -1,0 +1,137 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local http = require("luci.http")
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script language="JavaScript" type="text/javascript">
+Butterlate.setTextDomain("NAT_DOMAIN");
+
+
+function validateEmail(email)
+{
+	reg = /^[^\s]+@[^\s]+\.[^\s]{2,3}$/;
+	if (reg.test(email))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+} 
+
+function editCheck()
+{
+
+	if(document.MAIL_EDIT.Email.value == "")
+	{
+		alert("<%:Email_Error%>");
+		return false;
+	}
+	else
+	{
+		if (!validateEmail(document.MAIL_EDIT.Email.value))
+		{
+			alert("<%:Email_Error_5%>");
+			document.MAIL_EDIT.Email.focus();
+			document.MAIL_EDIT.Email.select();
+			return false;
+		}
+	}
+
+	
+	return true;
+}
+
+function editMail()
+{
+
+	var ret = true;
+			
+	ret = editCheck();
+	
+	if(ret != true){
+		return ret;
+	}
+	
+	with(document.MAIL_EDIT){
+		var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","management", "send_mail", "mail_edit")%>';
+		var loc = submit_url + '?apply=Apply';
+		
+		loc += '&Sendto=' + Sendto.value;
+		loc += '&Email=' + Email.value;
+				
+		var code = 'location="' + loc + '"';
+     	eval(code);
+	}
+}
+
+</script>
+</head>
+<body>
+<form method="post" name="MAIL_EDIT">
+<div id="table">
+  <ul>
+    <li class="table_content">
+        <div class="data">
+        <ul>
+          <div class="w_text">
+            <ul>
+			  <%local email = luci.http.formvalue("email")%>	
+              <li class="left_table"><%:E_Mail%> : </li>
+              <li class="right_table">
+                <input name="Email" size="20" maxlength="127" value="<%=email%>" type="text" />
+              </li>
+            </ul>
+          </div>
+          <div class="spaceair"></div>
+        </ul>
+      </div>
+    </li>
+    <li class="table_button">
+      <div class="button">
+        <center>
+          <input name="Back" type="submit" id="Back" onclick="MM_goToURL('parent.frames[\'mainFrame\']','<%=controller%>/expert/configuration/management/send_mail/mail');return document.MM_returnValue"value="Back" />
+          &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+          <input name="apply" value="<%:Apply%>" onclick="editMail()" type="button" />
+          &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+          <input name="Cancel" value="<%:Cancel%>" type="reset" />
+		  <% local sendto = luci.http.formvalue("sendto")%>
+		  <input name="Sendto" value="<%=sendto%>" type="hidden" />
+        </center>
+      </div>
+    </li>
+  </ul>
+</div>
+</form>
+</body>
+
+</html>

@@ -1,0 +1,103 @@
+diff -Naur -x .git linux-3.4.13.org/arch/arm/boot/dts/qcom-ipq8064.dtsi linux-3.4.13/arch/arm/boot/dts/qcom-ipq8064.dtsi
+--- linux-3.4.13.org/arch/arm/boot/dts/qcom-ipq8064.dtsi	2016-03-02 14:33:34.145729557 +0800
++++ linux-3.4.13/arch/arm/boot/dts/qcom-ipq8064.dtsi	2016-04-18 10:49:04.471287660 +0800
+@@ -69,7 +69,7 @@
+ 
+ 			clock-latency = <100000>;
+ 			voltage-tolerance = <5>;
+-			cpu_freq_idle = <800000000>;
++			cpu_fab_threshold = <1000000000>;
+ 
+ 			cooling-min-state = <0>;
+ 			cooling-max-state = <10>;
+@@ -127,7 +127,7 @@
+ 			>;
+ 
+ 			clock-latency = <100000>;
+-			cpu_freq_idle = <800000000>;
++			cpu_fab_threshold = <1000000000>;
+ 
+ 			cooling-min-state = <0>;
+ 			cooling-max-state = <10>;
+diff -Naur -x .git linux-3.4.13.org/drivers/clk/qcom/clk-rcg.c linux-3.4.13/drivers/clk/qcom/clk-rcg.c
+--- linux-3.4.13.org/drivers/clk/qcom/clk-rcg.c	2016-03-02 14:33:35.133751648 +0800
++++ linux-3.4.13/drivers/clk/qcom/clk-rcg.c	2016-04-18 10:49:05.615290431 +0800
+@@ -511,6 +511,11 @@
+ 	return __clk_dyn_rcg_set_rate(hw, rate);
+ }
+ 
++void clk_dyn_configure_bank(struct clk_dyn_rcg *rcg, const struct freq_tbl *f)
++{
++	configure_bank(rcg, f);
++}
++
+ const struct clk_ops clk_rcg_ops = {
+ 	.enable = clk_enable_regmap,
+ 	.disable = clk_disable_regmap,
+diff -Naur -x .git linux-3.4.13.org/drivers/clk/qcom/clk-rcg.h linux-3.4.13/drivers/clk/qcom/clk-rcg.h
+--- linux-3.4.13.org/drivers/clk/qcom/clk-rcg.h	2016-03-02 14:33:35.133751648 +0800
++++ linux-3.4.13/drivers/clk/qcom/clk-rcg.h	2016-04-18 10:49:05.615290431 +0800
+@@ -226,4 +226,7 @@
+ extern const struct clk_ops clk_cdiv_rcg2_ops;
+ extern const struct clk_ops clk_muxr_misc_ops;
+ extern const struct clk_ops clk_cpu_rcg2_ops;
++
++extern void clk_dyn_configure_bank(struct clk_dyn_rcg *rcg,
++					const struct freq_tbl *f);
+ #endif
+diff -Naur -x .git linux-3.4.13.org/drivers/clk/qcom/gcc-ipq806x.c linux-3.4.13/drivers/clk/qcom/gcc-ipq806x.c
+--- linux-3.4.13.org/drivers/clk/qcom/gcc-ipq806x.c	2016-03-02 14:33:35.133751648 +0800
++++ linux-3.4.13/drivers/clk/qcom/gcc-ipq806x.c	2016-04-18 10:49:05.615290431 +0800
+@@ -2851,6 +2851,19 @@
+ static int nss_core_clk_set_parent(struct clk_hw *hw, u8 i)
+ {
+ 	int ret;
++	struct clk_dyn_rcg *rcg;
++	struct freq_tbl f = {  200000000, P_PLL0, 2,  1, 2 };
++
++	/* P_PLL0 is 800 Mhz which needs to be divided for 200 Mhz */
++	if (i == P_PLL0) {
++		rcg = to_clk_dyn_rcg(&ubi32_core1_src_clk.clkr.hw);
++		clk_dyn_configure_bank(rcg, &f);
++
++		rcg = to_clk_dyn_rcg(&ubi32_core2_src_clk.clkr.hw);
++		clk_dyn_configure_bank(rcg, &f);
++
++		return 0;
++	}
+ 
+ 	ret = clk_dyn_rcg_ops.set_parent(&ubi32_core1_src_clk.clkr.hw, i);
+ 	if (ret)
+@@ -2861,7 +2874,7 @@
+ 
+ static struct clk *nss_core_clk_get_safe_parent(struct clk_hw *hw)
+ {
+-	return clk_get_parent_by_index(hw->clk, P_PLL8);
++	return clk_get_parent_by_index(hw->clk, P_PLL0);
+ }
+ 
+ static const struct clk_ops clk_ops_nss_core = {
+diff -Naur -x .git linux-3.4.13.org/drivers/cpufreq/cpufreq-krait.c linux-3.4.13/drivers/cpufreq/cpufreq-krait.c
+--- linux-3.4.13.org/drivers/cpufreq/cpufreq-krait.c	2016-03-02 14:33:35.145751916 +0800
++++ linux-3.4.13/drivers/cpufreq/cpufreq-krait.c	2016-04-18 10:49:05.627290460 +0800
+@@ -392,7 +392,7 @@
+ 		}
+ 		max_cpu_freq = max(max_cpu_freq, freq_Hz);
+ 
+-		if (!of_property_read_u32(np, "cpu_freq_idle",
++		if (!of_property_read_u32(np, "cpu_fab_threshold",
+ 						&fab_data.idle_freq)) {
+ 			fab_data.clk = clk;
+ 			fab_scaling_register(&fab_data);
+diff -Naur -x .git linux-3.4.13.org/drivers/spi/spi_qsd.c linux-3.4.13/drivers/spi/spi_qsd.c
+--- linux-3.4.13.org/drivers/spi/spi_qsd.c	2016-03-02 14:33:36.285777371 +0800
++++ linux-3.4.13/drivers/spi/spi_qsd.c	2016-04-18 10:49:06.967293705 +0800
+@@ -1242,7 +1242,7 @@
+ 
+ 	page = vmalloc_to_page(addr);
+ 
+-	return dma_map_page(dev, page, 0, PAGE_SIZE, dir);
++	return dma_map_page(dev, page, 0, PAGE_SIZE, dir) + offset;
+ }
+ 
+ static int msm_spi_bam_map_buffers(struct msm_spi *dd)

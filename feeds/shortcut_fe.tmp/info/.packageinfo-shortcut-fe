@@ -1,0 +1,36 @@
+Source-Makefile: feeds/shortcut_fe/shortcut-fe/Makefile
+Package: kmod-shortcut-fe
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: 
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for SFE
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_EVENTS=y
+Description: Kernel driver for SFE
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+Package: kmod-shortcut-fe-cm
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-ipt-conntrack +kmod-shortcut-fe +kmod-ipv6
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for SFE
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y
+Description: Kernel driver for SFE
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+

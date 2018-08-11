@@ -1,0 +1,130 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+
+require("luci.http").prepare_content("application/xhtml+xml")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+
+local product_name = uci:get("system","main","product_name")
+local system_language = uci:get("system","main","language")
+local product_typ_name = uci:get("system","main","product_typ_name")
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title><%=product_name%></title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+</head>
+<body  >
+
+<script type="text/javascript">
+
+</script>
+<form onsubmit="skm_LockScreen();">
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" >ONE Connect</div></td>
+    <td>&nbsp;</td>
+      <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:Cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+
+   <div id="table">
+            <div class="data" style="margin-top: 20px;">
+               <ul>
+                  <div class="w_text">
+                      <ul>
+                        <li class="title">QR Code</li>
+                      </ul>
+                      <table >
+                        <tr>
+                          <td width="100">&nbsp;</td>
+                          <td><img src='<%=media%>/admin/images/OneConnect_QRCode.png' style="display:block; margin:auto;" height="120" width="120"/></td>
+                          <td><img src='<%=media%>/admin/images/btn_googleplay_normal.png' style="display:block; margin:auto;"/>
+                            <img src='<%=media%>/admin/images/btn_appstore_normal.png' style="display:block; margin:auto;"/></td>
+                          <td width="100">&nbsp;</td>
+                        </tr>
+                       </table>
+                     <ul>
+                     <li class="w_text">
+                          <span class="i_note" id="OPModeNote1_0"><%:maintenance_Note_1%></span>
+                        
+                        <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                            <tr>
+                            <td class="i_note_a" id="OPModeNote1_1"><%:oneconnect_msg1%></td>
+                            </tr>
+                        </table>
+                      </li>
+                    </ul>
+                    <ul>
+                      <div class="spaceair"></div>
+                      <div class="space"></div>
+                    </ul>
+                      <ul>
+                        <li class="title"><%:oneconnect_msg2%></li>
+                      </ul>
+                     <ul>
+						<li class="left_table2" style="word-wrap:break-word;white-space:normal!important;display: inline-block;height:auto!important;" ><%:oneconnect_msg3%></li>
+						<li class="right_table2">
+							<%
+								local enabled = uci:get( "wireless", "ath0", "AP_autoconfig" )
+								if nil == enabled or "0" == enabled then
+									enabled = false
+								else
+									enabled = true
+								end
+							%>
+							<input name="OneState" id="radio" type="radio" value="1" <% if enabled then %> checked="checked" <% end %> /> <%:Enable%>
+							<input name="OneState" id="radio2" type="radio" value="0" <% if not enabled then %> checked="checked" <% end %> /> <%:Disable%>
+						</li>
+						<li class="w_text">
+                          <span class="i_note" id="OPModeNote1_0"><%:maintenance_Note_1%></span>
+							<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+								<tr>
+								<% if system_language == "zh" then %>
+									<td class="i_note_a" id="OPModeNote1_1"><%:oneconnect_msg4%><%=product_typ_name%><%:oneconnect_msg5%><%=product_typ_name%><%:oneconnect_msg6%></td>
+								<% else %>
+									<td class="i_note_a" id="OPModeNote1_1"><%:oneconnect_msg4%><%=product_typ_name%><%:oneconnect_msg7%></td>
+								<% end %>
+								</tr>
+							</table>
+						</li>
+                     </ul>
+                  </div>
+ 
+               </ul>
+            </div>
+		
+   </div>
+   </div>
+</form>
+
+</body>
+
+</html>

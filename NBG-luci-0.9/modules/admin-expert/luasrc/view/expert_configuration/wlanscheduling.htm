@@ -1,0 +1,290 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+--require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local sys = require("luci.sys")
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/wifi_scheduling.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-ui.js"></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<style>
+.on {display:on}
+.off {display:off}
+</style>
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+  var enable = '<%=ENABLED%>';
+  if (enable == 'enable'){
+    $('input:radio[name="WLanSchRadio"][value="enable"]').attr('checked', 'checked');
+  }else{
+    $('input:radio[name="WLanSchRadio"][value="disable"]').attr('checked', 'checked');
+  }
+});
+
+function bandSwitch(){
+	document.location.href="<%=controller%>/expert/configuration/network/wlan/wlanscheduling5G";
+}
+
+function disaplyPage(){
+  document.location.href="<%=controller%>/expert/configuration/network/wlan/wlanscheduling";
+}
+
+function CheckValue(str){
+  AllTime(str);
+}
+
+function AllTime(str){
+  var t = ["","","","","","",""];
+  var index = "";
+
+  $.each($('.ui-selected'), function() {
+    this.value = "1";
+  });
+  
+  $.each($('#selectable div'), function() {
+    index = this.id.split("_");
+    if (this.value){
+      t[index[0]] = t[index[0]] + "1,";
+    }
+    else{
+      t[index[0]] = t[index[0]] + "0,";
+    }
+  });
+
+  for(i=0;i<7;i++){
+      $( "#selectable" ).append('<input name=t' + i + ' value=' + t[i] + ' type="hidden" />');
+  }
+
+}
+
+function setTimeTable(){
+  var weekdays = 7;
+  var dayhours = 48;
+  var main = document.getElementById('selectable');
+  
+  for(i=0 ; i<weekdays ; i++){
+    for(j=0 ; j<dayhours ; j++){
+      cell = document.createElement('div');
+      cell.setAttribute('id',i + '_' + j);
+      cell.setAttribute('class','ui-selectee unselected');
+      cell.innerHTML = '&nbsp;';
+      main.appendChild(cell);
+    }  
+  }
+}
+
+function setSelectTime(){
+  var sun = '<%=SUN%>'.split(",");
+  var mon = '<%=MON%>'.split(",");
+  var tue = '<%=TUE%>'.split(",");
+  var wed = '<%=WED%>'.split(",");
+  var thu = '<%=THU%>'.split(",");
+  var fri = '<%=FRI%>'.split(",");
+  var sat = '<%=SAT%>'.split(",");
+
+  for (j=0 ; j<48 ; j++){
+    list = [sun[j],mon[j],tue[j],wed[j],thu[j],fri[j],sat[j]];
+    for(i in list) {
+      if (list[i] == 1){
+          idd = i + '_' + j;
+          $('div[id='+ idd +']').addClass('ui-selected');
+          $('div[id='+ idd +']').removeClass('unselected');
+      }
+    }
+  }
+}
+
+</script>
+<style>
+.scrollable {
+  /*border:1px solid black;*/
+  width:1250px;
+  height:300px;
+  overflow: auto; 
+}
+
+.items{
+  width: 1100px;
+  /*border:1px solid red;*/
+}
+
+</style>
+</head>
+
+<body  onload="setTimeTable();setSelectTime();">
+  <form name="WLanSchForm" >
+    <div id="title_c" >
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="300"><div id="title_n" ><%:scheduling%> 2.4G</div></td>
+          <td>&nbsp;</td>
+          <td width="100" valign="top"><div class="apply"  > <input name="sysSubmit" value="<%:apply%>" type="submit" onclick="skm_LockScreen();return CheckValue('apply')" /> </div></td>
+          <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:cancel%>" type="reset" onclick="disaplyPage()" />  </div></td>
+        </tr>
+      </table>
+    </div>
+
+    <div id="all_w">
+      <div id="table">
+        <ul>
+          <li class="table_content">
+            <div class="data">
+              <ul>
+                <div class="w_text">
+                  <ul>
+                    <li class="left_table" id="Band_title" >
+                      <%:Band%> :						
+                    </li>
+                    <li class="right_table"id="Band_switch">
+                      <select name="band" size="1" onChange="bandSwitch();">
+                        <option value="24" id="2.4G" selected="selected" >2.4GHz </option>
+                        <option value="5" id="5G" >5GHz </option>
+                      </select>
+                    </li>
+                    <li class="left_table"><%:wlan_scheduling%>  :</li>
+                    <li class="right_table">
+                      <input name="WLanSchRadio" type="radio" value="enable" />
+                      <%:enable%>
+                      <input name="WLanSchRadio" type="radio" value="disable" />
+                      <%:disable%>
+                    </li>
+                  </ul>
+                </div>
+                <div class="spaceair"></div>
+                <li class="space"></li>
+                <div class="spaceair"></div>
+                <li class="title" > <%:internet_access_sche%> </li>
+                <div class="scrollable">
+                  <div class="items">
+                    <div id="timeslot">
+                      <ul>
+                        <li>0</li>
+                        <li>1</li>
+                        <li>2</li>
+                        <li>3</li>
+                        <li>4</li>
+                        <li>5</li>
+                        <li>6</li>
+                        <li>7</li>
+                        <li>8</li>
+                        <li>9</li>
+                        <li>10</li>
+                        <li>11</li>
+                        <li>12</li>
+                        <li>13</li>
+                        <li>14</li>
+                        <li>15</li>
+                        <li>16</li>
+                        <li>17</li>
+                        <li>18</li>
+                        <li>19</li>
+                        <li>20</li>
+                        <li>21</li>
+                        <li>22</li>
+                        <li>23</li>
+                        <li>24</li>
+                      </ul>
+                    </div>
+                    <div id="weekdays">
+                      <ul>
+                        <li><%:sunday%></li>
+                        <li><%:monday%></li>
+                        <li><%:tuesday%></li>
+                        <li><%:wednesday%></li>
+                        <li><%:thursday%></li>
+                        <li><%:friday%></li>
+                        <li><%:saturday%></li>
+                        <div class="spaceair"></div>
+                      </ul>
+                      <div class="left_table" >
+                        <table align="right" valign="right">
+                          <tr>
+                            <td width="95">&nbsp;</td>
+                            <td style="background-color:#0075C9" width=25 height=15></td>
+                            <td width="5">&nbsp;</td>
+                            <td ><%:Allow%></td>
+                            <td width="15">&nbsp;</td>
+                            <td style="background-color:#999" width=25 height=15></td>
+                            <td width="5">&nbsp;</td>
+                            <td><%:Block%></td>
+                          </tr>
+                        </table>
+                      </div>
+                      <ul>
+                        <div class="spaceair"></div>
+                        <li><input type="button" id="clean" value="<%:Clean_All%>" /><input type="button" id="selectAll" value="<%:Select_All%>" /></li>
+                       </ul>
+                    </div>
+                    <div id="selectable"></div>
+                  </div>
+                </div>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </form>
+</body>
+<script>
+  $( "#selectable" ).selectable({
+    // selecting: function (event, ui) {
+    //   // $(ui.selected).addClass("unselected");
+    // },
+    // selected: function (event, ui) {
+    //   if ($(ui.selected).hasClass("unselected")) {
+    //     $(ui.selected).removeClass("unselected");
+    //     $(ui.selected).addClass("ui-selected");
+    //   }else{
+    //     $(ui.selected).removeClass("ui-selected");
+    //     $(ui.selected).addClass("unselected");
+    //   }
+    // },
+    // unselecting: function (event, ui) {},
+    // unselected: function (event, ui) {}
+  });
+
+  $('#clean').click(function(){
+    
+    $( "#selectable div" ).removeClass("ui-selected");
+  });
+
+  $('#selectAll').click(function(){
+    
+    $( "#selectable div" ).addClass("ui-selected");
+  });
+</script>
+</html>

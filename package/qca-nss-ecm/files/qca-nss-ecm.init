@@ -1,0 +1,76 @@
+#!/bin/sh  /etc/rc.common
+#
+# Copyright (c) 2014 The Linux Foundation. All rights reserved.
+#
+# The shebang above has an extra space intentially to avoid having
+# openwrt build scripts automatically enable this package starting
+# at boot.
+
+START=70
+
+CONF_FILE=/etc/sysctl.d/qca-nss-ecm.conf
+
+support_bridge() {
+	#NSS support bridge acceleration
+	[ -d /sys/kernel/debug/ecm/ecm_nss_conntrack_notifier ] && return 0
+	#SFE don't support bridge acceleration
+	[ -d /sys/kernel/debug/ecm/ecm_sfe_conntrack_notifier ] && return 1
+}
+
+load_sfe() {
+	[ -d /sys/module/shortcut_fe ] || insmod shortcut-fe
+	[ -d /sys/module/shortcut_fe_ipv6 ] || insmod shortcut-fe-ipv6
+	[ -d /sys/module/shortcut_fe_drv ] || insmod shortcut-fe-drv
+}
+
+load_ecm() {
+	[ -d /sys/module/ecm ] || {
+		load_sfe
+		insmod ecm
+	}
+
+	support_bridge && {
+		sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+		sysctl -w net.bridge.bridge-nf-call-iptables=1
+	}
+}
+
+unload_ecm() {
+	[ -d /sys/module/ecm ] && rmmod ecm
+
+	sysctl -w net.bridge.bridge-nf-call-ip6tables=0
+	sysctl -w net.bridge.bridge-nf-call-iptables=0
+}
+
+setopt() {
+	local name=$1
+	local val=$2
+
+	grep -q "^${name}" ${CONF_FILE} && \
+		sed -i "s,^${name}.*,${name}=${val}," ${CONF_FILE} || \
+		echo "${name}=${val}" >> ${CONF_FILE}
+}
+
+delopt() {
+	local name=$1
+
+	sed -i "/^${name}/d" ${CONF_FILE}
+}
+
+start() {
+	load_ecm
+
+	setopt dev.nss.general.redirect 1
+	support_bridge && {
+		setopt net.bridge.bridge-nf-call-ip6tables 1
+		setopt net.bridge.bridge-nf-call-iptables 1
+	}
+}
+
+stop() {
+	unload_ecm
+
+	delopt dev.nss.general.redirect
+	delopt net.bridge.bridge-nf-call-ip6tables
+	delopt net.bridge.bridge-nf-call-iptables
+}

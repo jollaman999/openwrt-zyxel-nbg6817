@@ -1,0 +1,184 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org 
+
+START=99
+
+boot(){
+	product_name=$(uci_get system main product_name)
+	
+	/bin/wifi_channel_monitor &
+
+	if [ "$product_name" == "NBG6617" ]; then
+		wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+		wifi_disable=$(uci get wireless.wifi0.disabled)
+		wifi5G_disable=$(uci get wireless.wifi1.disabled)
+		wifi_ath3_disable=$(uci get wireless.ath3.disabled)
+		wifi5G_ath13_disable=$(uci get wireless.ath13.disabled)
+		wifi_guest_enable=$(uci get wireless.ath3.enable_guest_wlan)
+		wifi5G_guest_enable=$(uci get wireless.ath13.enable_guest_wlan)
+		wifiON=$(uci get wireless.wifi.on)
+
+		## check crontab, if there is not crontab file, it generates file that is empty.
+		[ -e "/etc/crontabs/root" ] || { 
+			touch /etc/crontabs/root
+		}
+
+		## 2.4G guest wlan
+		if [ "$wlan_btn" == "1" ] && [ "$wifiON" == "1" ];then
+			if [ "$wifi_guest_enable" == "1" ] && [ "$wifi_disable" == "0" ] && [ "$wifi_ath3_disable" == "0" ] ; then
+				local ipaddr=$(uci_get wireless ath3 guest_ip)
+				local args="-C /tmp/dnsmasq.conf -z -a $ipaddr"
+				local start="10"
+				local end="32"
+				local ipmask=$(uci_get wireless ath3 guest_ip_mask)
+				local leasetime="720m"
+				eval "$(ipcalc.sh $ipaddr $ipmask $start $end)"
+				append args "-K -F $START,$END,$NETMASK,$leasetime"
+				dnsmasq $args
+			fi
+		fi
+
+		## 5G guest wlan
+		if [ "$wlan_btn" == "1" ] && [ "$wifiON" == "1" ];then
+			if [ "$wifi5G_guest_enable" == "1" ] && [ "$wifi5G_disable" == "0" ] && [ "$wifi5G_ath13_disable" == "0" ] ; then
+				local ipaddr_5G=$(uci_get wireless ath13 guest_ip)
+				local args_5G="-C /tmp/dnsmasq.conf -z -a $ipaddr_5G"
+				local start_5G="10"
+				local end_5G="32"
+				local ipmask_5G=$(uci_get wireless ath13 guest_ip_mask)
+				local leasetime_5G="720m"
+				eval "$(ipcalc.sh $ipaddr_5G $ipmask_5G $start_5G $end_5G)"
+				append args_5G "-K -F $START,$END,$NETMASK,$leasetime"
+				dnsmasq $args_5G
+			fi
+		fi
+	fi
+
+	## record initial process
+	echo 0 > /tmp/initial_process
+
+	## resend IPv6 RS(Solicitation) when no global ip
+	basicif=$(uci get dhcp6c.basic.interface)
+	IsIpv6=$(uci get network.$basicif.ipv6)
+	if [ -z "$IsIpv6" -o "$IsIpv6" == "1" ];then
+		v6wan_ip=$(ifconfig eth0 | awk '/Global/{print $3}')
+		if [ ! $v6wan_ip ];then
+			echo 1 > /proc/sys/net/ipv6/conf/eth0/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/eth0/disable_ipv6
+		fi
+	fi
+
+
+	## support auto_ip_change function 
+	SystemModeStatus=$(uci_get system main system_mode)	 
+	[ "$SystemModeStatus" == "1" ] && {	 
+		ipChnageEnable=$(uci_get network general auto_ip_change)	 
+		[ "$ipChnageEnable" == "1" ] && {	 
+			/sbin/start_auto_ip_change	 
+		}
+	}
+	
+	## Web re-direct to br-lan IP when first login
+	System_eaZy123_flag=$(uci_get system main eaZy123)
+	[ "$System_eaZy123_flag" != "1" ] && {
+		lan_IP=$(uci get network.lan.ipaddr)
+		iptables -t nat -N WEB_REDIRECT
+		iptables -t nat -I PREROUTING -j  WEB_REDIRECT
+		iptables -t nat -A WEB_REDIRECT -d ! $lan_IP -p tcp --dport 80 -j DNAT --to $lan_IP:80
+		iptables -t nat -A WEB_REDIRECT -d ! $lan_IP -p tcp --dport 443 -j DNAT --to $lan_IP:443
+		
+		##clean NSS record for NBG6816 project
+		/etc/init.d/qca-nss-ecm restart
+	}
+	
+	watch -tn 10 /bin/wifi_assoc_monitor 1>/dev/null 2>&1 &
+	watch -tn 10 /etc/zy1905/zy1905_5G_Info 1>/dev/null 2>&1 &
+
+	if [ "$product_name" != "NBG6617" ]; then
+
+		## vm_min_free value
+		[ -d /etc/sysctl.d/ ] && {
+			echo "vm.min_free_kbytes=32768" > /etc/sysctl.d/min_free_kbytes.conf
+			sysctl -w vm.min_free_kbytes=32768
+		} || {
+			sysctl -w vm.min_free_kbytes=16384
+		}
+
+		countrycode=$(fw_printenv countrycode | awk -F"=" '{print $2}' | tr [a-f] [A-F])
+		if [ "$countrycode" == "E1" ]; then
+			echo "Reduce Power Loss for ERP requesting"
+		else
+			## set cpu frequence for ipq8064 platform
+			[ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ] && {
+
+				if [ "$product_name" == "NBG6816" ]; then
+					echo "userspace" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+					echo "1400000" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+					echo "userspace" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+					echo "1400000" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_setspeed
+				fi
+
+				if [ "$product_name" == "NBG6817" ]; then
+					echo "userspace" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+					echo "1725000" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+					echo "userspace" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+					echo "1725000" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_setspeed
+				fi
+			}
+		fi
+	fi
+
+	## Remove bootflag
+	rm /tmp/bootflag
+
+	/sbin/parsePort.sh
+	check_guest_wifi_bonus
+}
+
+start(){
+
+	## Clean Web re-direct rules of iptable after login eaZy123
+	System_eaZy123_flag=$(uci_get system main eaZy123)
+	[ "$System_eaZy123_flag" == "1" ] && {
+		iptables -t nat -D PREROUTING -j  WEB_REDIRECT
+		iptables -t nat -F WEB_REDIRECT
+		iptables -t nat -X WEB_REDIRECT
+	}
+
+}
+
+check_guest_wifi_bonus(){
+	wifi24G=$(uci get wireless.iface.wifi24G)
+	wifi5G=$(uci get wireless.iface.wifi5G)
+
+	for ath in ath1 ath2 ath3 ath11 ath12 ath13
+	do
+		bonus_time=$(uci get wireless.$ath.bonus_time)
+		device=$(uci get wireless.$ath.device)
+
+		if [ "$wifi24G" == "$device" ]; then
+			DEV="24G"
+			if [ "$wifi24G" == "wifi1" ]; then
+				spilt="4"
+			else
+				spilt="3"
+			fi
+		elif [ "$wifi5G" == "$device" ]; then
+			DEV="5G"
+			if [ "$wifi5G" == "wifi1" ]; then
+				spilt="4"
+			else
+				spilt="3"
+			fi
+		fi
+
+		if [ -n "$bonus_time" ]; then
+			echo 1 > /tmp/reload_bonus
+			/bin/guestWifiTimer.sh add_rule "${ath:$spilt}" "$DEV" "$bonus_time"
+		fi
+	done
+	if [ -e "/tmp/reload_bonus" ];then
+		rm /tmp/reload_bonus
+		watch -tn 1800 /bin/check_guest_wifi_bonus.sh 1>/dev/null 2>&1 &
+	fi
+}

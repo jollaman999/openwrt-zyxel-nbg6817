@@ -1,0 +1,343 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<meta http-equiv="Pragma" content="no-cache">
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/guest_wifi.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<style>
+.on {display:on}
+.off {display:none}
+td {white-space: nowrap;}
+#dialogoverlay{
+  display: none;
+  opacity: .8;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  background: #fff;
+  width: 100%;
+  z-index: 10;
+}
+#dialogbox{
+  display: none;
+  position: fixed;
+  background: #b3b3b3;
+  border-radius:1px;
+  width:300px;
+  z-index: 20;
+}
+#dialogbox > div{ background:#b3b3b3; margin:1px; }
+#dialogbox > div > #dialogboxhead{ background: #fbfbfb; padding:10px; color:#000; font-size: 1.2em;}
+#dialogbox > div > #dialogboxbody{ background: #fbfbfb; padding:10px; color:#000; }
+#dialogbox > div > #dialogboxfoot{ background: #fbfbfb; padding:10px; text-align:right; }
+</style>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script language="JavaScript">
+$(document).ready(function(){
+  var wireless_disable = "<%=wireless_disable%>";
+  var guests_list = ["<%=guest1%>","<%=guest2%>","<%=guest3%>"];
+
+  i = 1;
+  for (var num in guests_list) {
+    val = guests_list[num].split("'");
+
+    if( wireless_disable == "0" && val[0] == "0" ) {
+      status_html = '<img src="<%=media%>/admin/images/i_active_on.gif" title="<%:On%>" width="18" height="18" />';
+      $('#btn'+i.toString()).attr('disabled', false);
+    }else{
+      status_html = '<img src="<%=media%>/admin/images/i_active_off.gif" title="<%:Off%>" width="18" height="18" />';
+      $('#btn'+i.toString()).attr('disabled', true);
+    }
+
+    if( val[2] == "No Security" ) {
+      security_html = '<%:no_security%>';
+    }else{
+      security_html = val[2];
+    }
+
+    $("#status"+i.toString()).html(status_html);
+    $("#ssid"+i.toString()).html(val[1]);
+    $("#security"+i.toString()).html(security_html);
+    $('#ssid'+i.toString()).val(val[3]);
+
+    i=i+1;
+  }
+  $('#btn1').click(function(){
+      $('#hidden_input').val('1')
+    });
+  $('#btn2').click(function(){
+      $('#hidden_input').val('2')
+    });
+  $('#btn3').click(function(){
+      $('#hidden_input').val('3')
+    });
+  countdown()
+});
+
+function editMoreAP (iface)
+{
+	var loc = '<%=luci.dispatcher.build_url("expert", "configuration", "network", "wlan", "multissid_edit5G")%>';
+
+	if( iface == 1 ) {
+		loc += '?interface=1';
+	}
+	else if ( iface == 2 ) {
+		loc += '?interface=2';
+	}
+	else if ( iface == 3 ) {
+		loc += '?interface=3';
+	}
+	var code = 'location="' + loc + '"';
+	eval(code);
+}
+function bandSwitch()
+{
+	document.location.href="<%=controller%>/expert/configuration/network/wlan/wlan_multissid";
+}
+
+function reload_page()
+{
+	document.location.href="<%=controller%>/expert/configuration/network/wlan/wlan_multissid";
+}
+
+function skm_unLockScreen(){
+
+
+		 var lock_left = window.parent.menu.document.getElementById("skm_LockPane");
+		 var lock_right = window.parent.easy.document.getElementById("skm_LockPane");
+		 var lock_top = window.parent.parent.topFrame.document.getElementById("skm_LockPane");
+		 var lock_bottom = window.parent.parent.bottom.document.getElementById("skm_LockPane");
+		 document.getElementsByTagName("body")[0].style.overflow = "auto";
+
+
+	     if (lock_left)
+            lock_left.className = 'LockOff';
+
+		 if (lock_right)
+            lock_right.className = 'LockOff';
+
+		if (lock_top)
+            lock_top.className = 'LockOff';
+
+		if (lock_bottom)
+            lock_bottom.className = 'LockOff';
+
+}
+
+function countdown () {
+  ssid1 = $('#ssid1').val();
+  ssid2 = $('#ssid2').val();
+  ssid3 = $('#ssid3').val();
+  reItems=[ssid1,ssid2,ssid3]
+
+  for (i=0 ; i<=2 ; i++){
+    sum = i + 1
+    var rema_totalsec = reItems[i];
+    var re_hour = Math.floor(rema_totalsec/60/60);
+    var re_min = Math.floor(rema_totalsec/60%60);
+    var re_sec = rema_totalsec - re_hour*60*60 - re_min*60;
+    if ( rema_totalsec > 0 && rema_totalsec < 60 ){
+        document.getElementById("time"+ sum ).innerHTML = "< 1 minutes";
+    }  else{
+        document.getElementById("time"+ sum ).innerHTML = re_hour + ":" + re_min + ":" + re_sec;
+    }
+    if ( rema_totalsec > 0 ){
+      rema_totalsec = rema_totalsec - 1;
+      $('#ssid'+sum).val(rema_totalsec);
+    }
+  }
+  setTimeout("countdown()", 1000);
+}
+
+function select_time(){
+  time = $('#timer').val();
+  iface = $('#hidden_input').val();
+  var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","network","wlan", "wlan_multissid5G")%>';
+  var loc = submit_url + '?time_apply=Apply&iface='+iface+'&time='+time;
+  var code = 'location="' + loc + '"';
+  eval(code);
+}
+
+function CustomAlert(){
+    this.render = function(dialog){
+        var winW = window.innerWidth;
+        var winH = window.innerHeight;
+        var dialogoverlay = document.getElementById('dialogoverlay');
+        var dialogbox = document.getElementById('dialogbox');
+        dialogoverlay.style.display = "block";
+        dialogoverlay.style.height = winH+"px";
+				dialogbox.style.left = (winW/2) - (300 * .5)+"px";
+        dialogbox.style.top = (winH/4)+"px";
+        dialogbox.style.display = "block";
+        document.getElementById('dialogboxhead').innerHTML = "<%:guest_wifi_msg%>";
+				document.getElementById('dialogboxfoot').innerHTML = '<a href="javascript:select_time()" class="btn btn-default"><%:apply%></a><a> </a><a href="javascript:reload_page()" class="btn btn-default" onClick="window.location.reload()"><%:cancel%></a>';
+        document.getElementById('dialogboxbody').innerHTML = '<select id="timer" style="Width:250px;Height:30px"><option value="0:30">0.5 hr</option><option value="1:00">1   hr</option><option value="1:30">1.5 hr</option><option value="2:00">2   hr</option><option value="2:30">2.5 hr</option><option value="3:00">3   hr</option><option value="3:30">3.5 hr</option><option value="4:00">4   hr</option><option value="4:30">4.5 hr</option><option value="5:00">5   hr</option><option value="5:30">5.5 hr</option><option value="6:00">6   hr</option><option value="6:30">6.5 hr</option><option value="7:00">7   hr</option><option value="7:30">7.5 hr</option><option value="8:00">8   hr</option><option value="8:30">8.5 hr</option><option value="9:00">9   hr</option><option value="9:30">9.5 hr</option><option value="10:00">10   hr</option><option value="10:30">10.5 hr</option><option value="11:00">11   hr</option><option value="11:30">11.5 hr</option><option value="12:00">12   hr</option><option value="12:30">12.5 hr</option><option value="13:00">13   hr</option><option value="13:30">13.5 hr</option><option value="14:00">14   hr</option><option value="14:30">14.5 hr</option><option value="15:00">15   hr</option><option value="15:30">15.5 hr</option><option value="16:00">16   hr</option><option value="16:30">16.5 hr</option><option value="17:00">17   hr</option><option value="17:30">17.5 hr</option><option value="18:00">18   hr</option><option value="18:30">18.5 hr</option><option value="19:00">19   hr</option><option value="19:30">19.5 hr</option><option value="20:00">20   hr</option><option value="20:30">20.5 hr</option><option value="21:00">21   hr</option><option value="21:30">21.5 hr</option><option value="22:00">22   hr</option><option value="22:30">22.5 hr</option><option value="23:00">23   hr</option><option value="23:30">23.5 hr</option></select><input type=hidden value="btn1" id="hidden_input"/>';
+    }
+  this.ok = function(){
+    select_time()
+  }
+}
+var Alert = new CustomAlert();
+
+</script>
+</head>
+<body onload="skm_unLockScreen();">
+
+<form method="post" name="multissid_form" action="<%=controller%>/expert/configuration/network/wlan/wlan_multissid5G">
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Guest_Wireless%> 5G </div></td>
+    <td>&nbsp;</td>
+
+  </tr>
+</table>
+
+</div>
+
+<div id="all_w">
+<div id="table">
+  <ul>
+
+    <li class="table_content">
+      <div class="data">
+        <ul>
+		<li id="Band_title" >
+              <%:Band%> :
+			  <select name="band" size="1" onChange="bandSwitch();">
+				<option value="24" id="2.4G"  >2.4GHz </option>
+				<option value="5" id="5G" selected="selected">5GHz </option>
+			  </select>
+			  </li>
+          <div class="tableframe">
+            <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+              <tr>
+                <td>
+                  <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td>
+                              <table width="100%" cellpadding="0" cellspacing="0" >
+                                <tr>
+                                  <td height="26" colspan="9">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                      <tr>
+                                        <td height="26"class="table_title"><%:more_ap_setup%></td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                                <tr class="top_font" align="center">
+                                  <td width="5%">#</td>
+                                  <td width="15%"><%:Status%></td>
+                                  <td width="25%">SSID</td>
+                                  <td width="15%"><%:security%></td>
+                                  <td width="25%"><%:Remaining_time%></td>
+                                  <td width="15%"><%:Edit%></td>
+                                </tr>
+                                <tr class="table_font" align="center">
+		                              <td>1</td>
+							                    <td id="status1"></td>
+                                  <td id="ssid1"></td>
+                                  <td id="security1"></td>
+                                  <td>
+																		<p style="display:inline;" id="time1"></p>
+																		<input style="display:inline;" name="buffer_click" type="button" value="<%:set%>" id="btn1" onclick="Alert.render('') " disabled="disabled"/>
+																	</td>
+                                  <td><a href="javascript:editMoreAP(1)"><img src="/luci-static/zyxel/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19" title="<%:Edit%>"/></a></td>
+                                </tr>
+                                <tr class="table_font" align="center">
+                                  <td>2</td>
+                                    <td id="status2"></td>
+                                    <td id="ssid2"></td>
+                                    <td id="security2"></td>
+                                    <td>
+																			<p style="display:inline;" id="time2"></p>
+																			<input style="display:inline;" name="buffer_click" type="button" value="<%:set%>" id="btn2" onclick="Alert.render('')" disabled="disabled"/>
+																		</td>
+                                  <td><a href="javascript:editMoreAP(2)"><img src="/luci-static/zyxel/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19" title="<%:Edit%>"/></a></td>
+                                </tr>
+                                <tr class="table_font" align="center">
+                                  <td>3</td>
+                                    <td id="status3"></td>
+                                    <td id="ssid3"></td>
+                                    <td id="security3"></td>
+                                    <td>
+																			<p style="display:inline;" id="time3"></p>
+																			<input style="display:inline;" name="buffer_click" type="button" value="<%:set%>" id="btn3" onclick="Alert.render('')" disabled="disabled"/>
+																		</td>
+                                  <td><a href="javascript:editMoreAP(3)"><img src="/luci-static/zyxel/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19" title="<%:Edit%>"/></a></td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="w_text">
+            <ul>
+              <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                <span id="GeneralNote2" class="i_note"><%:note%>:<%:wlan_note67%></span>
+              </table>
+            </ul>
+          </div>
+          <div class="spaceair"></div>
+        </ul>
+      </div>
+    </li>
+    <li class="table_button"></li>
+  </ul>
+</div>
+</div>
+<div id="dialogoverlay"></div>
+<div id="dialogbox">
+  <div>
+    <div id="dialogboxhead"></div>
+    <div id="dialogboxbody"></div>
+    <div id="dialogboxfoot"></div>
+  </div>
+</div>
+</form>
+
+</body>
+
+</html>

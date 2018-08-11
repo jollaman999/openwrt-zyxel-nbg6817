@@ -1,0 +1,86 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/jquery-1.2.6.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script >
+$(document).ready(function(){
+	var atfEnabled="<%=atfEnabled%>";
+	if(atfEnabled=="0"){
+		$('input:radio[name="atfState"][value="0"]').attr('checked', 'checked');
+	}
+
+});
+</script>
+</head>
+<body >
+<form>
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:AirtimeFairness%></div></td>
+    <td>&nbsp;</td>
+      <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" type="submit" onClick="skm_LockScreen();"/></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Cancel" value="<%:Cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+
+   <div id="table">
+      <ul>
+         <li class="table_content">
+            <div class="data">
+               <ul>
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:AirtimeFairness%>  :</li>
+                        <li class="right_table">
+
+                           <input name="atfState" type="radio" value="1" checked="checked"/> <%:Enable%>
+                           <input name="atfState" type="radio" value="0"/> <%:Disable%>
+                        </li>
+                     </ul>
+                  </div>
+               </ul>
+            </div>
+         </li>
+      </ul>
+   </div>
+   </div>
+</form>
+</body>
+</html>

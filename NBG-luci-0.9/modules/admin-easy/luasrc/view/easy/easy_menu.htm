@@ -1,0 +1,93 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+
+<%
+require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+local sys_op_mode = uci:get("system","main","system_mode")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local lanDev, wlanDev 
+-%>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title></title>
+
+   <link rel="stylesheet" href="<%=media%>/css/easymenu.css" media="screen" type="text/css" />
+
+<script>   
+   function Content_Filter(){
+					var e = document.getElementById("b-title");
+					e.innerHTML = "<%:parental_control%>";
+				}
+	function Wireless_Security(){
+					var e = document.getElementById("b-title");
+					e.innerHTML = "<%:net_map_wireless_security%>";
+				}
+</script>
+</head>
+
+<body>
+<div id="menu">
+<div id="menu_c">
+
+<div id="bt1"><a href="<%=controller%>/easy/ctfilter" target="contenthtml" onClick="Content_Filter();"><%:parental_control%></a>  <div class='checkbox1' id="checkbox1">
+  <input id='check1' type='checkbox'>
+  <label class='b1' for='check1'></label>
+  </div>
+    </div>
+	
+	
+<div id="bt2"><a href="<%=controller%>/easy/wlan" target="contenthtml" onclick="Wireless_Security();"><%:Guest_Wi_Fi%></a> <div class='checkbox2' id="checkbox2">
+  <input id='check2' type='checkbox'>
+  <label class='b2' for='check2'></label>
+  </div>
+     </div>
+<div id="bt3"><a href="#"><%:Bandwith_MGMT%></a><div class='checkbox3' id="checkbox3">
+  <input id='check3' type='checkbox'>
+  <label class='b3' for='check3'></label>
+  </div>
+     </div>
+	 
+	 
+<div id="bt4"><a href="<%=controller%>/easy/wlan" target="contenthtml" onclick="Wireless_Security();">WiFi</a><div class='checkbox4' id="checkbox4">
+  <input id='check4' type='checkbox'>
+  <label class='b4' for='check4'></label>
+  </div>
+    </div>
+<div id="bt5"><a href="#">LED</a><div class='checkbox5' id="checkbox5">
+  <input id='check5' type='checkbox'>
+  <label class='b5' for='check5'></label>
+  </div>
+
+</div>
+</div>
+</div>
+
+
+</body>
+</html>
+
+
+
+
+
+

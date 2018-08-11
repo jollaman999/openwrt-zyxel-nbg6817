@@ -1,0 +1,101 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.i18n").loadc("default")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv='content-type' content='text/html;charset=utf-8;IE=9'>
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+<link href="<%=media%>/css/inside.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/table.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script language="JavaScript" type="text/javascript"></script>
+<style type="text/css"></style>
+
+    <!-- include the prerequisite libraries for the flux kit-->
+	<script src="/js/excanvas.min.js" type="text/javascript"></script> 
+	<script src="/js/jquery.min.js" type="text/javascript"></script>
+	<script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+	<script src="/js/jquery.contextMenu.js" type="text/javascript"></script>
+	<link href="/css/jquery.contextMenu.css" rel="stylesheet" type="text/css" /> 
+
+	<!-- include flux itself-->
+	<script language="javascript" type="text/javascript" src="/js/fxEnvironment.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/fxPageMenu.js"></script>
+			
+	<script src="/js/angular.min.js"></script>
+	<script src="/js/URI.min.js"></script>
+	<script src="/js/jquery.min.js"></script>        <!-- include the flux style sheet-->
+	<!--<link rel="stylesheet" href="/css/nh2.css" type="text/css" media="screen">-->
+	<link type="text/css" href="/css/custom-theme/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+	
+	<!-- include the prerequisite libraries for the flux kit-->
+	<script src="/js/jquery-ui-1.8.21.custom.min.js" type="text/javascript"></script>
+	
+	<!-- include flux itself-->
+	<!--<script language="javascript" type="text/javascript" src="/js/fxEnvironment.js"></script>-->
+	<script language="javascript" type="text/javascript" src="/js/fxTranslate-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/utility-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/raphael-min.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/GraphItem-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/NodeInfo-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/Line-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/fxHelp.js"></script>
+	
+	<script language="javascript" type="text/javascript" src="/js/fxNetwork-2.0.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/fxNode-2.0.js"></script>
+
+	<script src="/js/angular-route.min.js"></script>
+	<script src="/js/angular-stats.js"></script>
+	<script src="/js/angular-ozker.js"></script>
+	<script src="/js/angular-poll.js"></script>
+	<script src="/js/angular-rate.js"></script>
+	<script src="/js/angular-translate.min.js"></script>
+
+	<script src="/js/angular-fallback-loader.js"></script>
+	<script src="/js/angular-translate-partial-fallback-loader.js"></script>
+	<script src="/js/angular-icon-loader.js"></script>
+
+	<script src="/js/app.js"></script>
+	<script src="/js/controllers.js"></script>
+	<script src="/js/filters.js"></script>
+	<script src="/js/directives.js"></script>
+
+</head>
+
+<body>
+
+	<div id="table">
+		<li class="table_content">
+		  <div class="data" style="margin: 0 auto; margin-top:40px;float: none;width:100%;" ng-autobind ng-app="ozkerDebug" ng-controller="OzkerCtrl">
+			<fx-node></fx-node>
+		  </div>
+		</li>
+	</div>
+
+</body>
+
+</html>

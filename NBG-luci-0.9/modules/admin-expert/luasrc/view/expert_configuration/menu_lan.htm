@@ -1,0 +1,62 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.sys")
+require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+local sys_op_mode = uci:get("system","main","system_mode")
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+local sys_op_mode = uci:get("system","main","system_mode")
+-%>
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+
+  <title>tree menu</title>
+
+
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<link href="<%=media%>/css/menu.css" rel="stylesheet" type="text/css">
+
+
+
+</head>
+
+<body>
+<div id="menu_bg">
+  <div id="menu_t"><%:LAN%></div>
+  
+   <ul class=mtree>
+  <li><a href="<%=controller%>/expert/configuration/network/lan_ip" target="data"><%:LAN_IP%> </a></li>
+ <% if sys_op_mode ~= "2" then%>	 
+  <li><a href="<%=controller%>/expert/configuration/network/dhcpserver/ipstatic" target="data"><%:Static_DHCP%> </a></li>
+  <li><a href="<%=controller%>/expert/configuration/network/lan/ipv6LAN" target="data"><%:IPv6_LAN%> </a></li>
+ <%end%> 
+</ul>
+</div>
+<div id="skm_LockPane" class="LockOff"></div> 
+
+</body>
+<script src="<%=media%>/js/lmenu_1.js"></script>
+<script src="<%=media%>/js/lmenu_2.js"></script>
+<script src="<%=media%>/js/lmenu_3.js"></script>
+</html>

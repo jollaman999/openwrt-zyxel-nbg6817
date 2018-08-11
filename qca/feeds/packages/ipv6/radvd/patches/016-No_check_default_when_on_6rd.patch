@@ -1,0 +1,11 @@
+--- a/send.c	2016-07-27 10:04:21.596265700 +0800
++++ b/send.c	2016-07-27 10:22:08.194993707 +0800
+@@ -234,7 +234,7 @@
+ 
+ 	//Kerker add 2016/01/13
+ 	//Set ralt zero when no default route
+-	if(system("ip -6 route|grep default")!=0){
++	if(system("ip -6 route|grep default")!=0&&!m_6RDEnable==1){
+ 		syslog(LOG_USER|LOG_DEBUG, "%s(%d): return 1", __func__, __LINE__);
+ 		return 1;
+ 	}

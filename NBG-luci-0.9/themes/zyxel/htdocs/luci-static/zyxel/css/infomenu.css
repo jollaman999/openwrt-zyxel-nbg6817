@@ -1,0 +1,242 @@
+
+.button {
+height: 100px;
+width: 70px;
+float: right;
+display: block;
+position: relative;
+}
+.button:hover {
+  cursor: pointer;
+}
+
+
+.menu {
+	width: 135px;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	display: block;
+	margin: auto;
+	opacity: 0;
+	padding: 0;
+	position: absolute;
+	right: 0;
+	left: 60px;
+	top: 20px;
+	-webkit-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+	-moz-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+	transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	text-decoration: none;
+	color: #007D7D;
+	text-align: left;
+}
+.menu:after {
+	border-color: rgba(0,102,102,0) rgba(0,133,133,1) rgba(0,102,102,0) rgba(0,102,102,0);
+	content: '';
+	margin: auto;
+	position: absolute;
+    width: 0;
+    height: 0;
+	top: 7px;
+	right: 135px;
+	border-style: solid;
+	border-width: 7px;
+	
+
+ 
+}
+.menu li {
+	list-style-type: none;
+	margin: 0px;
+	padding: 0px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+	display: block;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #006666;
+}
+.menu li:hover {
+	background-color: #ffffff;
+	text-decoration: none;
+
+}
+.menu li:last-child {
+  border-bottom: none;
+}
+.menu li a {
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #007D7D;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+
+.menu li a:hover{
+	
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #006464;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+
+.menu li a:active{
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #004040;
+	padding: 6px;
+	display: block;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+.menu.visible {
+	opacity: 1;
+	top: 15px;
+	left: 60px;
+}
+
+h1 {
+  font-weight: 110;
+}
+
+
+
+
+/*           popup menu      */
+
+#parent {
+  outline: none;
+  position: relative;
+  
+  height: 100px;
+	width: 70px;
+	float: left;
+	background-repeat: no-repeat;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #099;
+	margin-top: 0px;
+	margin-right: 5px;
+	margin-bottom: 0px;
+	margin-left: 5px;
+}
+
+#popup {
+  display: none;
+}
+
+#parent:focus #popup, #button:focus + #popup {
+  display: block;
+}
+
+#button {
+  position: relative;
+}
+
+#button:focus {
+  outline: none;
+}
+
+#toggler-helper {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  outline: none;
+  cursor: default;
+}
+
+#parent:focus #toggler-helper,
+#button:focus #toggler-helper {
+  display: block;
+}
+
+/*      Now make it pretty!      */
+
+#parent {
+  outline: none;
+  position: relative;
+}
+
+#parent:focus .chevron {
+  background-position: -288px -120px;
+}
+
+#popup {
+	display: none;
+	background-color: #008484;
+	border: 1px solid #008484;
+	margin: 5px 5px 5px 0;
+	width: 130px;
+	position: absolute;
+	top: 10px;
+	left: 56px;
+	text-align: left;
+}
+
+#popup:after {
+	border-color: rgba(0,102,102,0) rgba(0,133,133,1) rgba(0,102,102,0) rgba(0,102,102,0);
+	content: '';
+	margin: auto;
+	position: absolute;
+	width: 0;
+	height: 0;
+	top: 5px;
+	border-style: solid;
+	border-width: 7px;
+	left: -15px;
+	}
+
+#popup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+}
+#popup ul li {
+  line-height: 25px;
+  margin: 0;
+  padding: 0 5px;
+}
+#popup ul li a {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #FFFFFF;
+}
+#popup ul li:hover {
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #006666;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+#popup ul li:active {
+	color: #FFFFFF;
+	text-decoration: none;
+	background-color: #003333;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+
+
+
+#L{
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #007575;
+}

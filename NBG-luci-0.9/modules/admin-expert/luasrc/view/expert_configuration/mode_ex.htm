@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>mode</title>
+<link rel="stylesheet" href="<%=media%>/css/style.css" media="screen" type="text/css" />
+<style type="text/css">
+
+html{
+	height: 100%;
+	width: 100%;
+
+}
+
+body,td,th {
+	margin-right: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-top: 0px;
+	background-attachment: fixed;
+	background-image: url(<%=media%>/img/mode_bg.jpg);
+	background-size: 100% 100%;
+    background-repeat: no-repeat;
+
+
+}
+
+#mode_ex {
+	position: fixed;
+	left: 0px;
+	top: 0px;
+	width: 50px;
+	height: 100%;
+	z-index: 1;
+
+
+
+
+}
+
+#mode_ex_c {
+	position: absolute;
+	top:45%;
+	width:80px;
+	height:100px;
+}
+
+.mode a{
+	float: left;
+	display: block;
+	width: 35px;
+	height: 80px;
+	background-image: url(<%=media%>/img/e1.png);
+	background-repeat: no-repeat;
+	font-size: 11px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-align: center;
+	text-decoration: none;
+	color: #fff;
+	padding-left: 0px;
+	padding-top: 30px;
+	line-height: 20px;
+	margin-top: 5px;
+  margin-left: 0px;
+
+}
+.mode a:hover{
+	float: left;
+	display: block;
+	width: 35px;
+	height: 80px;
+	background-image: url(<%=media%>/img/e2.png);
+	background-repeat: no-repeat;
+	font-size: 11px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #FF6;
+	padding-left: 0px;
+	padding-top: 30px;
+	line-height: 20px;
+	margin-top: 5px;
+  margin-left: 0px;
+
+}
+
+.mode a:active {
+	float: left;
+	display: block;
+	width: 35px;
+	height: 80px;
+	background-image: url(<%=media%>/img/e3.png);
+	background-repeat: no-repeat;
+	font-size: 11px;
+	font-family:  Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #ccc;
+	padding-left: 0px;
+	padding-top: 30px;
+	line-height: 20px;
+	margin-top: 6px;
+	margin-left: 0px;
+}
+
+
+
+
+</style>
+</head>
+
+<body >
+<div id="mode_ex">
+<div id="mode_ex_c"><div class="mode" ><a href="<%=controller%>/easy/networkmap" target="_top" ><br /><%:easy_mode%></a></div></div>
+<div id="skm_LockPane" class="LockOff"></div>
+</div>
+
+
+
+</body>
+</html>

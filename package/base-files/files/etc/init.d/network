@@ -1,0 +1,402 @@
+#!/bin/sh /etc/rc.common
+
+START=20
+STOP=90
+
+SERVICE_DAEMONIZE=1
+SERVICE_WRITE_PID=1
+host=223.254.253.251
+
+interface_down(){
+	udhcpc_pid=$(ps | grep "udhcpc" | grep "grep" -v | awk '{print $1}')
+	if [ "$udhcpc_pid" != "" ]; then
+  		kill $udhcpc_pid
+	fi
+
+	pppd_pid=$(ps | grep "pppd" | grep "grep" -v | awk '{print $1}')
+	if [ "$pppd_pid" != "" ]; then
+		kill $pppd_pid
+	fi
+}
+
+##Support LLMNR protocol.--20160726
+enable_llmnrd(){
+	local RedirectIP=$(uci_get network lan ipaddr)
+	local hostname=$(uci_get system main hostname)
+
+	echo "$RedirectIP $hostname" > /etc/hosts
+	echo "$RedirectIP myrouter" >> /etc/hosts
+	echo "127.0.0.1 localhost" >> /etc/hosts
+	LLMNRD_PID=$(ps | grep "/sbin/llmnrd" | grep 'grep' -v | awk '{print $1}')
+	kill -9 $LLMNRD_PID
+	/sbin/llmnrd -d -H myrouter
+}
+
+boot() {
+	/bin/setmac ethernet
+	/bin/setmac vlan
+	/bin/setmac wlan
+	ifdown wan
+	sleep 1
+
+	config_load network
+	config_get config_section general config_section
+
+	[ -e /proc/sys/kernel/core_pattern ] && {
+		ulimit -c unlimited
+		echo '/tmp/%e.%p.%s.%t.core' > /proc/sys/kernel/core_pattern
+	}
+
+	local mac_status=$(uci get network.wan.wan_mac_status)
+	if [ "$mac_status" == "1" ] || [ "$mac_status" == "2" ]; then
+		act_mac_clone
+	fi
+
+	interface_down
+	service_start /sbin/netifd
+
+	/etc/init.d/RA_status restart
+	/bin/zyxel_switch_set enable
+	/bin/WiFi5G_PCIE_RGMII
+
+	## WenHsien-EMG2926-2014.0211-2014.0313
+	## IPv6 Only ot 6rd(when IPv4 Only) need to open sys ipv6, 
+	##  which affect the ICMPv6 RS (Router Solicitation) sending or not.
+	basicif=$(uci get dhcp6c.basic.interface)
+	IsIpv6=$(uci get network.$basicif.ipv6)
+	IsIpv6LinkLocal=$(uci get network.general.linkLocalOnly)
+	ifname=$(uci get network.$basicif.ifname)
+	brlan="br-lan"
+	ck6rdEnable=$(uci get network.general.wan6rd_enable)
+	ck6to4Enable=$(uci get network.general.wan6to4_enable)
+	ck6in4Enable=$(uci get network.general.wan6in4_enable)
+
+	sleep 1
+
+	## WenHsien-EMG2926-2014.0211
+	## IPv6 only: about sending ICMPv6 RS (Router Solicitation) or not.
+	if [ -z "$IsIpv6" -o "$IsIpv6" == "0" ];then
+		if [  "$ck6rdEnable" == "1" -o "$ck6to4Enable" == "1" -o "$IsIpv6LinkLocal" == "1" -o "$ck6in4Enable" == "1" ];then ## WenHsien-EMG2926-2014.0313: IPv4 Only + 6rd need to open sys ipv6.
+			echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+			echo 2 > /proc/sys/net/ipv6/conf/all/forwarding
+		else
+			echo 1 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+			echo 1 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+			echo 1 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+		fi
+	else
+		echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+		echo 0 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+		echo 0 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+		echo 2 > /proc/sys/net/ipv6/conf/all/forwarding 
+	fi
+	## Delete mflag in UCI to resolve that RA_status.bin may not trigger dhcp6c.sh after boot.  WenHsien.2014.0815.
+	wanif=$(uci get dhcp6c.basic.interface)
+	local wanifname="wan"
+	[ -n "$wanif" ] && wanifname="$wanif"
+	uci del network."$wanifname".mflag
+	uci commit network
+	sync #This command is for emmc and ext4 filesystem
+
+	## WenHsien: dhcp6c and RA_status may initial fail if IPv4 address do not exist.2014.0730.
+	#/etc/init.d/dhcp6c restart
+	
+	## remove check config_section == "advance"
+	if [ "$config_section" == "ipalias" ]; then
+		config_foreach ip_alias alias
+	fi
+
+	## LAN IP is from DHCP in AP mode
+	brlan_proto=$(uci get network.lan.proto)
+	if [ "$brlan_proto" == "dhcp" ] ;then
+		chk_lan=$(ifconfig $brlan | grep "inet addr" | awk '{print $2}' | awk -F":" '{print $2}')
+		if [ "$chk_lan" != "" ] ;then
+			echo "$chk_lan" > /tmp/old_brlan
+		else
+			echo "0.0.0.0" > /tmp/old_brlan
+		fi
+	fi
+
+	##Support LLMNR protocol --20160726
+	enable_llmnrd 
+}
+
+ip_alias(){                                          
+	config_load network	
+	local alias=$1
+	local interface
+	local ip_addr
+	local mask
+	local enabled
+	
+	if [ $alias == "alias1" ]; then
+	  num=1
+	elif [ $alias == "alias2" ]; then
+	  num=2
+	fi
+	
+	config_get interface $alias interface_alias
+	config_get enabled $alias enabled
+	config_get ip_addr $alias ipaddr_alias
+	config_get mask $alias netmask_alias
+	
+	if [ $enabled == "enabled" ]; then
+		if [ $ip_addr != "0.0.0.0" ]; then
+			ifconfig br-$interface:$num $ip_addr netmask $mask up
+		fi
+	else
+		if [ $ip_addr != "0.0.0.0" ]; then	
+			ifconfig br-$interface:$num $ip_addr netmask $mask down
+		fi
+	fi
+}
+
+start() {
+    ## WenHsien-EMG2926-2014.0107: for DHCPv6 Default Router (DR) setting.
+    ##    SAVE current  DR when: network.sh start() First-Line.
+    ##    LOAD previous DR when: RA_dhcp6c.sh start() Last-Line, and 
+    ##                           route.sh boot() Last-Line.
+    ##    related UCI CONF     : network.wan.dhcpv6gw
+    #dhcpv6gw=$(ip -6 route |grep default |awk '{print $3}')
+    #wanface=$(uci get dhcp6c.basic.interface)
+    ##  IPv6 only  and  DHCPv6 only
+    #IsIpv6=$(uci get network.$wanface.ipv6)
+    #v6_proto=$(uci get network.$wanface.v6_proto)
+    #if [ "$IsIpv6" == "1" -a "$v6_proto" == "dhcp" ];then
+    #    uci set network.$wanface.dhcpv6gw=$dhcpv6gw
+    #    uci commit network
+    #fi
+
+	# kill watch /bin/streamboost_monitor daemon
+
+	local old_brlan=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+
+	streamboost_monitor_pid=$(ps | grep "/bin/streamboost_monitor" | grep "grep" -v | awk '{print $1}')			
+	if [ "$streamboost_monitor_pid" != "" ]; then
+		kill $streamboost_monitor_pid
+	fi
+
+	ifdown wan
+	sleep 1
+
+	config_load network
+	config_get config_section general config_section
+
+	stop
+	[ -e /proc/sys/kernel/core_pattern ] && {
+		ulimit -c unlimited
+		echo '/tmp/%e.%p.%s.%t.core' > /proc/sys/kernel/core_pattern
+	}
+
+	SystemModeStatus=$(uci_get system main system_mode)
+	
+	act_mac_clone
+
+	interface_down
+	service_start /sbin/netifd
+
+	if [ "$SystemModeStatus" == "1" ]; then 
+		/bin/zyxel_switch_set enable
+		sleep 1
+	fi
+		
+	if [ "$config_section" == "advance" ]; then
+
+#		SystemModeStatus=$(uci_get system main system_mode)
+		
+		[ "$SystemModeStatus" == "1" ] && {
+			ipChnageEnable=$(uci_get network general auto_ip_change)
+		}
+
+		["$ipChnageEnable" == "1" ] && {
+		/sbin/start_auto_ip_change
+		} 
+
+	elif [ "$config_section" == "ipalias" ]; then
+		config_foreach ip_alias alias
+	fi	
+
+	##Add For 6rd
+	local ck6rd=$(uci get network.general."$config_section"6rd_enable)
+	if [ -n "$ck6rd" ]; then
+	    	[ "$ck6rd" == "1" ] && ifup "$config_section"6rd || ifdown "$config_section"6rd
+	fi
+	
+	##Add For 6to4
+	local ck6to4=$(uci get network.general."$config_section"6to4_enable)
+	if [ -n "$ck6to4" ]; then
+	    	[ "$ck6to4" == "1" ] && ifup "$config_section"6to4 || ifdown "$config_section"6to4
+	fi
+
+	##Add For 6in4
+	local ck6in4=$(uci get network.general."$config_section"6in4_enable)
+	if [ -n "$ck6in4" ]; then
+	    	[ "$ck6in4" == "1" ] && ifup "$config_section"6in4 || ifdown "$config_section"6in4
+	fi
+	
+	#2015/09/22 Niko add, to determine what kind ifname using(ifname={pppoe-wan, 6rd-wan6rd, 6to4-wan6to4, 6in4-wan6in4, eth0}),
+	#and write into dhcp6c.basic.ifname for radvd need
+	local v6_proto=$(uci get network.wan.v6_proto)
+	if [ "$v6_proto" == "pppoe" ]; then
+		$(uci set dhcp6c.basic.ifname=pppoe-wan)
+	elif [ "$ck6rd" == "1" ]; then
+		$(uci set dhcp6c.basic.ifname=6rd-wan6rd)
+	elif [ "$ck6to4" == "1" ]; then
+		$(uci set dhcp6c.basic.ifname=6to4-wan6to4)
+	elif [ "$ck6in4" == "1" ]; then
+		$(uci set dhcp6c.basic.ifname=6in4-wan6in4)
+	else
+		$(uci set dhcp6c.basic.ifname=eth0)
+	fi
+	$(uci commit network)
+	##Check IP-Tunneling Enable & IPV4 only
+	local basicif=$(uci get dhcp6c.basic.interface)
+	local IsIpv6=$(uci get network.$basicif.ipv6)
+	    	[ "$ck6rd" != "1" -a "$ck6to4" != "1" -a "$ck6in4" != "1" ] && {
+        	if [ -z "$IsIpv6" -o "$IsIpv6" == "0" ];then            
+			/etc/init.d/RA_status stop
+			/etc/init.d/dhcp6c stop
+			/etc/init.d/radvd stop
+			/etc/init.d/dhcp6s stop	
+        	fi
+    	}
+
+    product_name=$(uci get system.main.product_name)
+    if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ];then
+		for i in `seq 1 1 20`
+		do
+			sleep 1
+			if [ -n "$(ifconfig | grep br-lan)" ];then
+				brctl addif br-lan host0
+				ifconfig br-lan:0 $host up
+				break
+			fi
+
+			if [ "$i" == "10" ];then
+				brctl addif br-lan host0
+				ifconfig br-lan:0 $host up
+			fi
+		done
+	fi
+	
+	wifiON=$(uci get wireless.wifi.on)
+	wlan_btn=$(cat /tmp/wlan_on | sed 's/"//g' )
+	chk_eas123=$(cat /tmp/chk_eas123Status)
+	lan_dhcp_range=$(cat /tmp/lan_dhcp_range)
+	if [ "$wlan_btn" == "1" ] && [ "$wifiON" == "1" ] && [ "$chk_eas123" != "eas123_wanSet" ];then
+#	if [ "$wlan_btn" == "1" ] && [ "$wifiON" == "1" ];then
+		# /etc/init.d/wireless restart
+		# /etc/init.d/wifi_scheduling start
+		# /etc/init.d/wifi_scheduling5G start
+
+		ifname_list="ath ath1"
+		if [ "$product_name" == "NBG6815" ] || [ "$product_name" == "NBG6816" ];then
+			ifname_list="ath"
+		fi
+ 
+		for i in $ifname_list
+		do 
+			if [ -n "$(ifconfig | grep "$i"0)" ];then
+				brctl addif br-lan "$i"0
+
+				kill $(ps | grep 'grep' -v |grep "hostapd -P /var/run/wifi-"$i"0.pid" | awk -F" " '{print $1}')
+				hostapd -P /var/run/wifi-"$i"0.pid -B /var/run/hostapd-"$i"0.conf > /dev/null
+			fi
+		done
+
+	fi
+
+	if [ "$chk_eas123" == "eas123_wanSet" ];then
+		brctl addif br-lan host0
+		if [ "$wifiON" == "1" ];then
+			brctl addif br-lan ath0
+			brctl addif br-lan ath10
+		fi
+	fi
+
+	if [ "$config_section" == "lan" ]; then
+		# kill bw_monitor here is a temp solution, move it to netprobe
+		killall -9 bw_monitor
+		/etc/init.d/netprobe restart
+		sleep 2
+		/etc/init.d/app-agent restart
+	fi
+
+	local new_brlan=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+	if [ "$old_brlan" != "$new_brlan" ];then
+		/etc/init.d/dlna restart
+	fi
+	
+	basicif=$(uci get dhcp6c.basic.interface)
+	IsIpv6=$(uci get network.$basicif.ipv6)
+	IsIpv6LinkLocal=$(uci get network.general.linkLocalOnly)
+	ifname=$(uci get network.$basicif.ifname)
+	brlan="br-lan"
+	ck6rdEnable=$(uci get network.general.wan6rd_enable)
+	ck6to4Enable=$(uci get network.general.wan6to4_enable)
+	ck6in4Enable=$(uci get network.general.wan6in4_enable)
+	if [ -z "$IsIpv6" -o "$IsIpv6" == "0" ];then
+		if [  "$ck6rdEnable" == "1" -o "$ck6to4Enable" == "1" -o "$IsIpv6LinkLocal" == "1" -o "$ck6in4Enable" == "1" ];then
+			echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+			echo 0 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+			echo 2 > /proc/sys/net/ipv6/conf/all/forwarding
+		else
+			echo 1 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+			echo 1 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+			echo 1 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+		fi
+	else
+		echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+		echo 0 > /proc/sys/net/ipv6/conf/$ifname/disable_ipv6
+		echo 0 > /proc/sys/net/ipv6/conf/$brlan/disable_ipv6
+		echo 2 > /proc/sys/net/ipv6/conf/all/forwarding
+	fi
+
+	## LAN IP is from DHCP in AP mode
+	brlan_proto=$(uci get network.lan.proto)
+	if [ "$brlan_proto" == "dhcp" ] ;then
+		chk_lan=$(ifconfig $brlan | grep "inet addr" | awk '{print $2}' | awk -F":" '{print $2}')
+		if [ "$chk_lan" != "" ] ;then
+			echo "$chk_lan" > /tmp/old_brlan
+		else
+			echo "0.0.0.0" > /tmp/old_brlan
+		fi
+		[ -f /tmp/Apply_dhcp_GUI ] && rm /tmp/Apply_dhcp_GUI
+	fi
+
+	system_mode=$(uci get system.main.system_mode)
+	if [ "$system_mode" == "2" ]; then
+			/etc/init.d/samba restart
+	fi
+
+	##Support LLMNR protocol --20160726
+	enable_llmnrd
+
+	/usr/sbin/zy1905App 12 &
+}
+
+restart() {
+	ifdown -a
+	sleep 1
+	start
+}
+
+shutdown() {
+	ifdown -a
+	stop
+}
+
+stop() {
+	service_stop /sbin/netifd
+}
+
+reload() {
+	ubus call network reload	
+	start	
+
+##	/sbin/wifi down
+##	/sbin/wifi up
+}

@@ -1,0 +1,13 @@
+Index: linux-3.4.103/drivers/mmc/core/mmc.c
+===================================================================
+--- linux-3.4.103.orig/drivers/mmc/core/mmc.c	2017-01-25 16:06:03.663301242 +0800
++++ linux-3.4.103/drivers/mmc/core/mmc.c	2017-01-25 16:11:43.014373491 +0800
+@@ -304,7 +304,7 @@
+ 	}
+ 
+ 	card->ext_csd.rev = ext_csd[EXT_CSD_REV];
+-	if (card->ext_csd.rev > 7) {
++	if (card->ext_csd.rev > 8) {
+ 		printk(KERN_ERR "%s: unrecognised EXT_CSD revision %d\n",
+ 			mmc_hostname(card->host), card->ext_csd.rev);
+ 		err = -EINVAL;

@@ -1,0 +1,5 @@
+#!/bin/sh
+insmod /lib/modules/3.4.103/gpio-button-hotplug.ko
+
+#echo "gpio-button-hotplug sleep 15"
+#sleep 15

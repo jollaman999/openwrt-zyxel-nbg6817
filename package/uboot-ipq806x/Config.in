@@ -1,0 +1,42 @@
+menu "uboot-ipq806x Configuration"
+	depends on PACKAGE_uboot-ipq806x
+
+config UBOOT_ZYXEL_TARGET
+	string "u-boot config"
+	help
+		Assign target configuration for building u-boot	
+
+config UBOOT_ZYXEL_SUPPORT_ZLOADER
+	bool "Support for ZyXEL zloader"
+	default n
+	select PACKAGE_zloader
+
+config UBOOT_ZYXEL_ZLOADER_OFFSET
+	int "The offset of zloader in ZLD image"
+	default 409600
+	depends on UBOOT_ZYXEL_SUPPORT_ZLOADER
+	help
+		The offset to fetch the zloader from u-boot image start address.
+
+config UBOOT_ZYXEL_MAXSIZE
+	int "The max size of u-boot image"
+	default 409600
+	depends on UBOOT_ZYXEL_SUPPORT_ZLOADER
+	help
+                The max size of u-boot image.
+
+config UBOOT_ZYXEL_SUPPORT_ROMD
+	bool "Support ROM_D partition"
+	default n
+	depends on UBOOT_ZYXEL_SUPPORT_ZLOADER
+	help
+		Support ROM_D partition
+
+config UBOOT_ZYXEL_SUPPORT_ROMFILE
+	bool "Support ROMFILE partition"
+	default n
+	depends on UBOOT_ZYXEL_SUPPORT_ZLOADER
+	help
+		Support ROM_FILE partition
+
+endmenu

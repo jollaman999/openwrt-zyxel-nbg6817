@@ -1,0 +1,404 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+ 
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+
+require("luci.http").prepare_content("application/xhtml+xml")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+</head>
+<body  >
+<%
+   local luaWAN = {}
+   
+   uci:foreach( "network", "interface", function( section )
+       if not ( nil == section.ifname or "loopback" == section[ '.name' ] ) then
+         local tmp = section
+         
+         tmp.id = section[ '.name' ]
+         if ( nil == string.find(tmp.id,"lan")) then
+           table.insert( luaWAN, tmp )
+         end
+      end
+   end )
+
+   local luaIG = {}
+
+   uci:foreach( "intfGrp", "interface", function( section )
+       if not ( nil == section.ifname ) then
+         local tmp = section
+         tmp.id = section[ '.name' ]
+         table.insert( luaIG, tmp )
+       end
+   end )
+   
+%>
+
+<script type="text/javascript">
+
+/* Globle Var -- dispather url */
+var submit_url_wan0 = '<%=luci.dispatcher.build_url("expert","configuration","network","wan", "wan0")%>';
+var submit_url_wan1 = '<%=luci.dispatcher.build_url("expert","configuration","network","wan", "wan1")%>';
+var submit_url_wan2 = '<%=luci.dispatcher.build_url("expert","configuration","network","wan", "wan2")%>';
+var submit_url_wan3 = '<%=luci.dispatcher.build_url("expert","configuration","network","wan", "wan3")%>';
+var submit_url_wan4 = '<%=luci.dispatcher.build_url("expert","configuration","network","wan", "wan4")%>';
+
+
+function JSWAN( id, ifname, status, proto, vid, grouped )
+{
+   this.id = id;
+   this.ifname = ifname;
+   this.status = ( status == "" || status == "0" ) ? false : true;
+   this.proto = proto;
+   this.vid = vid;
+   this.grouped = grouped;
+
+}
+
+var jsEditNo = "";
+var jsSRoutes = [
+   <%
+      for name, info in pairs(luaWAN) do
+         %> new JSWAN( "<%= info.id %>", "<%= info.ifname %>", "<%= info.default %>", "<%= info.proto %>", "<%= info.vid %>", "<%= info.grouped %>" ), <%
+      end
+   %>
+];
+
+function editWAN( entryNo )
+{
+
+  switch (entryNo)
+   {
+   case 0:
+     var code = 'location="' + submit_url_wan0 + '"';
+     eval(code);
+     break;
+   case 1:
+     var code = 'location="' + submit_url_wan1 + '"';
+     eval(code);
+     break;
+   case 2:
+     var code = 'location="' + submit_url_wan2 + '"';
+     eval(code);
+     break;
+   case 3:
+     var code = 'location="' + submit_url_wan3 + '"';
+     eval(code);
+     break;
+   case 4:
+     var code = 'location="' + submit_url_wan4 + '"';
+     eval(code);
+     break ; 
+   default:
+     alert("entryNo Error!");
+  }
+   
+
+}
+
+
+
+function deleteWAN( entryNo, element )
+{
+/*
+   //<![CDATA[
+   if ( confirm('Are you sure you want to do that? ') )
+   {
+      var table = document.getElementById( "list_table" );
+      
+      document.getElementsByName( "VLANDeleteIDs" )[0].value += ( jsSRoutes[ entryNo - 1 ].id + "," );
+      table.deleteRow( element.parentNode.parentNode.parentNode.sectionRowIndex );
+      
+      for( var i = 2; i < table.rows.length; i++ )
+      {
+         table.rows[i].cells[0].innerHTML = i - 1;
+      }
+   }
+   //]]>
+*/
+
+    showWebMessage( 1 , "<%:Message%>" , "<%:msg_config%>" );
+
+    var id = jsSRoutes[ entryNo ].id;
+    var group_flag = jsSRoutes[ entryNo ].grouped;
+
+    if (group_flag == 0) 
+    {
+	  var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","network","wan")%>';
+	  var loc = submit_url + '?delete=' + id;
+	  var code = 'location="' + loc + '"';
+      eval(code);
+    }
+	else
+	{
+      //alert("It will delete the bound Interface Group automatically!");
+        alert("The Wan has been bound! You should delete its' interface Group first.");
+
+      //<% for i = 1, #luaIG do%>
+      //  if ("<%=luaIG[i].wanint%>" == id){
+      //    var group_name = "<%=luaIG[i].id%>";
+      //  }
+      //<%end%>
+
+      //alert(group_name);
+
+      // Delete binding Group first.
+	  //var submit_url1 = '<%=luci.dispatcher.build_url("expert","configuration","network","interface_grouping")%>';
+	  //var loc1 = submit_url1 + '?delete=' + group_name;
+	  //var code1 = 'location="' + loc1 + '"';
+      //eval(code1);
+
+      // Delete wan interface
+      //var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","network","wan")%>';
+	  //var loc = submit_url + '?delete=' + id;
+	  //var code = 'location="' + loc + '"';
+      //eval(code);
+    }
+}
+
+function set_default_wan( entryNo )
+{
+      var id = jsSRoutes[ entryNo ].id;
+	  var submit_url = '<%=luci.dispatcher.build_url("expert","configuration","network","wan")%>';
+	  var loc = submit_url + '?defaultWan=' + id;
+	  var code = 'location="' + loc + '"';
+      eval(code);
+}
+
+function repaintTable()
+{
+   windows.location.reload();
+}
+
+function checkIPFormat( value )
+{
+  return /^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$/.test( value )
+}
+
+function IsAnumber( value )
+{
+  if ( parseInt(value) > 1 )
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+
+function btnAdd()
+{
+
+    var availWan = 5;
+
+    <%  for i = 1, #luaWAN do
+          if( "0" == luaWAN[i].enable) then
+    %>
+             availWan = <%=i-1%>
+    <%
+          break
+          end
+    end
+    %>
+
+
+	if (availWan == '1')
+	{
+	    var code = 'location="' + submit_url_wan1 + '"';
+        //alert(code);
+        eval(code);
+    }
+    else if (availWan == '2')
+    {
+	    var code = 'location="' + submit_url_wan2 + '"';
+        //alert(code);
+        eval(code);
+    }
+    else if (availWan == '3')
+    {
+
+	    var code = 'location="' + submit_url_wan3 + '"';
+        //alert(code);
+        eval(code);
+    }
+    else if (availWan == '4')
+    {
+	    var code = 'location="' + submit_url_wan4 + '"';
+        //alert(code);
+        eval(code);
+
+    }
+
+    else if (availWan > 4)
+    {
+       alert("The limitation is 5 WAN!");
+    }
+}
+
+</script>
+
+<div id="tabs">
+   <ul>
+      <!-- <li class="hightline"><a title="<%:Static_Route%>"><span><%:Static_Route%></span></a></li> -->
+      <li class="hightline"><a title="Management WAN"><span><%:Management_WAN%></span></a></li>
+      <!-- <li><a href="<%=controller%>/expert/configuration/network/wan/ipv6" title="IPv6"><span>IPv6</span></a></li> -->
+      <!--<li><a href="<%=controller%>/expert/configuration/network/wan/advanced" title="<%:Advanced%>"><span><%:Advanced%></span></a></li>-->
+   </ul>
+   <br class="clearfloat" />
+</div>
+
+<form name="WANForm">
+   <div id="table">
+      <ul id="list">
+         <li class="table_top"></li>
+         <li class="table_content">
+            <div class="data">
+            <!--  <div class="w_text">
+                  <ul>    
+                     <input value="<%:Add_Static_Route%>" type="button" onclick="editWAN('New')" /> 
+                     <input name="WanAddBtn" value="Add New WAN Entries" type="button" onclick="btnAdd()" />
+                  </ul>
+               </div> -->
+               <ul>
+                  <div class="tableframe">
+                     <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+                        <tr>
+                           <td>
+                              <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                                 <tr>
+                                    <td>
+                                       <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                                          <tr>
+                                             <td>
+                                                <table id="list_table" width="100%" cellpadding="0" cellspacing="0" >
+                                                   <tr>
+                                                      <td height="26" colspan="9">
+                                                         <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                            <tr>
+                                                               <td height="26" class="table_title">
+                                                                  <!--<%:Static_Route_Rules%><span class="cTitle"></span> -->
+                                                                  <%:Management_WAN_Entries%><span class="cTitle"></span>
+                                                               </td>
+                                                            </tr>
+                                                         </table>
+                                                      </td>
+                                                   </tr>
+                                                   <tr class="top_font" align="center">
+                                                      <td width="35">#</td>
+                                                      <td width="80"><%:Default%></td>
+                                                      <td ><%:Name%></td>
+                                                      <td ><%:iface%></td>
+                                                      <td ><%:Type%></td>
+                                                      <td ><%:VLAN_ID%></td>
+                                                      <td ><%:IP_Address%></td>
+                                                      <td ><%:status%></td>
+                                                      <td width="70"><%:Modify%></td>
+                                                   </tr>
+                                                   <% 
+                                                     for i = 1, #luaWAN do
+                                                      %>
+                                                      <% if ( luaWAN[i].enable == "1") then %>
+                                                         <tr class="table_font" align="center">
+                                                            <td><%= i %></td>
+                                                            <td>
+                                                            <%if not ( nil == luaWAN[i].default ) and not ( "0" == luaWAN[i].default ) then%>
+                                                            <input name="WANDefault" type="radio" value="default" checked="checked" />             
+                                                            <%else%>
+                                                            <input name="WANDefault" type="radio" value="default" onclick="set_default_wan(<%= i - 1 %>)" />
+                                                            <%end%>
+                                                            </td>
+
+                                                            <td><%= luaWAN[i].name%></td>
+                                                            <td><%= string.upper(luaWAN[i].id)%></td>
+                                                            <td><%if luaWAN[i].IP_version == "Dual_Stack" then%><%= string.upper(luaWAN[i].proto)%> Dual Stack<%elseif luaWAN[i].IP_version == "IPv4_Only" then%><%= string.upper(luaWAN[i].proto)%><%elseif luaWAN[i].IP_version == "IPv6_Only" then%><%= string.upper(luaWAN[i].v6_proto)%>v6<%else%>NONE<%end%></td>
+                                                            <td><%= luaWAN[i].vid %></td>
+                                                            <%
+                                                                 local wanif = luaWAN[i].ifname
+                                                                  
+                                                                 --if not ("pppoe" == luaWAN[i].proto) then
+                                                                   local wanInfo_cmd=luci.sys.exec("ifconfig '"..wanif.."'")
+                                                                   local wan_ip = string.match(wanInfo_cmd,"inet addr:(%d+.%d+.%d+.%d+)")
+                                                                   local wan_ipv6_address = luci.sys.exec("ifconfig '"..wanif.."' | awk '/Scope:Global/{print $3}'")
+								   local wan_ipv6 = string.match(wan_ipv6_address,'^.-/%d+')	
+                                                                 --else
+                                                                   local wan_int = "pppoe-"..luaWAN[i].id
+                                                                   local wanInfo_cmd2=luci.sys.exec("ifconfig '"..wan_int.."'")
+                                                                   local wan_ip2 = string.match(wanInfo_cmd2,"inet addr:(%d+.%d+.%d+.%d+)")
+                                                                   local wan_ipv6_address_2 = luci.sys.exec("ifconfig '"..wan_int.."' | awk '/Scope:Global/{print $3}'")
+                                                                   local wan_ipv6_2 = string.match(wan_ipv6_address_2,'^.-/%d+')
+                                                                 --end
+                                                            %>
+                                                            <td><%if wan_ip then%>IPv4:<%=wan_ip%><%elseif wan_ip2 then%>IPv4:<%=wan_ip2%><%else%>IPv4: 0.0.0.0<%end%><br /><%if wan_ipv6 then%>IPv6:<%=wan_ipv6%><%elseif wan_ipv6_2 then%>IPv6:<%=wan_ipv6_2%><%else%>IPv6: ::/0<%end%></td>
+                                                            <td>
+                                                              <%if wan_ip then%><%:Connected%><%elseif wan_ip2 then%><%:Connected%><%else%><%:Disconnected%><%end%>
+                                                            </td>
+                                                            <td align="center">
+                                                               <a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image19','','<%=media%>/admin/images/i_edit_on.gif',1)" ><img src="<%=media%>/admin/images/i_edit.gif" name="Image19" width="18" height="18" border="0" id="Image19"  title="<%:Edit%>" onclick="editWAN(<%= i - 1 %>)"/></a>
+                                                                  &nbsp;&nbsp;
+							     <%if (i > 1) then%>	
+                                                               <a href="#"><img src="<%=media%>/admin/images/i_delete.gif" name="Image1411" width="18" height="18" border="0" id="Image1411"  title="<%:Delete%>" onclick="deleteWAN(<%= i-1 %>, this)" onmouseover="MM_swapImage('Image1411','','<%=media%>/admin/images/i_delete_on.gif',1)" onmouseout="MM_swapImgRestore()"/></a>
+                                                               <a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('Image14','','<%=media%>/admin/images/i_delete_on.gif',1)"></a>
+							     <%end%>	
+                                                            </td>
+                                                         </tr>
+                                                      
+                                                      <%end%>
+
+                                                      <%
+                                                      end
+                                                   %>
+                                                </table>
+                                             </td>
+                                          </tr>
+                                       </table>
+                                    </td>
+                                 </tr>
+                              </table>
+                           </td>
+                        </tr>
+                     </table>
+                  </div>
+                  <div class="spaceair"></div>
+               </ul>
+            </div>
+         </li>
+      </ul>
+
+      <input type="hidden" name="VLANDeleteIDs" />
+      
+      <ul id="edit" style="display:none"></ul>
+   </div>
+</form>
+</body>
+<script language="JavaScript">
+   showFullPath(' <%:Network%> > <%:WAN%>');
+   showWebMessage( 0 , '<%:Message%>' , '<%:Ready%>' );
+</script>
+</html>
+

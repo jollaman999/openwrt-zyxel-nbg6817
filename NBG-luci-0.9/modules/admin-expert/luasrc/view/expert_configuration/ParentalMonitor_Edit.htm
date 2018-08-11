@@ -1,0 +1,326 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<%
+   local luaSRules = {}
+   
+   uci:foreach( "parental_monitor", "parental_rule", function( section )
+      if not ( nil == section.name ) then
+         local tmp = section
+         
+         tmp.id = section[ '.name' ]
+         table.insert( luaSRules, tmp )
+      end
+   end )
+   
+%>
+
+<script language="JavaScript" type="text/javascript">
+var D_NUM = 5;
+
+function doTimeChange(selectedindex)
+{
+	if (document.SRForm.EndHour.value == "24" ){	
+			document.getElementsByName( "EndMin" )[0].value = "00";
+			document.forms[0].EndMin.options[1].selected=false;
+	}	
+	if (document.SRForm.StartHour.value == "24" ){	
+			document.getElementsByName( "StartMin" )[0].value = "00";
+			document.forms[0].StartMin.options[1].selected=false;
+	}
+}
+
+function checkValue(str){
+   var flag=0;
+	for(i=0;i < document.SRForm.User_DomainList.options.length;i++){
+		if(document.SRForm.User_DomainList.options[i].text == str){
+		   flag=1;
+		   break;	   
+		}		  
+	}
+	if(flag == 1)
+	   	return 1;
+	else
+    	return 0;
+}
+
+function checkValue2(str){
+   var flag=0;
+	for(i=0;i < document.SRForm.User_Domain.options.length;i++){
+		if(document.SRForm.User_Domain.options[i].text == str){
+		   flag=1;
+		   break;	   
+		}		  
+	}
+	if(flag == 1)
+	   	return 1;
+	else
+    	return 0;
+}
+
+
+function show_div(show,id) {
+	if(show)
+		document.getElementById(id).style.display = "block" ;
+	else
+		document.getElementById(id).style.display = "none" ;
+}
+
+
+function submitEdit()
+{
+	document.SRForm.SelectIndex.value = document.SRForm.src_select.selectedIndex
+
+	if (document.getElementsByName( "StartHour" )[0].value > document.getElementsByName( "EndHour" )[0].value ) {
+		alert("<%:sch_warn1%>");
+               return false;
+	}else if(document.getElementsByName( "StartHour" )[0].value == document.getElementsByName( "EndHour" )[0].value) {
+		if (document.getElementsByName( "StartMin" )[0].value > document.getElementsByName( "EndMin" )[0].value ) {
+			alert("<%:sch_warn1%>");
+               return false;
+		}
+	}else{
+		<!-- showFullPath(' <%:Security%> > <%:parental_monitor%> '); -->
+	}
+
+		if (document.SRForm.Date_Mon.checked == "" ){	
+			if (document.SRForm.Date_Tue.checked == "" ){	
+				if (document.SRForm.Date_Wed.checked == "" ){	
+					if (document.SRForm.Date_Thu.checked == "" ){	
+						if (document.SRForm.Date_Fri.checked == "" ){	
+							if (document.SRForm.Date_Sat.checked == "" ){	
+								if (document.SRForm.Date_Sun.checked == "" ){	
+									alert("<%:Monitor_Error_4%>");
+									return false;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+	if (document.SRForm.Email.value == "") {
+		alert( "<%:Monitor_Error_3%>" );
+		document.SRForm.Email.focus();
+		return false;
+	}
+	if (document.SRForm.src_select.selectedIndex == "-1" ){	
+		
+				alert("<%:WAN_Error_18%>");		
+				return false;
+
+	}
+
+	skm_LockScreen();
+}
+
+</script>
+</head>
+<body>
+
+<form method="post" name="SRForm" action="<%=controller%>/expert/configuration/security/ParentalControl/ParentalMonitor_Edit" >
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:notification_edit%></div></td>
+    <td>&nbsp;</td>
+	    
+     <td width="100" valign="top"><div class="apply"  > <input name="apply" value="<%:Apply%>" type="submit" onclick="return submitEdit();" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="Back" value="<%:Cancel%>" type="submit" id="back" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+   <div id="table">
+      <ul id="list">
+         <li class="table_content">
+            <div class="data">
+               <ul>
+			   <!-- <li class="title" > <%:children_devices%> </li> -->
+			   <li class="title" > <%:notification%> </li>
+			   
+			   <div class="w_text">
+					 <ul>
+							<%local rule_enable = uci:get("parental_monitor",rule,"enable")%>
+							<li class="all_table">
+							<input name="rule_enable" type="checkbox" value="1" <%if rule_enable == "1" then%>  checked="CHECKED" <%end%>/> <%:active%>
+							</li>
+					 </ul>
+				 </div>
+
+                  <div class="w_text">
+                     <ul>
+                        <li class="left_table"><%:home_network_user%>  :</li>
+                        <li class="right_table">
+							<select name="src_select" size="1"  >
+								
+								<%local mac_name = uci:get("parental_monitor",rule,"mac_list")%>
+								<script language="JavaScript" type="text/javascript">
+									var i;
+									var entries = new Array();
+									var all_str = "<%=mac_list%>";
+									if (all_str.length) {
+										entries = all_str.split(";");
+										for (i = 0; i < entries.length-1; i++) {
+										
+												if (entries[i] == "<%=mac_name%>") {
+												document.write("<option selected >");
+												document.write(entries[i]);
+												document.write("</option >");		
+													}
+												else{
+												document.write("<option >");
+												document.write(entries[i]);
+												document.write("</option >");	
+												
+												}	
+													
+										}
+									}
+								</script>
+								<!-- <option value="Custom" <%if src_type == "custom" then%> selected="selected"<%end%>> Custom</option>
+								<option value="All" <%if src_type == "all" then%> selected="selected"<%end%>> All</option> -->
+							</select>
+                        </li>
+                     </ul>
+					 
+                  </div>				  
+                  <div class="spaceair"></div>
+				  <li class="space"></li>
+				  <ul>
+				   <li class="title" > <%:children_arrive_home_schedule%> </li>
+					  <div class="w_text">
+						<%local rule_weekdays = uci:get("parental_monitor",rule,"weekdays")
+						  local Date_Mon=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Mon |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Tue=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Tue |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Wed=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Wed |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Thu=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Thu |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Fri=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Fri |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Sat=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Sat |sed 's/\"//g' | sed 's/://g'")
+						  local Date_Sun=luci.sys.exec("uci get parental_monitor."..rule..".weekdays | grep Sun |sed 's/\"//g' | sed 's/://g'")
+						%>
+						 <ul>
+							<li class="left_table"><%:sch_day%> :</li>
+							<li class="right_table">
+							   <input name="Date_Mon" type="checkbox" value="1" <%if not( Date_Mon == "" ) then%>  checked="CHECKED" <%end%>/> <%:monday%>
+							   <input name="Date_Tue" type="checkbox" value="1" <%if not( Date_Tue == "" ) then%>  checked="CHECKED" <%end%>/> <%:tuesday%>
+							   <input name="Date_Wed" type="checkbox" value="1" <%if not( Date_Wed == "" ) then%>  checked="CHECKED" <%end%>/> <%:wednesday%>
+							   <input name="Date_Thu" type="checkbox" value="1"  <%if not( Date_Thu == "" ) then%>  checked="CHECKED" <%end%>/> <%:thursday%>
+							</li>
+						 </ul>
+						 <ul>
+							<li class="left_table"></li>
+							<li class="right_table">
+							   <input name="Date_Fri" type="checkbox" value="1"  <%if not( Date_Fri == "" ) then%>  checked="CHECKED" <%end%>/> <%:friday%>
+							   <input name="Date_Sat" type="checkbox" value="1"  <%if not( Date_Sat == "" ) then%>  checked="CHECKED" <%end%>/><%:saturday%>
+							   <input name="Date_Sun" type="checkbox" value="1"  <%if not( Date_Sun == "" ) then%>  checked="CHECKED" <%end%>/> <%:sunday%>
+							</li>
+						 </ul>
+					  </div>
+					  <div class="w_text">
+						 <ul>
+							<li class="left_table"><%:Time%> (<%:begin%> ~ <%:End%>)  :</li>
+							<li class="right_table">
+								<select name="StartHour" size="1" onchange="doTimeChange(this.selectedIndex);">
+									<%local StartHour = uci:get("parental_monitor",rule,"start_hour")%>
+									<%for j = 0, 24 do %>
+										<option value="<%= string.format( "%02d", j ) %>" <%if StartHour == string.format( "%02d", j ) then%>selected="selected"<%end%>><%= string.format( "%02d", j ) %></option>                                       
+                                    <%end%>                                    
+                                </select>
+                                (<%:sch_hour%>)&nbsp;
+                                <select name="StartMin" size="1" onchange="doTimeChange(this.selectedIndex);">
+									<%local StartMin = uci:get("parental_monitor",rule,"start_min")%>
+                                    <option value="00" <%if StartMin == "00" then%>selected="selected"<%end%>>00</option>
+                                    <option value="30" <%if StartMin == "30" then%>selected="selected"<%end%>>30 </option>
+                                </select>
+                                (<%:sch_min%>)&nbsp;&nbsp;&nbsp;~&nbsp;&nbsp;&nbsp;
+                                <select name="EndHour" size="1" onchange="doTimeChange(this.selectedIndex);">  
+									<%local EndHour = uci:get("parental_monitor",rule,"stop_hour")%>
+                                    <%for j = 0, 24 do%>                                     
+										<option value="<%= string.format( "%02d", j ) %>" <%if EndHour == string.format( "%02d", j ) then%>selected="selected"<%end%>><%= string.format( "%02d", j ) %></option>                                          
+                                    <%end%>                                      
+                                </select>
+                                (<%:sch_hour%>)
+                                <select name="EndMin" size="1" onchange="doTimeChange(this.selectedIndex);">
+									<%local EndMin = uci:get("parental_monitor",rule,"stop_min")%>
+                                    <option value="00" <%if EndMin == "00" then%>selected="selected"<%end%>>00</option>
+                                    <option value="30" <%if EndMin == "30" then%>selected="selected"<%end%>>30 </option>
+                                </select>
+                                (<%:sch_min%>)
+							</li>
+						 </ul>
+					  </div>
+				
+                
+				  <%local Email = uci:get("sendmail","send_to_1","email")%>
+				 <input type="hidden" name="Email" size="1" value="<%=Email%>" >
+
+					  <div class="spaceair"></div>
+					</ul>
+					
+	               <div class="spaceair"></div>
+	 			   <li class="space"></li>
+	               <div class="w_text"><span class="i_note"><%:Note%>:</span></div>
+	               <!--<div class="w_text"><%:Monitor_Note%>-->
+	               <div class="w_text">
+	               		<span class="i_note_a">1.<%:Monitor_Note_1%></span>
+	               		<span class="i_note_a">2.<%:Monitor_Note_2%></span>
+	               </div>
+	               <div class="spaceair"></div>
+				   
+               </ul>
+            </div>
+           
+         </li>
+         <li class="table_button">
+            <div class="button" align="center">
+               <!-- <input name="apply" value="<%:Apply%>" type="submit" onclick="return submitEdit()" />
+                  &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+				<input name="Back" value="<%:Back%>" type="submit" id="back" /> -->
+                  &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+				
+				<input value="" name="SelectIndex" type="hidden"></li>
+            </div>
+         </li>
+		</ul>
+   </div>
+   
+   </div>
+</form>
+</body>
+
+</html>

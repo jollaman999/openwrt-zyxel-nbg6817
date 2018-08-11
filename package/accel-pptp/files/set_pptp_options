@@ -1,0 +1,61 @@
+#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+
+. /etc/functions.sh
+include /lib/config
+
+PPTP_FILE=/tmp/options.pptp
+
+config_load network
+config_get pptp_serverip vpn pptp_serverip
+config_get pptp_username vpn pptp_username
+config_get pptp_password vpn pptp_password
+config_get pptp_Nailedup vpn pptp_Nailedup
+config_get pptp_demand vpn pptp_demand
+config_get pptpWanIPMode vpn pptpWanIPMode
+config_get pptpWanIpAddr vpn pptpWanIpAddr
+config_get pptp_Encryption vpn pptp_Encryption
+
+#echo "pty '/usr/sbin/pptp $pptp_serverip --nolaunchpppd'" > $PPTP_FILE
+echo "pptp_server $pptp_serverip" > $PPTP_FILE
+#echo "lock" >> $PPTP_FILE
+echo "noauth" >> $PPTP_FILE
+echo "user \"$pptp_username\""  >> $PPTP_FILE
+echo "password \"$pptp_password\"" >> $PPTP_FILE
+echo "usepeerdns" >> $PPTP_FILE
+echo "defaultroute" >> $PPTP_FILE
+#echo "replacedefaultroute" >> $PPTP_FILE
+if [ $pptp_Nailedup == "1" ]; then
+        echo "persist" >> $PPTP_FILE
+else
+        echo "demand" >> $PPTP_FILE
+        echo "idle $pptp_demand" >> $PPTP_FILE
+fi
+if [ $pptpWanIPMode == "0" ]; then 
+     echo "$pptpWanIpAddr:" >> $PPTP_FILE
+     echo "ipcp-accept-remote noipdefault" >> $PPTP_FILE
+else
+echo "ipcp-accept-remote ipcp-accept-local noipdefault" >> $PPTP_FILE
+fi
+echo "refuse-eap" >> $PPTP_FILE
+echo "ktune" >> $PPTP_FILE
+echo "default-asyncmap nopcomp noaccomp" >> $PPTP_FILE
+echo "novj nobsdcomp nodeflate" >> $PPTP_FILE
+echo "lcp-echo-interval 10" >> $PPTP_FILE
+echo "lcp-echo-failure 6" >> $PPTP_FILE
+case $pptp_Encryption in
+	Auto)
+		echo "mppe required,stateless" >> $PPTP_FILE
+	;;
+	40)
+		echo "mppe required,no56,no128,stateless" >> $PPTP_FILE
+	;;
+	128)
+		echo "mppe required,no40,no56,stateless" >> $PPTP_FILE
+	;;
+esac
+
+#echo "unit 0" >> $PPTP_FILE
+echo "maxfail 0" >> $PPTP_FILE
+echo "ifname pptp-wan" >> $PPTP_FILE
+echo "ipparam wan" >> $PPTP_FILE

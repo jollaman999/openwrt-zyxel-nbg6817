@@ -1,0 +1,157 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data_allw_empty.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js"></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript" type="text/javascript">
+function formCheck()
+{
+  skm_LockScreen();
+	return true;
+}
+</script>
+</head>
+<body>
+
+<form method="post" name="NAT_APP" action="<%=controller%>/expert/configuration/network/nat/passthrough" >
+
+<div id="title_c" ><table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Passthrough%></div></td>
+    <td>&nbsp;</td>
+    <td width="100" valign="top"><div class="apply"  ><input name="apply" value="<%:Apply%>" onclick="return formCheck();" type="submit" /></div></td>
+    <td width="100" valign="top"><div class="cancel" ><input name="cancel" value="<%:Cancel%>" type="reset" /></div></td>
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+
+<div id="table">
+  <ul>
+     <li class="table_content">
+        <div class="data">
+        <ul>
+	           <div class="w_text">
+              <ul>
+                <li class="title"><%:NAT_ALG%>  :</li>
+              <% local ftpenabled = uci:get("nat","general","ftp")%>
+                <li class="left_table"><%:FTP%>  :</li>
+                <li class="right_table">
+                  <input name="enabled_ftp" id="radio3" type="radio" value="enable" <%if ftpenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_ftp" id="radio4" type="radio" value="disable" <%if ftpenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+              <ul>
+              <% local h323enabled = uci:get("nat","general","h323")%>
+                <li class="left_table">H.323  :</li>
+                <li class="right_table">
+                  <input name="enabled_h323" id="radio5" type="radio" value="enable" <%if h323enabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_h323" id="radio6" type="radio" value="disable" <%if h323enabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+             <ul>
+              <% local sipenabled = uci:get("nat","general","sip")%>
+                <li class="left_table">SIP  :</li>
+                <li class="right_table">
+                  <input name="enabled_sip" id="radio7" type="radio" value="enable" <%if sipenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_sip" id="radio8" type="radio" value="disable" <%if sipenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul> 
+
+              <ul>
+              <% local snmpenabled = uci:get("nat","general","snmp")%>
+                <li class="left_table">SNMP  :</li>
+                <li class="right_table">
+                  <input name="enabled_snmp" id="radio9" type="radio" value="enable" <%if snmpenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_snmp" id="radio10" type="radio" value="disable" <%if snmpenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+              <ul>
+              <% local rtspenabled = uci:get("nat","general","rtsp")%>
+                <li class="left_table">RTSP  :</li>
+                <li class="right_table">
+                  <input name="enabled_rtsp" id="radio11" type="radio" value="enable" <%if rtspenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_rtsp" id="radio12" type="radio" value="disable" <%if rtspenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+             <ul>
+              <% local ircenabled = uci:get("nat","general","irc")%>
+                <li class="left_table">IRC  :</li>
+                <li class="right_table">
+                  <input name="enabled_irc" id="radio13" type="radio" value="enable" <%if ircenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_irc" id="radio14" type="radio" value="disable" <%if ircenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul> 
+              <div class="spaceair"></div>
+        
+              </div>
+              <div class="space"></div>
+
+              <div class="w_text">
+              <ul>
+                <li class="title"><%:NAT_VPN_Passthrough%>  :</li>
+              <% local pptpenabled = uci:get("nat","general","pptp")%>
+                <li class="left_table">PPTP  :</li>
+                <li class="right_table">
+                  <input name="enabled_pptp" id="radio15" type="radio" value="enable" <%if pptpenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_pptp" id="radio16" type="radio" value="disable" <%if pptpenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+              <ul>
+              <% local l2tpenabled = uci:get("nat","general","l2tp")%>
+                <li class="left_table">L2TP  :</li>
+                <li class="right_table">
+                  <input name="enabled_l2tp" id="radio17" type="radio" value="enable" <%if l2tpenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_l2tp" id="radio18" type="radio" value="disable" <%if l2tpenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul>
+
+             <ul>
+              <% local ipsecenabled = uci:get("nat","general","ipsec")%>
+                <li class="left_table">IPSEC  :</li>
+                <li class="right_table">
+                  <input name="enabled_ipsec" id="radio19" type="radio" value="enable" <%if ipsecenabled == "enable" then%>  checked="checked" <%end%> /> <%:Enable%>
+                  <input name="enabled_ipsec" id="radio20" type="radio" value="disable" <%if ipsecenabled == "disable" then%>  checked="checked" <%end%> /> <%:Disable%></li>
+              </ul> 
+            </div>
+        </ul>
+        </div>
+    </li>
+    </ul>
+   </div>
+</form>
+</div>
+</body>
+<script language="JavaScript">
+  <!--  showFullPath(' <%:Network%> > <%:NAT%> ');
+   showWebMessage( 0, '<%:Message%>', '<%:Ready%>' ); -->
+</script>
+</html>

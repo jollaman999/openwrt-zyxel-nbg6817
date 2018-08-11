@@ -1,0 +1,233 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id: header.htm 4891 2009-06-22 10:23:21Z jow $
+
+-%>
+<%
+--require("luci.i18n").loadc("default")
+local i18n = require("luci.i18n")
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local lang = uci:get("system","main","language")
+  if not lang then
+     lang = "en"
+  end
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+time_value = uci:get("system","main","gui_restart_time")
+if time_value == nil then
+  time_value = "420"
+end
+-%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+<script language="JavaScript">
+
+function onSubmitCheck()
+{
+  if (!confirm("<%:reset_err1%>"))
+    return false;
+  return true;
+}
+
+function redirect()
+{
+	top.location.href="http://192.168.1.1";
+}
+
+function CountDown()
+{
+	CountDownSecond = document.theForm.timer.value;
+	skm_LockScreen();
+	if ( CountDownSecond !=0 ) {
+		document.theForm.timer.value = CountDownSecond - 1;
+		setTimeout('CountDown()',1000);
+	}
+	else {
+		redirect();
+	}
+}
+
+function checkFile() {
+  var SizeLimit = 3145728; // 3Mb
+  var fileSize = $("#RstFile")[0].files[0].size;
+  var fileName = $("#RstFile")[0].files[0].name;
+  var subString = '.';
+
+  // check file size
+  if (fileSize > SizeLimit){
+    return false;
+  }
+
+  // check file format
+  if (fileName.indexOf(subString) !== -1){
+    var fileExt = fileName.split(subString).pop();
+    console.log(fileName);
+    console.log(fileExt);
+    if(fileExt != 'cg'){
+      return false;
+    }
+  }
+  else{
+    return false;
+  }
+  return true;
+}
+
+function AdmFormCheck()
+{
+	if (document.BAKUP_RESTORE.RstFile.value == "") {
+		alert("Please specify the file name.");
+		return false;
+	}
+
+  //check file format and size
+  if(!(checkFile())){
+    alert("<%:FileInvalid%>");
+    return false;
+  }
+
+	return true;
+}
+
+</script>
+</head>
+<body  >
+<div id="title_c" >
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:Backup_Restore%></div></td>
+    <td>&nbsp;</td>	
+  </tr>
+</table>
+
+</div>
+<div id="all_w">
+<% if rebootsystem == 1 then %>
+<form name="theForm">
+<div id="table">
+  <ul>
+    <li class="table_top"></li>
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <div class="title"><%:restarting%></div>
+          <div class="w_text"><%:bak_remind1%>
+            <input name="timer"  size="3" type="text" value="<%=time_value%>" style="border:0;background:transparent" readonly=true />
+            <%:seconds%>.
+          </div>
+          <div class="spaceair"></div> 
+        </ul> 
+      </div>
+    </li>
+    <li class="table_button"></li>
+  </ul>
+</div>
+</form>
+<script language="JavaScript">
+	$(document).ready(function(){
+	CountDown();
+	});
+</script>
+<% elseif rebootsystem == 2 then %>
+<div id="table">
+  <ul>
+    <li class="table_top"></li>
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <div class="title"><%:bak_remind3%></div>
+          <div class="w_text">
+            <%:bak_remind4%><br>
+	    <%=errmsg%>	
+          </div>
+          <div class="spaceair"></div>
+        </ul>
+      </div>
+    </li>
+    <li class="table_button"></li>
+  </ul>
+</div>
+<% else %>
+<form method="post" name="BAKUP_RESTORE" action="<%=controller%>/expert/maintenance/bakrestore" enctype="multipart/form-data">
+<div id="table">
+  <ul>
+  
+    <li class="table_content">
+      <div class="data">
+        <ul>
+          <div class="title"><%:bak_configure%></div>
+          <div class="w_text">		  
+			<%:bak_remind2%> 
+		 
+          </div>
+		  <div class="w_text">
+			  </br>
+            <input name="Backup" value="<%:backup%>" type="submit" />
+          </div>
+	  <div class="spaceair"></div>	  
+	  <div class="space"></div>
+          <div class="title"><%:rst_configure%></div>
+          <div class="w_text">
+          <%:rst_remind1%>
+          </div>
+          <div class="w_text"><%:file_path%> :
+            <input name="RstFile" id="RstFile" size="20" maxlength="128" type="file" />
+			
+          </div>
+		  <div class="w_text">
+			</br>
+            <input name="Restore" value="<%:file_upload%>" type="submit" onClick="return AdmFormCheck()" />
+          </div>
+		  <div class="spaceair"></div>
+          <div class="space"></div>
+          <div class="title"><%:factory_default%></div>
+          <div class="w_text">
+          <%:factory_remind1%>
+          </div>
+          <div class="w_text"> - <%:factory_pwd%> 1234 </div>
+          <div class="w_text"> - <%:factory_lan_ip%> 192.168.1.1  </div>
+          <div class="w_text">
+            <ul>
+              <li class="left_table"><span style="font-weight: 400;">- <%:factory_dhcp%></span></li>
+            </ul>
+			
+          </div>
+		  <div class="w_text">
+			</br>
+                <input name="Reset" value="<%:factory_reset%>" onclick="return onSubmitCheck();" type="submit" />
+          </div>
+	  <div class="spaceair"></div>	
+        </ul>
+      </div>
+    </li>
+    <li class="table_button"></li>
+  </ul>
+</div>
+</form>
+<% end %>
+</div>
+</body>
+<script language="JavaScript">
+	<!-- showFullPath(' <%:maintenance%> > <%:bak_rst%>'); -->
+</script>
+</html>

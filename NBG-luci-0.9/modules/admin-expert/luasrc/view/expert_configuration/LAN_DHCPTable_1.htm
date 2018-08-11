@@ -1,0 +1,398 @@
+<%
+require "luci.sys"
+require("luci.http").prepare_content("text/html")
+local uci = require("luci.model.uci").cursor()
+local sys = require("luci.sys")
+local i18n = require("luci.i18n")
+local lang = uci:get("system","main","language") 
+i18n.load("admin-core",lang)
+i18n.setlanguage(lang)
+-%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"  />
+<title>.::Welcome to the Web-Based Configurator::.</title>
+<link href="<%=media%>/css/expert.css" rel="stylesheet" type="text/css" />
+<link href="<%=media%>/css/data.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="<%=media%>/js/jquery-1.6.min.js"></script>
+<script type="text/javascript" src="<%=media%>/js/d_title.js"></script>
+<script type="text/javascript" src="<%=media%>/js/baseJS.js" ></script>
+<script type="text/javascript" src="<%=media%>/../../../js/jquery-1.7.2.min.js" ></script>
+<script type="text/javascript" src="<%=media%>/js/lockScreenController.js" ></script>
+
+<script language="JavaScript" type="text/javascript">
+
+  var g_arrayOfData = [];
+  var Connecttype;
+  var count;
+  var DDevAlive= "<%=Online%>".split(",");
+    var DDevName = "<%=Name%>".split(",");
+    var DDevIP="<%=Ip%>".split(",");
+    var DDevMAC="<%=Devmac%>".split(",");
+    var DDevIp_reserve="<%=Ip_reserve%>".split(",");
+    var DDevLease_time="<%=Lease_time%>".split(",");
+    var DDevConnecttype="<%=Connecttype%>".split(",");
+    var DDevRSSI="<%=Rssi%>".split(",");
+    var RSSICoverse
+    
+    var AAnum="<%=Anum%>";
+
+	var total_macipConfig="";
+    var macipConfig="";
+    var one_count=0;
+
+   function GetCheckedValue(checkBoxName)
+   {
+      return $('input:checkbox[name=' + checkBoxName + '][checked=true]').map(function ()
+      {
+       return $(this).val();
+      })
+     .get().join(',');
+    }
+
+</script>
+</head>
+<body>
+
+
+<form method="post" name="DHCP_APP" action="<%=controller%>/expert/configuration/network/dhcpserver/dhcptable" >
+
+<div id="title_c" >
+  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="300"><div id="title_n" ><%:DHCP_Table%></div></td>
+    <td>&nbsp;</td>
+
+    <td width="100" valign="top"><div class="apply"><input name="sysSubmit" value="<%:Apply%>" type="submit" onClick="skm_LockScreen();show(this.form);" /></div></td>
+    <td width="100" valign="top"><div class="cancel"><input name="Cancel" value="<%:Cancel%>" type="reset" /></div></td>
+
+  </tr>
+</table>
+
+</div>
+
+<div id="all_w">
+<div id="table">
+  <ul>
+ 
+    <li class="table_content">
+        <div class="data">
+          <li class="w_text" id="Band_title" ><%:iface%> :
+
+                <select name="band" size="1" onChange="refreshTableWithData(g_arrayOfData,Connecttype);">
+
+                <option selected value="30" >ALL </option> 
+                <option value="1"  >LAN </option>        
+                <option value="24" >2.4GHz </option>         
+                <option value="5"  >5GHz </option>
+              </select>
+           </li> 
+          <ul><div class="tableframe">
+            
+            
+            <table id="tblDemo" width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_frame">
+              <thead>
+                  <tr>
+                    <td colspan="8" height="26" class="table_title"> <%:DHCP_Client_Table%> </td>
+                       <tr align="center"  class="top_font">
+                                    <td >#</td>
+                                    <td ><%:Online%></td>
+                                    <td ><%:Host_Name%></td>
+                                    <td ><%:IP_Address%></td>
+                                    <td ><%:MAC_Address%></td>
+                                    <td ><%:iface%>/Rssi</td>
+                                    <td ><%:Lease_time%></td>
+                                    <td ><%:Reserve%></td>
+
+                        </tr>
+                  </tr> 
+              </thead>
+              <tbody>
+                  <tr>
+                  </tr>
+              </tbody>
+              
+            </table>
+            </div>
+            <div class="spaceair"></div>
+        </ul>
+      </div>
+    </li>
+     <li class="table_button">
+      <div class="button">
+       <!--  <center>
+          <input name="sysSubmit" value="<%:Apply%>" type="submit" onClick="show(this.form)" />
+
+          &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+          <input name="Cancel" value="<%:Cancel%>" type="reset" />
+        </center> -->
+		<input type="hidden" id="tmp1" name="totalmacIp" size="20" value="1">
+        <input type="hidden" id="tmp1" name="macIp" size="20" value="1">
+        <input type="hidden" id="tmp2" name="onlyOne" size="20" value="1">
+      </div></li>
+  </ul>
+</div>
+</div>
+
+<script language="JavaScript">
+
+<!-- showFullPath(' <%:Network%> > <%:DHCP_Server%> > <%:Client_List%>'); -->
+
+function deleteRow()
+{
+    console.log('deleteRow: ');
+    $('#tblDemo >tbody > tr').children().remove();
+
+}
+
+function addData(name,IP,MAC,Connecttype,RSSICoverse,leaseTime)
+{
+    return {name: name,IP: IP, MAC: MAC,Connecttype: Connecttype,RSSICoverse:RSSICoverse, leaseTime: leaseTime}; 
+}
+function display(datacount,item_name,item_IP,item_MAC,datastr,item_leaseTime)
+{
+    var judge1="0";
+    <%luci.sys.net.macIp(function(rt) %>
+    if("<%=rt.mac%>"==item_MAC)
+    judge1="1";
+    <%end)%>
+
+    if (item_leaseTime=="")
+        timestamp_display=" ";
+    else
+     var timestamp_display = timeConverter(item_leaseTime);
+    
+    if(judge1=="1")
+     var displayRow = "<tr align='center'  class='table_font'><td >" + datacount + "</td><td ><img src='<%=media%>/admin/images/i_active_on.gif' class='btnSave'></td><td >" + item_name +"</td><td>" + item_IP + "</td><td >" + item_MAC+"</td><td >" + datastr + "</td><td>" + timestamp_display+ "</td><td><input name='sel' type='checkbox' checked></td></tr>";
+     else
+      var displayRow = "<tr align='center'  class='table_font'><td >" + datacount + "</td><td ><img src='<%=media%>/admin/images/i_active_on.gif' class='btnSave'></td><td >" + item_name +"</td><td>" + item_IP + "</td><td >" + item_MAC+"</td><td >" + datastr + "</td><td>" + timestamp_display+ "</td><td><input name='sel' type='checkbox'></td></tr>";
+  $("#tblDemo tr:last").after(displayRow);
+
+}
+function refreshTableWithData(data)
+{
+      var up_forms = document.getElementsByName("band");
+      var datacount=0;
+    
+
+      $('#tblDemo >tbody > tr').children().remove();  //remove
+
+      if (up_forms[0].value == "1") //display LAN
+      {
+          for (var index in data)
+          {
+            var item = data[index];
+          
+            if(item.Connecttype == "LAN")
+            {
+                var datastr="".concat(item.Connecttype)
+                datacount+=1;
+              
+                display(datacount,item.name,item.IP,item.MAC,datastr,item.leaseTime);
+
+            }
+          }
+      }
+      else if (up_forms[0].value == "24")//display 2.4G
+      {
+          // insert data
+          for (var index in data)
+          {
+            var item = data[index];
+            if(item.Connecttype == "2.4GHz")
+            {
+                var datastr="".concat(item.Connecttype, " / ",item.RSSICoverse)
+                datacount+=1;
+
+                display(datacount,item.name,item.IP,item.MAC,datastr,item.leaseTime);
+              
+            }
+          }
+      }
+      else if (up_forms[0].value == "5")//display 5G
+      {
+          // insert data
+          for (var index in data)
+          {
+            var item = data[index];
+           
+            if(item.Connecttype == "5GHz")
+            {
+                var datastr="".concat(item.Connecttype, " / ",item.RSSICoverse)
+                datacount+=1;
+
+                display(datacount,item.name,item.IP,item.MAC,datastr,item.leaseTime);
+            
+            }
+          }
+      }
+      else  //display ALL
+      {
+          // insert data
+          for (var index in data)
+          {
+              var item = data[index];
+              
+              if(item.Connecttype == "LAN")
+                  var datastr="".concat(item.Connecttype)
+              else
+                  var datastr="".concat(item.Connecttype, " / ",item.RSSICoverse)              
+              datacount+=1;
+
+              display(datacount,item.name,item.IP,item.MAC,datastr,item.leaseTime);
+             
+          }
+      } 
+}
+function addRow()
+{
+  
+  console.log('addRow: ');
+  var myRow = "<tr align='center'  class='table_font'><td >online</td><td ><img src='<%=media%>/admin/images/i_active_on.gif' class='btnSave'></td><td >Name</td><td><%:IP_Address%></td><td ><%:MAC_Address%></td><td >Interface/Rssi</td><td>Lease_time</td><td><input name='sel' type='checkbox'></td></tr>";
+  $("#tblDemo tr:last").after(myRow);
+
+}
+function timeConverter(timestamp){
+    var date = new Date(timestamp * 1000);
+    var formattedDate =  date.getFullYear()+ '-' +('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2) + ' ' + ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
+    return formattedDate;
+ }
+
+
+  $(function() {
+    console.log("ready!");
+
+    console.log('DDevRSSI: '+DDevRSSI);
+    // add table tr with AAnum
+      for (var i = 0; i < AAnum; i++) { 
+          addRow();                 
+      }
+
+     $('#tblDemo > tbody  > tr').each(function(index) {
+         var item_num=index
+        var data_num
+        
+        if (item_num == 0) //jump first data,because it's NULL
+          item_num+=1
+        else if (item_num <= AAnum)
+        {
+           data_num=item_num-1
+           // RSSICoverse=DDevRSSI[data_num]-95
+            if (DDevRSSI[data_num] == "NULL")
+              RSSICoverse=" "
+           else
+              RSSICoverse="".concat(DDevRSSI[data_num]-95," dbm")
+           if (DDevConnecttype[data_num] == "WiFi_5")
+           {
+              DDevConnecttype[data_num]="5GHz"
+              var str="".concat(DDevConnecttype[data_num], " / ",RSSICoverse)
+           }
+           else if (DDevConnecttype[data_num] == "WiFi_2")
+           {
+              DDevConnecttype[data_num]="2.4GHz"
+              var str="".concat(DDevConnecttype[data_num], " / ",RSSICoverse)
+           }
+           else
+           {
+              DDevConnecttype[data_num]="LAN"
+              var str="".concat(DDevConnecttype[data_num])
+           }
+           Connecttype=DDevConnecttype;
+           
+           
+           $(this).find('td').each(function(index) {
+             if (index == 0)
+                $(this).html(data_num+1);
+            else if (index == 2) 
+                  $(this).html(DDevName[data_num]);
+             else if (index == 3) 
+                  $(this).html(DDevIP[data_num]);
+             else if (index == 4) 
+                  $(this).html(DDevMAC[data_num]);
+             else if (index == 5) 
+                  $(this).html(str);
+              else if (index == 6) 
+               {       
+                if (DDevLease_time[data_num]=="")
+                  timestamp=" ";
+                else
+                  var timestamp = timeConverter(DDevLease_time[data_num]);                          
+                  $(this).html(timestamp);
+                }
+                else if (index == 7)
+                {
+                    var judge="0";
+                    <%luci.sys.net.macIp(function(rt2) %>
+                    if("<%=rt2.mac%>"==DDevMAC[data_num])
+                    judge="1";
+                    console.log("<%=rt2.mac%>");
+                    <%end)%>
+                    console.log(DDevMAC[data_num]);
+                    if(judge=="1")
+                       $(this).html("<input name=\"sel\" type=\"checkbox\" checked \/>");
+                    else
+                     $(this).html("<input name=\"sel\" type=\"checkbox\" \/>");
+                }
+          });
+               //save data
+            g_arrayOfData.push(addData(DDevName[data_num],DDevIP[data_num],DDevMAC[data_num],DDevConnecttype[data_num],RSSICoverse,DDevLease_time[data_num]));
+           console.log('g_arrayOfData: ');
+           console.log(g_arrayOfData[data_num]);
+         }
+      });
+  });
+ 
+
+function UTMgetElementsByName(name, tagName)
+{
+    if(top.BROWSER_TYPE=="ff")
+    {return document.getElementsByName(name);}
+    else
+    {
+    var result = new Array();
+    var preelments = document.getElementsByTagName(tagName);
+    for(i = 0; i < preelments.length; i++)
+    {
+    if(preelments[i].getAttribute("name") == name)
+    {result[result.length] = preelments[i];}
+    }
+    }
+    return result;
+}
+
+
+function show(form)
+{
+    var obj=UTMgetElementsByName("sel","input");
+
+    var i=0;
+    for(i=0;i<AAnum;i++){
+       total_macipConfig=total_macipConfig+DDevMAC[i]+" "+DDevIP[i]+";";
+       if(obj[i].checked==true)
+       {
+              console.log('obj[i] ');
+              console.log(obj[i]);
+              one_count+=1;
+
+              macipConfig=macipConfig+DDevMAC[i]+" "+DDevIP[i]+";";
+       }
+    }
+    if (one_count == 1)
+        document.forms[0].onlyOne.value=1;
+    else
+        document.forms[0].onlyOne.value=0;
+
+	document.forms[0].totalmacIp.value=total_macipConfig;
+    document.forms[0].macIp.value=macipConfig;
+
+    console.log('totalmacIp: ',document.forms[0].totalmacIp.value);
+    console.log('macIp: ',document.forms[0].macIp.value);
+    console.log('onlyOne: ',document.forms[0].onlyOne.value);
+}
+
+</script>
+</form>
+
+</body>
+</html>

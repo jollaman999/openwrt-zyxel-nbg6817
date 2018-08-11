@@ -1,0 +1,110 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=99
+
+chk_iface=$(uci get wireless.iface.wifi5G)
+
+DEV24G="wifi0"
+DEV5G="wifi1"
+DEV24G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+DEV5G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+if [ "$chk_iface" == "wifi0" ]; then
+	DEV24G="wifi1"
+	DEV5G="wifi0"
+	DEV24G_FIRSTNAME="ath1"		#ath10 ath11 ath12 ath13
+	DEV5G_FIRSTNAME="ath"		#ath0 ath1 ath2 ath3
+fi
+
+boot() {
+	product_name=$(uci get system.main.product_name)
+
+	enable=$(uci get atf.atf.enable)
+	[ "$enable" == "1" ] && {
+		iwpriv "$DEV24G_FIRSTNAME"0 commitatf 0
+		setup_interface_atf "$DEV24G"
+		setup_sta_atf
+		iwpriv "$DEV24G_FIRSTNAME"0 commitatf 1
+	}
+	
+	enable5G=$(uci get atf.atf5G.enable)
+	if [ "$product_name" == "NBG6816" ] || [ "$product_name" == "NBG6815" ] ;then
+		[ "$enable5G" == "1" ] && {
+			qcsapi_sockrpc --host 223.254.253.252 set_airfair wifi0 1
+			## For QTN, there is no atf setting for interfaces and stations
+			#setup_interface_atf_5G
+			#setup_sta_atf_5G
+		} || {
+			qcsapi_sockrpc --host 223.254.253.252 set_airfair wifi0 0
+		}
+	else
+		[ "$enable5G" == "1" ] && {
+			iwpriv "$DEV5G_FIRSTNAME"0 commitatf 0
+			setup_interface_atf "$DEV5G"
+			setup_sta_atf_5G
+			iwpriv "$DEV5G_FIRSTNAME"0 commitatf 1
+		}
+	fi
+}
+
+start() {
+	/etc/init.d/wireless stop
+	sleep 1
+	WiFi_init QCA_INSMOD
+	sleep 1
+	/etc/init.d/wireless restart
+
+	boot
+}
+
+setup_interface_atf() {
+	devs="$DEV24G_FIRSTNAME""0 ""$DEV24G_FIRSTNAME""1 ""$DEV24G_FIRSTNAME""2 ""$DEV24G_FIRSTNAME""3"
+
+	if [ "$1" == "$DEV5G" ]; then
+		devs="$DEV5G_FIRSTNAME""0 ""$DEV5G_FIRSTNAME""1 ""$DEV5G_FIRSTNAME""2 ""$DEV5G_FIRSTNAME""3"
+	fi
+
+	for dev in devs
+	do
+		SSID_CfgMethod=$(uci get atf."$dev".configmethod)
+		[ "$SSID_CfgMethod" == "manual" ] && {
+			MainSSID_Atf=$(uci get atf."$dev".percentage)
+			MainSSID=$(iwconfig "$dev" | grep  ESSID | awk -F '"' '{print $2}')
+			wlanconfig "$dev" addssid $MainSSID $MainSSID_Atf
+		}
+	done
+}
+
+setup_sta_atf() {
+	local i=1
+	local sta_num=$(uci get atf.atf.sta_num)
+	while [ "$i" -le "$sta_num" ]
+	do
+		[ "$(uci get atf.sta$i)" == "sta" ] && {
+			macaddr=$(uci get atf.sta$i.mac | sed 's/://g')
+			iface=$(uci get atf.sta$i.interface)
+			percentage=$(uci get atf.sta$i.percentage)
+			wlanconfig $iface addsta $macaddr $percentage
+		} || {
+			break
+		}
+		i=$(($i+1))
+	done
+}
+
+setup_sta_atf_5G() {
+	local i=1
+	local sta_num=$(uci get atf.atf5G.sta_num)
+	while [ "$i" -le "$sta_num" ]
+	do
+		[ "$(uci get atf.sta5G$i)" == "sta" ] && {
+			macaddr=$(uci get atf.sta5G$i.mac | sed 's/://g')
+			iface=$(uci get atf.sta5G$i.interface)
+			percentage=$(uci get atf.sta5G$i.percentage)
+			wlanconfig $iface addsta $macaddr $percentage
+		} || {
+			break
+		}
+		i=$(($i+1))
+	done
+}

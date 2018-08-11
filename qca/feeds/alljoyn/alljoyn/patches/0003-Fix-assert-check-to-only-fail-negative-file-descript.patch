@@ -1,0 +1,28 @@
+From a714612f8ed6341bb01ca4fccb67b2e7909bea30 Mon Sep 17 00:00:00 2001
+From: Steve Kinneberg <stevek@qce.qualcomm.com>
+Date: Fri, 23 May 2014 16:04:31 -0700
+Subject: [PATCH 3/3] Fix assert check to only fail negative file descriptors.
+
+Change-Id: I17b993875fe80677480db7d7847bdedddfd440a7
+Signed-off-by: Steve Kinneberg <stevek@qce.qualcomm.com>
+---
+ common/os/posix/Socket.cc | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/common/os/posix/Socket.cc b/common/os/posix/Socket.cc
+index 0cc34d8..d66f88f 100644
+--- a/common/os/posix/Socket.cc
++++ b/common/os/posix/Socket.cc
+@@ -405,8 +405,7 @@ QStatus Shutdown(SocketFd sockfd)
+ 
+ void Close(SocketFd sockfd)
+ {
+-
+-    assert(sockfd);
++    assert(sockfd >= 0);
+     close(static_cast<int>(sockfd));
+ }
+ 
+-- 
+1.9.1
+

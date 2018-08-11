@@ -1,0 +1,155 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2008-2010 OpenWrt.org
+
+START=97
+
+boot() {
+	oldconfig=`uci get parental_ex.general.enable`
+	
+	##Now Parental Control is not supported yet on NBG6716
+	[ "$oldconfig" = "" ] && {
+		key_enable=`uci get parental.keyword.enable`
+		key=`uci get parental.keyword.keywords`
+		uci set parental_ex.general=parental_general
+		uci set parental_ex.general.enable="$key_enable"
+		uci set parental_ex.general.ruleIdx="rule1"
+		uci set parental_ex.general.count="1"
+		[ -n "$key" ] && {
+			uci set parental_ex.rule1=parental_rule
+			uci set parental_ex.rule1.enable="$key_enable"
+			uci set parental_ex.rule1.src_mac="00:00:00:00:00:00"
+			uci set parental_ex.rule1.stop_hour="24"
+			uci set parental_ex.rule1.weekdays="Mon,Tue,Wed,Thu,Fri,Sat,Sun"
+			uci set parental_ex.rule1.service_count="0"
+			uci set parental_ex.rule1.name="ZyXEL"
+			uci set parental_ex.rule1.start_hour="00"
+			uci set parental_ex.rule1.start_min="00"
+			uci set parental_ex.rule1.stop_min="00"
+			uci set parental_ex.rule1.keyword="$key"
+			uci set parental_ex.rule1.src_type="all"
+			uci set parental_ex.rule1.service_act="block"
+		}
+		uci set parental.keyword.keywords=""
+		uci set parental.keyword.enable="0"
+		uci commit parental
+		sync #This command is for emmc and ext4 filesystem
+		uci commit parental_ex
+		sync #This command is for emmc and ext4 filesystem
+	}
+
+	# remove bonus(reward_min) when system start
+	count=`uci get parental_ex.general.count`
+	[ -z "$count" ] && count=0
+	count=`seq 1 1 $count`
+	if [ -n "$count" ]; then
+		for i in $count
+		do
+			uci delete parental_ex.rule${i}.reward_min 2> /dev/null
+		done
+		uci commit parental_ex
+	fi
+  	### applying after WAN connection up ###
+	/sbin/webstr_filter_ex start
+}
+
+start() {
+		##check hw_nat
+	# /sbin/chk_hwnat
+	/sbin/webstr_filter_ex start
+}
+
+stop() {
+	##check hw_nat
+	# /sbin/chk_hwnat	
+	
+	/sbin/webstr_filter_ex stop
+}
+
+restart() {
+	##delete rule
+	count=`uci get parental_ex.general.count`
+	i=1
+	killall -9 crond
+	while [ $i -le $count ]
+	do	
+
+		
+		delete=`uci get parental_ex.rule$i.delete`
+		if [ "$delete" = "1" ] ; then
+			
+			if [ -f /etc/crontabs/root ]; then
+			
+				sed -i -e '/reward.sh '$i'/d' /etc/crontabs/root
+			fi	
+			
+			ruleid=$i
+			
+			###delet rule service
+			service_count=`uci get parental_ex.rule$ruleid.service_count`
+			j=1
+			while [ $j -le $service_count ]
+			do
+				serviceid=$j
+				uci del parental_ex.rule"$ruleid"_service"$serviceid"
+				j=`expr $j + 1`
+			done
+			##delet rule
+			uci del parental_ex.rule$ruleid			
+			while [ $ruleid -lt $count ]
+			do
+ 
+ 			
+				#move rule
+				uci rename parental_ex.rule`expr $ruleid + 1`=rule$ruleid
+				
+				##move rule service
+				next_service_count=`uci get parental_ex.rule$ruleid.service_count`
+				k=1
+				while [ $k -le $next_service_count ]
+				do
+					uci rename parental_ex.rule`expr $ruleid + 1`_service"$k"=rule"$ruleid"_service"$k"
+					uci set parental_ex.rule"$ruleid"_service"$k"=parental_netservicerule"$ruleid"
+					k=`expr $k + 1`
+				done
+				ruleid=`expr $ruleid + 1`
+			done
+			count=`expr $count - 1`
+			i=`expr $i - 1`
+			uci set parental_ex.general.count=$count
+			uci commit parental_ex
+			sync #This command is for emmc and ext4 filesystem
+		fi
+		
+		##delete service only
+		service_count=`uci get parental_ex.rule$i.service_count`
+		m=1
+		while [ $m -le $service_count ]
+		do	
+			serviceid=$m
+			delete_service=`uci get parental_ex.rule"$i"_service"$m".delete`
+			if [ "$delete_service" = "1" ] ; then
+				uci del parental_ex.rule"$i"_service"$m"
+				while [ $serviceid -lt $service_count ]
+				do
+					uci rename parental_ex.rule"$i"_service`expr $serviceid + 1`=rule"$i"_service"$serviceid"
+					serviceid=`expr $serviceid + 1`
+				done
+				service_count=`expr $service_count - 1`
+				uci set parental_ex.rule$i.service_count=$service_count
+				uci commit parental_ex
+				sync #This command is for emmc and ext4 filesystem
+				m=`expr $m - 1`
+			fi
+			m=`expr $m + 1`
+		done
+		
+		
+		i=`expr $i + 1`
+	done
+	crond -c /etc/crontabs
+	##check hw_nat
+	        # /sbin/chk_hwnat
+	        
+	                /sbin/webstr_filter_ex restart
+}
+

@@ -1,0 +1,62 @@
+#!/bin/sh
+
+rm /tmp/status24g
+rm /tmp/status5g
+
+WiFi24g(){
+	wlanconfig ath0 list|awk '{print $1 $15}'|grep -v ADDR > /tmp/status24g
+	wlanconfig ath1 list|awk '{print $1 $15}'|grep -v ADDR >> /tmp/status24g
+	wlanconfig ath2 list|awk '{print $1 $15}'|grep -v ADDR >> /tmp/status24g
+	wlanconfig ath3 list|awk '{print $1 $15}'|grep -v ADDR >> /tmp/status24g
+	wifi_status /tmp/status24g
+}
+
+WiFi5g(){
+	for dev in wifi0 wifi1 wifi2 wifi3
+	do
+		count=$(qcsapi_sockrpc --host 223.254.253.252 get_association_count $dev)
+		if [ $count == 0 ];then
+			echo -n >> /tmp/status5g
+			continue
+#			break
+		fi
+
+		if [ "$count" == "QCS API error 19: No such device" ];then
+			continue
+		fi
+
+		count=`expr $count - 1`
+		for i in `seq 0 1 $count`
+		do
+			mac=$(qcsapi_sockrpc --host 223.254.253.252 get_associated_device_mac_addr $dev $i)
+			time=$(qcsapi_sockrpc --host 223.254.253.252 get_time_associated $dev $i)
+			sec=`expr $time % 60`
+			min=`expr $time / 60 % 60`
+			hr=`expr $time / 3600`
+			if [ $sec -lt 10 ];then
+				sec="0$sec"
+			fi
+
+			if [ $min -lt 10 ];then
+				min="0$min"
+			fi
+
+			if [ $hr -lt 10 ];then
+				hr="0$hr"
+			fi
+
+			echo $mac"$hr:$min:$sec" >> /tmp/status5g
+		done
+
+	done
+	wifi_status /tmp/status5g
+}
+
+case $1 in
+	wifi24g)
+		WiFi24g
+	;;
+	wifi5g)
+		WiFi5g
+        ;;
+esac

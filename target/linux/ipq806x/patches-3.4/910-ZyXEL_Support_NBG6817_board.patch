@@ -1,0 +1,517 @@
+From 54c7efdbc9c4ca2c0b9c4afb14be691ae177c1b8 Mon Sep 17 00:00:00 2001
+From: Kevin Chen <kevin.chen1130@zyxel.com.tw>
+Date: Wed, 9 Sep 2015 10:04:39 +0800
+Subject: [PATCH] ZyXEL_Support_NBG6817_board
+
+---
+ arch/arm/mach-msm/Kconfig.zyxel_boards      |   5 +
+ arch/arm/mach-msm/board-ipq806x-gpiomux.c   | 109 ++++++++++++++++++++++
+ arch/arm/mach-msm/board-ipq806x-regulator.c |   3 +-
+ arch/arm/mach-msm/board-ipq806x-storage.c   |   9 +-
+ arch/arm/mach-msm/board-ipq806x.c           | 136 ++++++++++++++++++++++++++--
+ arch/arm/mach-msm/board-ipq806x.h           |  29 ++++++
+ arch/arm/mach-msm/socinfo.c                 |   3 +-
+ arch/arm/tools/mach-types                   |   1 +
+ 8 files changed, 281 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm/mach-msm/Kconfig.zyxel_boards b/arch/arm/mach-msm/Kconfig.zyxel_boards
+index f9bf203..c6414c4 100644
+--- a/arch/arm/mach-msm/Kconfig.zyxel_boards
++++ b/arch/arm/mach-msm/Kconfig.zyxel_boards
+@@ -4,3 +4,8 @@ config MACH_IPQ806X_NBG6816
+ 	help
+ 	  Support for the ZyXEL NBG6816 device(IPQ806X platform).
+ 
+++config MACH_IPQ806X_NBG6817
++	depends on ARCH_IPQ806X
++	bool "ZyXEL NBG6817"
++	help
++	  Support for the ZyXEL NBG6817 device(IPQ806X platform).
+diff --git a/arch/arm/mach-msm/board-ipq806x-gpiomux.c b/arch/arm/mach-msm/board-ipq806x-gpiomux.c
+index 3bcda1f..90ae9f4 100644
+--- a/arch/arm/mach-msm/board-ipq806x-gpiomux.c
++++ b/arch/arm/mach-msm/board-ipq806x-gpiomux.c
+@@ -364,6 +364,39 @@ static struct gpiomux_setting nbg6816_usb30_ovc_en_n = {
+         .pull = GPIOMUX_PULL_UP,
+ };
+ 
++/* nbg6817 */
++
++static struct gpiomux_setting ipq806x_leds_nbg6817_cfg_on = {
++	.func = GPIOMUX_FUNC_GPIO,
++	.drv = GPIOMUX_DRV_2MA,
++	.pull = GPIOMUX_PULL_UP,
++};
++
++static struct gpiomux_setting ipq806x_leds_nbg6817_cfg_off = {
++	.func = GPIOMUX_FUNC_GPIO,
++	.drv = GPIOMUX_DRV_2MA,
++	.pull = GPIOMUX_PULL_DOWN,
++};
++
++static struct gpiomux_setting ipq806x_buttons_nbg6817_cfg = {
++        .func = GPIOMUX_FUNC_GPIO,
++        .drv = GPIOMUX_DRV_2MA,
++        .pull = GPIOMUX_PULL_UP,
++};
++
++static struct gpiomux_setting nbg6817_usb30_pwr_en_n = {
++        .func = GPIOMUX_FUNC_GPIO,
++        .drv = GPIOMUX_DRV_12MA,
++        .pull = GPIOMUX_PULL_DOWN,
++        .dir = GPIOMUX_OUT_HIGH,
++};
++
++static struct gpiomux_setting nbg6817_usb30_ovc_en_n = {
++        .func = GPIOMUX_FUNC_GPIO,
++        .drv = GPIOMUX_DRV_12MA,
++        .pull = GPIOMUX_PULL_UP,
++};
++
+ static struct gpiomux_setting wlan_disable_cfg = {
+         .func = GPIOMUX_FUNC_GPIO,
+         .drv = GPIOMUX_DRV_12MA,
+@@ -1017,6 +1050,72 @@ static struct msm_gpiomux_config ipq806x_nbg6816_gpiomux[] = {
+ 	ipq_mux(NBG6816GPIO_BTN_WPS, ipq806x_buttons_nbg6816_cfg,   ipq806x_buttons_nbg6816_cfg),//65
+ };
+ 
++/* nbg6817 */
++static struct msm_gpiomux_config ipq806x_nbg6817_gpiomux[] = {
++	ipq_mux( 0, mdio_n,				mdio_n),
++	ipq_mux( 1, mdio_n,				mdio_n),
++	ipq_mux( 2, nss_gmac0_rgmii_set0,		nss_gmac0_rgmii_set0),
++	ipq_mux( 3, pcie_rst_n,				pcie_rst_n),
++	ipq_mux(NBG6817GPIO_WLAN_DISABLE, wlan_disable_cfg,			wlan_disable_cfg),//6
++//	ipq_mux( 7, ipq806x_leds_ap148_cfg,		ipq806x_leds_ap148_cfg),
++//	ipq_mux( 8, ipq806x_leds_ap148_cfg,		ipq806x_leds_ap148_cfg),	ipq_mux( 9, ipq806x_leds_nbg6817_cfg_on,		ipq806x_leds_nbg6817_cfg_on),//SYSTEM_LED
++	ipq_mux(12, gsbi4_active_cfg,			gsbi4_suspended_cfg),
++	ipq_mux(13, gsbi4_active_cfg,			gsbi4_suspended_cfg),
++	ipq_mux(NBG6817GPIO_USB3_PWR, nbg6817_usb30_pwr_en_n,			nbg6817_usb30_pwr_en_n),//14
++	ipq_mux(NBG6817GPIO_USB3_OVC, nbg6817_usb30_ovc_en_n,			nbg6817_usb30_ovc_en_n),//15
++	ipq_mux(NBG6817GPIO_USB1_OVC, nbg6817_usb30_ovc_en_n,			nbg6817_usb30_ovc_en_n),//16
++	ipq_mux(NBG6817GPIO_USB1_PWR, nbg6817_usb30_pwr_en_n,			nbg6817_usb30_pwr_en_n),//17
++	ipq_mux(18, gsbi5_spi_data_cfg,			gsbi5_spi_data_cfg),
++	ipq_mux(19, gsbi5_spi_data_cfg,			gsbi5_spi_data_cfg),
++	ipq_mux(20, gsbi5_spi_cs_cfg,			gsbi5_spi_cs_cfg),
++	ipq_mux(21, gsbi5_spi_clk_cfg,			gsbi5_spi_clk_cfg),
++	ipq_mux(22, gsbi2_spi_data_cfg,			gsbi2_spi_data_cfg),
++	ipq_mux(NBG6817GPIO_MODE_SW0, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//23
++	ipq_mux(NBG6817GPIO_MODE_SW1, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//24
++	ipq_mux(NBG6817GPIO_MODE_SW2, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//25
++	ipq_mux(26, ipq806x_leds_nbg6817_cfg_off,		ipq806x_leds_nbg6817_cfg_off),//WLAN_5G_LED
++	ipq_mux(27, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(28, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(29, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(30, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(31, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(32, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(33, ipq806x_leds_nbg6817_cfg_off,		ipq806x_leds_nbg6817_cfg_off),//WLAN_2G_LED
++#ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
++#ifdef CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT
++	ipq_mux(38, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(39, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++#endif
++	ipq_mux(40, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(41, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(42, sdc1_clk_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(43, sdc1_cmd_data_0_3_active_cfg, sdc1_data_1_suspended_cfg),
++	ipq_mux(44, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(45, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++#ifdef CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT
++	ipq_mux(46, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++	ipq_mux(47, sdc1_cmd_data_0_3_active_cfg, sdc1_suspended_cfg),
++#endif
++#endif
++	ipq_mux(48, pcie_rst_n,				pcie_rst_n),
++	ipq_mux(51, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(52, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(NBG6817GPIO_BTN_WLAN_DISABLE, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//53
++	ipq_mux(NBG6817GPIO_BTN_RESET, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//54
++	ipq_mux(55, gsbi6_spi_mosi_cfg,			gsbi6_spi_mosi_cfg),
++	ipq_mux(56, gsbi6_spi_miso_cfg,			gsbi6_spi_miso_cfg),
++	ipq_mux(57, gsbi6_spi_cs_cfg,			gsbi6_spi_cs_cfg),
++	ipq_mux(58, gsbi6_spi_clk_cfg,			gsbi6_spi_clk_cfg),
++
++	ipq_mux(59, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(60, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(61, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(62, nss_gmac1_rgmii_set,		nss_gmac1_rgmii_set),
++	ipq_mux(63, reset_control,			reset_control),
++	ipq_mux(64, ipq806x_leds_nbg6817_cfg_off,		ipq806x_leds_nbg6817_cfg_off),//INTERNET_LED
++	ipq_mux(NBG6817GPIO_BTN_WPS, ipq806x_buttons_nbg6817_cfg,   ipq806x_buttons_nbg6817_cfg),//65
++};
++
+ void __init ipq806x_init_gpiomux(void)
+ {
+ 	int rc;
+@@ -1060,6 +1159,16 @@ void __init ipq806x_init_gpiomux(void)
+ 			ARRAY_SIZE(ipq806x_nbg6816_gpiomux));
+ 		/* GSBI6 needs copy B */
+ 		msm_gpiomux_gsbi_select_copy(IPQ806X_GSBI6_PORT_SEL_BASE, GPIOMUX_COPY_B);
++	} else if (machine_is_ipq806x_nbg6817()) {
++		msm_gpiomux_install(ipq806x_nbg6817_gpiomux,
++			ARRAY_SIZE(ipq806x_nbg6817_gpiomux));
++		/* GSBI6 needs copy B */
++		msm_gpiomux_gsbi_select_copy(IPQ806X_GSBI6_PORT_SEL_BASE, GPIOMUX_COPY_B);
++	} else if (machine_is_ipq806x_nbg6817()) {
++		msm_gpiomux_install(ipq806x_nbg6817_gpiomux,
++			ARRAY_SIZE(ipq806x_nbg6817_gpiomux));
++		/* GSBI6 needs copy B */
++		msm_gpiomux_gsbi_select_copy(IPQ806X_GSBI6_PORT_SEL_BASE, GPIOMUX_COPY_B);
+ 	} else if (machine_is_ipq806x_ap145()) {
+ 		msm_gpiomux_install(ipq806x_ap145_gpiomux,
+ 			ARRAY_SIZE(ipq806x_ap145_gpiomux));
+diff --git a/arch/arm/mach-msm/board-ipq806x-regulator.c b/arch/arm/mach-msm/board-ipq806x-regulator.c
+index 0e5b35a..47dd5ce 100755
+--- a/arch/arm/mach-msm/board-ipq806x-regulator.c
++++ b/arch/arm/mach-msm/board-ipq806x-regulator.c
+@@ -323,7 +323,8 @@ void __init fixup_ipq806x_smb_power_grid(void)
+ 			machine_is_ipq806x_ap160_2xx() ||
+ 			machine_is_ipq806x_ap161() ||
+ 			machine_is_ipq806x_ak01_1xx() ||
+-			machine_is_ipq806x_nbg6816()/* TODO:  may need to fine tune when get real NBG6816 board */) {			
++			machine_is_ipq806x_nbg6816() ||
++			machine_is_ipq806x_nbg6817()/* TODO:  may need to fine tune when get real NBG6817 board */) {
+ 		ipq806x_rpm_regulator_smb_pdata.consumer_map =
+ 			msm_rpm_regulator_smb_ap148_consumer_mapping;
+ 		ipq806x_rpm_regulator_smb_pdata.consumer_map_len =
+diff --git a/arch/arm/mach-msm/board-ipq806x-storage.c b/arch/arm/mach-msm/board-ipq806x-storage.c
+index 275a77f..3c2798f 100644
+--- a/arch/arm/mach-msm/board-ipq806x-storage.c
++++ b/arch/arm/mach-msm/board-ipq806x-storage.c
+@@ -259,10 +259,10 @@ void __init ipq806x_init_mmc(void)
+ 	struct msm_mmc_pad_drv_data *drv;
+ 
+ 	if (machine_is_ipq806x_db149_1xx() || machine_is_ipq806x_ap145_1xx() ||
+-						machine_is_ipq806x_emmc_boot() || machine_is_ipq806x_nbg6816())
++						machine_is_ipq806x_emmc_boot() || machine_is_ipq806x_nbg6816() || machine_is_ipq806x_nbg6817())
+ 		ipq806x_add_sdcc(1, &sdc1_data);
+ 	if (machine_is_ipq806x_ap145_1xx() ||
+-			(machine_is_ipq806x_ap145() && machine_is_ipq806x_emmc_boot()) || machine_is_ipq806x_nbg6816()) {
++			(machine_is_ipq806x_ap145() && machine_is_ipq806x_emmc_boot()) || machine_is_ipq806x_nbg6816() || machine_is_ipq806x_nbg6817()) {
+ 		sdc1_data.status_gpio = -1;
+ 		sdc1_data.status_irq = 0;
+ 	}
+@@ -270,14 +270,15 @@ void __init ipq806x_init_mmc(void)
+ 	if (machine_is_ipq806x_db149() ||
+ 		machine_is_ipq806x_db149_1xx() ||
+ 		machine_is_ipq806x_db149_2xx() ||
+-		machine_is_ipq806x_nbg6816()) {
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817()) {
+ 		drv = sdc3_data.pin_data->pad_data->drv;
+ 		for (i = 0; i < drv->size; i++)
+ 			drv->on[i].val = GPIO_CFG_10MA;
+ 		ipq806x_add_sdcc(2, &sdc3_data);
+ 	}
+ 
+-	if (machine_is_ipq806x_ap145_1xx() || machine_is_ipq806x_ap148() || machine_is_ipq806x_nbg6816()) {
++	if (machine_is_ipq806x_ap145_1xx() || machine_is_ipq806x_ap148() || machine_is_ipq806x_nbg6816() || machine_is_ipq806x_nbg6817()) {
+ 		sdc3_data.status_gpio = -1;
+ 		sdc3_data.status_irq = 0;
+ 	}
+diff --git a/arch/arm/mach-msm/board-ipq806x.c b/arch/arm/mach-msm/board-ipq806x.c
+index ae2a301..b7fcd7d 100644
+--- a/arch/arm/mach-msm/board-ipq806x.c
++++ b/arch/arm/mach-msm/board-ipq806x.c
+@@ -293,6 +293,11 @@ static struct spi_board_info ipq806x_ak01_1xx_spi_board_info[] __initdata = {
+ 		&ipq_pcm_spi_reset_gpio, 6000000),
+ };
+ 
++static struct spi_board_info ipq806x_nbg6817_spi_board_info[] __initdata = {
++	IPQ806X_SPI_INFO("m25p80", SPI_MODE_0, 5, 0, &msm_sf_data, 51200000),
++	IPQ806X_SPI_INFO("ipq_pcm_spi", SPI_MODE_0, 6, 0, &ipq_pcm_spi_reset_gpio, 6000000),
++};
++
+ #endif
+ 
+ static struct memtype_reserve ipq806x_reserve_table[] __initdata = {
+@@ -1665,7 +1670,8 @@ void ipq806x_pcie_pdata_fixup(void)
+ 
+ 	if (machine_is_ipq806x_ap148() ||
+ 		machine_is_ipq806x_ap148_1xx() ||
+-		machine_is_ipq806x_nbg6816() /* TODO:  may need to fine tune when get real NBG6816 board */) {
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817() /* TODO:  may need to fine tune when get real NBG6817 board */) {
+ 		rst[2] = -1;
+ 		pwr[2] = -1;
+ 		no_vreg[2] = 1;
+@@ -1867,6 +1873,13 @@ static struct platform_device *cdp_devices_ak01_1xx[] __initdata = {
+ 	&ipq806x_pc_cntr,
+ };
+ 
++static struct platform_device *cdp_devices_nbg6817[] __initdata = {
++	&ipq806x_device_uart_gsbi4,
++	&msm_device_sps_ipq806x,
++	&ipq806x_pc_cntr,
++	&ipq806x_device_qup_i2c_gsbi1,
++};
++
+ #ifdef CONFIG_SPI_QUP
+ static int gsbi5_dma_config(void)
+ {
+@@ -2186,6 +2199,84 @@ static struct platform_device nbg6816_kp_pdev = {
+ 	},
+ };
+ 
++/* nbg6817 */
++static struct gpio_led nbg6817_gpio_leds[] = {
++	{
++		.name       = "POWER",
++		.gpio       = NBG6817GPIO_LED_POWER,
++		.active_low = 0,
++	},
++	{
++        .name       = "WiFi_5G",
++        .gpio       = NBG6817GPIO_LED_WLAN_5G,
++        .active_low = 0,
++    },
++    {
++        .name       = "WiFi_2G",
++        .gpio       = NBG6817GPIO_LED_WLAN_2G,
++        .active_low = 0,
++    },
++    {
++        .name       = "INTERNET",
++        .gpio       = NBG6817GPIO_LED_INTERNET,
++        .active_low = 0,
++    },
++};
++
++static struct gpio_led_platform_data gpio_nbg6817_led_pdata = {
++	.leds		= nbg6817_gpio_leds,
++	.num_leds	= ARRAY_SIZE(nbg6817_gpio_leds),
++};
++
++static struct platform_device nbg6817_leds_gpio = {
++	.name	= "leds-gpio",
++	.id	= -1,
++	.dev	= {
++		.platform_data	= &gpio_nbg6817_led_pdata,
++	},
++};
++
++static struct gpio_keys_button nbg6817_gpio_keys[] = {
++	{
++		.desc		= "WPS",
++		.type		= EV_KEY,
++		.code		= BTN_2,
++		.debounce_interval = NBG6817_KEYS_DEBOUNCE_INTERVAL,
++		.gpio		= NBG6817GPIO_BTN_WPS,
++		.active_low	= 1,
++	},
++	{
++		.desc		= "RESET",
++		.type		= EV_KEY,
++		.code		= BTN_0,
++		.debounce_interval = NBG6817_KEYS_DEBOUNCE_INTERVAL,
++		.gpio		= NBG6817GPIO_BTN_RESET,
++		.active_low	= 1,
++	},
++	{
++		.desc		= "WLAN_DISABLE",
++		.type		= EV_KEY,
++		.code		= BTN_5,
++		.debounce_interval = NBG6817_KEYS_DEBOUNCE_INTERVAL,
++		.gpio		= NBG6817GPIO_BTN_WLAN_DISABLE,
++		.active_low	= 1,
++	},
++};
++
++static struct gpio_keys_platform_data nbg6817_keys_data = {
++	.buttons        = nbg6817_gpio_keys,
++	.nbuttons       = ARRAY_SIZE(nbg6817_gpio_keys),
++	.poll_interval = NBG6817_KEYS_POLL_INTERVAL,
++};
++
++static struct platform_device nbg6817_kp_pdev = {
++	.name           = "gpio-keys-polled",
++	.id             = -1,
++	.dev            = {
++		.platform_data  = &nbg6817_keys_data,
++	},
++};
++
+ #define DB149_GPIO_BTN_JUMPSTART	26
+ 
+ #define DB149_KEYS_POLL_INTERVAL	20	/* msecs */
+@@ -2467,6 +2558,10 @@ static void ipq806x_spi_register(void)
+ 		ipq_pcm_spi_reset_gpio = 33;
+ 		spi_register_board_info(ipq806x_ap161_spi_board_info,
+ 			ARRAY_SIZE(ipq806x_ap161_spi_board_info));
++	} else if (machine_is_ipq806x_nbg6817()) {
++		ipq_pcm_spi_reset_gpio = 33;
++		spi_register_board_info(ipq806x_nbg6817_spi_board_info,
++			ARRAY_SIZE(ipq806x_nbg6817_spi_board_info));
+ 	} else
+ 		spi_register_board_info(ipq806x_default_spi_board_info,
+ 				ARRAY_SIZE(ipq806x_default_spi_board_info));
+@@ -2505,7 +2600,8 @@ static void __init ipq806x_common_init(void)
+ 		machine_is_ipq806x_ap160_2xx() ||
+ 		machine_is_ipq806x_ap161() ||
+ 		machine_is_ipq806x_ak01_1xx() ||
+-		machine_is_ipq806x_nbg6816()/* TODO:  may need to fine tune when get real NBG6816 board */) {		
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817() /* TODO:  may need to fine tune when get real NBG6817 board */) {
+ 		BUG_ON(msm_rpm_init(&ipq806x_rpm_data));
+ 		BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
+ 		regulator_suppress_info_printing();
+@@ -2516,7 +2612,7 @@ static void __init ipq806x_common_init(void)
+ 			msm_clock_init(&ipq806x_gsbi4_uart_clks);
+ 		if (machine_is_ipq806x_ap148_1xx())
+ 			msm_clock_init(&ipq806x_gsbi2_uart_clks);
+-		if (machine_is_ipq806x_ap161()) {
++		if (machine_is_ipq806x_ap161() || machine_is_ipq806x_nbg6817()) {
+ 			msm_clock_init(&ipq806x_gsbi2_hsuart_clks);
+ 			/* Configuring CRCI of GSBI2 as UART */
+ 			adm_crci_mux_cfg(IPQ806X_TCSR_REG_A_ADM_CRCI_MUX_SEL,
+@@ -2599,14 +2695,14 @@ static void __init ipq806x_common_init(void)
+ 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
+ 
+ 	if (!machine_is_ipq806x_db149_1xx() && !machine_is_ipq806x_ap145_1xx()
+-					&& !machine_is_ipq806x_emmc_boot())
++					&& !machine_is_ipq806x_emmc_boot() && !machine_is_ipq806x_nbg6817())
+ 		platform_device_register(&msm_device_nand);
+ 
+ 	*((uint32_t *)(ipq806x_lpass_lpaif.dev.platform_data)) = socinfo_get_version();
+ 
+ 	if (machine_is_ipq806x_db149() || machine_is_ipq806x_db149_1xx() ||
+ 		machine_is_ipq806x_db149_2xx() || machine_is_ipq806x_ap160() ||
+-		machine_is_ipq806x_ap160_2xx() || machine_is_ipq806x_ap161()) {
++		machine_is_ipq806x_ap160_2xx() || machine_is_ipq806x_ap161() || machine_is_ipq806x_nbg6817()) {
+ 		platform_add_devices(lpass_clock_devices, ARRAY_SIZE(lpass_clock_devices));
+ 		platform_add_devices(lpass_dma_devices, ARRAY_SIZE(lpass_dma_devices));
+ 		platform_add_devices(lpass_alsa_devices, ARRAY_SIZE(lpass_alsa_devices));
+@@ -2755,7 +2851,8 @@ static void nss_gmac_init(void)
+ 	if (machine_is_ipq806x_ap148() || machine_is_ipq806x_ap145() ||
+ 		machine_is_ipq806x_ap145_1xx() ||
+ 		machine_is_ipq806x_ap148_1xx() ||
+-		machine_is_ipq806x_nbg6816()/* TODO:  may need to fine tune when get real NBG6816 board, may also need to tuning mdiobus_info in file devices-ipq806x.c */) {
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817()/* TODO:  may need to fine tune when get real NBG6817 board, may also need to tuning mdiobus_info in file devices-ipq806x.c */) {
+ 		mdiobus_register_board_info(ipq806x_ap148_mdio_info, IPQ806X_MDIO_BUS_MAX);
+ 
+ 		/* GMAC1, GMAC2 connected to switch. Attach to PHY 0 to configure switch. */
+@@ -2974,7 +3071,8 @@ int32_t nss_gmac_get_phy_profile(void)
+ 		|| machine_is_ipq806x_ap145_1xx()
+ 		|| machine_is_ipq806x_ap160()
+ 		|| machine_is_ipq806x_ap161()
+-		|| machine_is_ipq806x_nbg6816()/* TODO:  may need to fine tune when get real NBG6816 board */) {		
++		|| machine_is_ipq806x_nbg6816()
++		|| machine_is_ipq806x_nbg6817() /* TODO:  may need to fine tune when get real NBG6817 board */) {
+ 		return NSS_GMAC_PHY_PROFILE_2R_2S;
+ 	}
+ 
+@@ -3026,7 +3124,8 @@ static void __init nss_macsec_register_devices(void)
+ 		machine_is_ipq806x_ap145() || machine_is_ipq806x_ap148_1xx() ||
+ 		machine_is_ipq806x_ap160() || machine_is_ipq806x_ap160_2xx() ||
+ 		machine_is_ipq806x_ap161() ||
+-		machine_is_ipq806x_nbg6816()/* TODO:  may need to fine tune when get real NBG6816 board */) {		
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817() /* TODO:  may need to fine tune when get real NBG6817 board */) {
+ 		platform_device_register(&nss_macsec2);
+ 	}
+ }
+@@ -3074,6 +3173,11 @@ static void __init ipq806x_init(void)
+ 		platform_device_register(&ipq806x_device_uartdm_gsbi2);
+ 		platform_add_devices(cdp_devices_ap161,
+ 			ARRAY_SIZE(cdp_devices_ap161));
++	} else if (machine_is_ipq806x_nbg6817()) {
++		ipq806x_device_uartdm_gsbi2.dev.platform_data = &ipq806x_uart_dm2_pdata;
++		platform_device_register(&ipq806x_device_uartdm_gsbi2);
++		platform_add_devices(cdp_devices_nbg6817,
++		ARRAY_SIZE(cdp_devices_nbg6817));
+ 	} else if (machine_is_ipq806x_ak01_1xx()) {
+ 		platform_add_devices(cdp_devices_ak01_1xx,
+ 			ARRAY_SIZE(cdp_devices_ak01_1xx));
+@@ -3113,6 +3217,10 @@ static void __init ipq806x_init(void)
+ 		platform_device_register(&nbg6816_kp_pdev);
+ 		platform_device_register(&nbg6816_leds_gpio);
+ 	}	
++	if (machine_is_ipq806x_nbg6817()) {
++		platform_device_register(&nbg6817_kp_pdev);
++		platform_device_register(&nbg6817_leds_gpio);
++	}
+ }
+ 
+ 
+@@ -3309,3 +3417,15 @@ MACHINE_START(IPQ806X_NBG6816, "ZyXEL NBG6816 board")
+ 	.restart = msm_restart,
+ MACHINE_END
+ 
++MACHINE_START(IPQ806X_NBG6817, "ZyXEL NBG6817 board")
++	.map_io = ipq806x_map_io,
++	.reserve = ipq806x_reserve,
++	.init_irq = ipq806x_init_irq,
++	.handle_irq = gic_handle_irq,
++	.timer = &msm_timer,
++	.init_machine = ipq806x_init,
++	.init_early = ipq806x_allocate_memory_regions,
++	.init_very_early = ipq806x_early_reserve,
++	.restart = msm_restart,
++MACHINE_END
++
+diff --git a/arch/arm/mach-msm/board-ipq806x.h b/arch/arm/mach-msm/board-ipq806x.h
+index 1f10e23..eeb195a 100644
+--- a/arch/arm/mach-msm/board-ipq806x.h
++++ b/arch/arm/mach-msm/board-ipq806x.h
+@@ -227,4 +227,33 @@ extern struct msm_cache_dump_platform_data ipq806x_cache_dump_pdata;
+ #define NBG6816_KEYS_POLL_INTERVAL	20	/* msecs */
+ #define NBG6816_KEYS_DEBOUNCE_INTERVAL	(3 * NBG6816_KEYS_POLL_INTERVAL)
+ 
++/* nbg6817 */
++
++//USB
++#define NBG6817GPIO_USB3_PWR 14 //Output low
++#define NBG6817GPIO_USB3_OVC 15
++#define NBG6817GPIO_USB1_PWR 17 //Output low
++#define NBG6817GPIO_USB1_OVC 16
++
++// LEDs
++#define NBG6817GPIO_LED_POWER           9
++#define NBG6817GPIO_LED_WLAN_5G         26
++#define NBG6817GPIO_LED_WLAN_2G         33
++#define NBG6817GPIO_LED_INTERNET        64
++
++//Buttons
++#define NBG6817GPIO_BTN_WPS             65
++#define NBG6817GPIO_BTN_RESET           54
++#define NBG6817GPIO_BTN_WLAN_DISABLE    53
++#define NBG6817GPIO_WLAN_DISABLE 6 //Output high
++
++//Switch mode //110:Client mode, 101:AP mode(default), 011:Router mode
++//low active
++#define NBG6817GPIO_MODE_SW0 23 //left
++#define NBG6817GPIO_MODE_SW1 24 //middle
++#define NBG6817GPIO_MODE_SW2 25 //right
++
++#define NBG6817_KEYS_POLL_INTERVAL	20	/* msecs */
++#define NBG6817_KEYS_DEBOUNCE_INTERVAL	(3 * NBG6817_KEYS_POLL_INTERVAL)
++
+ #endif
+diff --git a/arch/arm/mach-msm/socinfo.c b/arch/arm/mach-msm/socinfo.c
+index 0bbf22e..d357108 100644
+--- a/arch/arm/mach-msm/socinfo.c
++++ b/arch/arm/mach-msm/socinfo.c
+@@ -720,7 +720,8 @@ static void * __init setup_dummy_socinfo(void)
+ 		machine_is_ipq806x_ap160_2xx() ||
+ 		machine_is_ipq806x_ap161() ||
+ 		machine_is_ipq806x_ak01_1xx() ||
+-		machine_is_ipq806x_nbg6816()) {		
++		machine_is_ipq806x_nbg6816() ||
++		machine_is_ipq806x_nbg6817()) {
+ 		dummy_socinfo.id = 202;
+ 	}
+ 	strlcat(dummy_socinfo.build_id, "Dummy socinfo",
+diff --git a/arch/arm/tools/mach-types b/arch/arm/tools/mach-types
+index f18b81e..d044e09 100644
+--- a/arch/arm/tools/mach-types
++++ b/arch/arm/tools/mach-types
+@@ -1208,3 +1208,4 @@ ipq806x_ap160_2xx	MACH_IPQ806X_AP160_2XX	IPQ806X_AP160_2XX	4991
+ ipq806x_ap161		MACH_IPQ806X_AP161	IPQ806X_AP161		4972
+ ipq806x_ak01_1xx	MACH_IPQ806X_AK01_1XX	IPQ806X_AK01_1XX	5020
+ ipq806x_nbg6816		MACH_IPQ806X_NBG6816	IPQ806X_NBG6816		4705
++ipq806x_nbg6817		MACH_IPQ806X_NBG6817	IPQ806X_NBG6817		4973
+-- 
+1.9.1
+

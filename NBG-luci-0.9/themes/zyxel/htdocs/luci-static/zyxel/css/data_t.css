@@ -1,0 +1,57 @@
+@charset "utf-8";
+/* CSS Document */
+
+body {
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+
+}
+
+.a1 a{
+
+	height: 40px;
+	width: 100%;
+
+	display: block;
+	background-image: url(../img/b1.png);
+	background-repeat: repeat;
+	font-size: 16px;
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	color: #fff;
+	padding-left: 30px;
+
+}
+.b1 a{
+	float: left;
+	display: block;
+	width: 80px;
+	height: 38px;
+	background-image: url(../img/b2.png);
+	background-repeat: repeat;
+	font-size: 16px;
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #fff;
+	padding-left: 32px;
+	line-height: 40px;	
+	margin-left: 2px;
+	}
+	
+	
+.b2 a{
+	float: left;
+	display: block;
+	width: 80px;
+	height: 38px;
+	background-image: url(../img/b2.png);
+	background-repeat: repeat;
+	font-size: 16px;
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	color: #fff;
+	padding-left: 32px;
+	line-height: 40px;
+	 margin-left: 2px;	
+	}
+

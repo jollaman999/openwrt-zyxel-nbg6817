@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# wlanconfig format: 
+#  1    2   3    4      5      6    7    8     9     10   11    12  13    14             15       16   17        18 
+# ADDR AID CHAN TXRATE RXRATE RSSI IDLE TXSEQ RXSEQ CAPS ACAPS ERP STATE MAXRATE(DOT11) HTCAPS   MODE ASSOCTIME PSMODE
+
+#wlanconfig ath10 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath10"}' | grep -v ADDR > /tmp/assoc_list.24g
+#wlanconfig ath11 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath11"}' | grep -v ADDR >> /tmp/assoc_list.24g
+#wlanconfig ath12 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath12"}' | grep -v ADDR >> /tmp/assoc_list.24g
+#wlanconfig ath13 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath13"}' | grep -v ADDR >> /tmp/assoc_list.24g
+ASSOC_LIST_24G=/tmp/assoc_list.24g
+ASSOC_LIST_24G_TMP=/tmp/assoc_list_tmp.24g
+ASSOC_LIST_24G_TMP2=/tmp/assoc_list_tmp2.24g
+
+rm $ASSOC_LIST_24G
+
+wlanconfig ath10 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath10"}' | grep -v ADDR > $ASSOC_LIST_24G_TMP
+wlanconfig ath11 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath11"}' | grep -v ADDR >> $ASSOC_LIST_24G_TMP
+wlanconfig ath12 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath12"}' | grep -v ADDR >> $ASSOC_LIST_24G_TMP
+wlanconfig ath13 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath13"}' | grep -v ADDR >> $ASSOC_LIST_24G_TMP
+
+exec < $ASSOC_LIST_24G_TMP
+
+while read line
+do
+    mac=$(echo $line | awk '{print $1}')
+    apstats -s -m $mac > $ASSOC_LIST_24G_TMP2
+
+    Tx_Packets=$(cat $ASSOC_LIST_24G_TMP2 | grep "Tx Data Packets" | awk '{print $8}')
+    Rx_Packets=$(cat $ASSOC_LIST_24G_TMP2 | grep "Rx Data Packets" | awk '{print $5}')
+
+    echo $line $Tx_Packets $Rx_Packets
+    echo $line $Tx_Packets $Rx_Packets >> $ASSOC_LIST_24G
+    rm $ASSOC_LIST_24G_TMP2
+done
+
+rm $ASSOC_LIST_24G_TMP
+
+
+#wlanconfig ath0 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath0"}' | grep -v ADDR > /tmp/assoc_list.5g
+#wlanconfig ath1 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath1"}' | grep -v ADDR >> /tmp/assoc_list.5g
+#wlanconfig ath2 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath2"}' | grep -v ADDR >> /tmp/assoc_list.5g
+#wlanconfig ath3 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath3"}' | grep -v ADDR >> /tmp/assoc_list.5g
+ASSOC_LIST_5G=/tmp/assoc_list.5g
+ASSOC_LIST_5G_TMP=/tmp/assoc_list_tmp.5g
+ASSOC_LIST_5G_TMP2=/tmp/assoc_list_tmp2.5g
+
+rm $ASSOC_LIST_5G
+
+wlanconfig ath0 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath0"}' | grep -v ADDR > $ASSOC_LIST_5G_TMP
+wlanconfig ath1 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath1"}' | grep -v ADDR >> $ASSOC_LIST_5G_TMP
+wlanconfig ath2 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath2"}' | grep -v ADDR >> $ASSOC_LIST_5G_TMP
+wlanconfig ath3 list 2>/dev/null | awk '{print $1" "$4" "$6 " ath3"}' | grep -v ADDR >> $ASSOC_LIST_5G_TMP
+
+exec < $ASSOC_LIST_5G_TMP
+
+while read line
+do
+    mac=$(echo $line | awk '{print $1}')
+    apstats -s -m $mac > $ASSOC_LIST_5G_TMP2
+
+    Tx_Packets=$(cat $ASSOC_LIST_5G_TMP2 | grep "Tx Data Packets" | awk '{print $8}')
+    Rx_Packets=$(cat $ASSOC_LIST_5G_TMP2 | grep "Rx Data Packets" | awk '{print $5}')
+
+    echo $line $Tx_Packets $Rx_Packets
+    echo $line $Tx_Packets $Rx_Packets >> $ASSOC_LIST_5G
+    rm $ASSOC_LIST_5G_TMP2
+done
+
+rm $ASSOC_LIST_5G_TMP

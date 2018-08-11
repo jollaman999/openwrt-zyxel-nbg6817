@@ -1,0 +1,25 @@
+From c10606d58a4f05e12018ea6ddcbcda61ed908f78 Mon Sep 17 00:00:00 2001
+From: kevinchen <kuenhwa@gmail.com>
+Date: Mon, 7 Sep 2015 10:05:58 +0800
+Subject: [PATCH 8/8] ZYXEL_fixed_failed_open_ste_rmi4_Kconfig
+
+---
+ drivers/staging/Kconfig | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/staging/Kconfig b/drivers/staging/Kconfig
+index bcec934..b3ba3df 100644
+--- a/drivers/staging/Kconfig
++++ b/drivers/staging/Kconfig
+@@ -116,8 +116,6 @@ source "drivers/staging/speakup/Kconfig"
+ 
+ source "drivers/staging/cptm1217/Kconfig"
+ 
+-source "drivers/staging/ste_rmi4/Kconfig"
+-
+ source "drivers/staging/mei/Kconfig"
+ 
+ source "drivers/staging/nvec/Kconfig"
+-- 
+1.9.1
+

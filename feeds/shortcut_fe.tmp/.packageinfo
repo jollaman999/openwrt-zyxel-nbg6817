@@ -1,0 +1,108 @@
+Source-Makefile: feeds/shortcut_fe/shortcut-fe/Makefile
+Package: kmod-shortcut-fe
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: 
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for SFE
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_EVENTS=y
+Description: Kernel driver for SFE
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+Package: kmod-shortcut-fe-cm
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-ipt-conntrack +kmod-shortcut-fe +kmod-ipv6
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for SFE
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y
+Description: Kernel driver for SFE
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+
+Source-Makefile: feeds/shortcut_fe/fast-classifier/Makefile
+Package: kmod-fast-classifier
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-shortcut-fe
+Menu-Depends: 
+Provides: fast-classifier
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for FAST Classifier
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: fast-classifier-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y
+Description: FAST Classifier talks to SFE to make decisions about offloading connections
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+Package: kmod-fast-classifier-noload
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-shortcut-fe
+Menu-Depends: 
+Provides: fast-classifier
+Section: kernel
+Category: Kernel modules
+Title: Kernel driver for FAST Classifier
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: fast-classifier-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Kernel-Config: CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y
+Description: FAST Classifier talks to SFE to make decisions about offloading connections
+
+This package does not load fast-classifier at boot by default
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+Package: fast-classifier-example
+Version: gf7b97d9-dirty-1
+Depends: +libc +USE_EGLIBC:librt +USE_EGLIBC:libpthread +libnl-bf +libfast-classifier
+Menu-Depends: 
+Provides: 
+Section: opt
+Category: Extra packages
+Title: Example user space program for fast-classifier
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: fast-classifier-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Description: Example user space program that communicates with fast
+classifier kernel module
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+
+Source-Makefile: feeds/shortcut_fe/simulated-driver/Makefile
+Package: kmod-shortcut-fe-drv
+Submenu: Network Support
+Version: <LINUX_VERSION>+gf7b97d9-dirty-1
+Depends: +kmod-shortcut-fe
+Menu-Depends: 
+Provides: 
+Section: kernel
+Category: Kernel modules
+Title: Simulated sfe driver for ECM
+Maintainer: OpenWrt Developers Team <openwrt-devel@openwrt.org>
+Source: shortcut-fe-simulated-driver-gf7b97d9-dirty.tar.gz
+Type: ipkg
+Description: Simulated sfe driver for ECM
+OpenWrt Developers Team <openwrt-devel@openwrt.org>
+@@
+
+
